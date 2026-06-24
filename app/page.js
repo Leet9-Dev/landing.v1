@@ -294,7 +294,8 @@ export default function LandingPage() {
               maxWidth:"80vw",
               height:"auto",
               objectFit:"contain",
-              filter:"drop-shadow(0 0 20px rgba(124,58,237,0.4))",
+              filter:"invert(1) hue-rotate(180deg) drop-shadow(0 0 20px rgba(124,58,237,0.5))",
+              mixBlendMode:"screen",
               transition:"width 0.5s ease",
             }}
           />
