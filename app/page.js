@@ -389,11 +389,6 @@ export default function LandingPage() {
                 disabled={!!loadingProvider}
               />
               <ProviderBtn
-                icon="PS"
-                label="Continue with PlayStation"
-                disabled={true}
-              />
-              <ProviderBtn
                 icon={loadingProvider === "steam"
                   ? <span style={{ width:20,height:20,border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",borderRadius:"50%",display:"inline-block",animation:"spin 0.7s linear infinite" }}/>
                   : "S"}
