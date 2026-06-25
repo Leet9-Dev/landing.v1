@@ -95,30 +95,31 @@ function PortalPulse({ active }) {
   );
 }
 
-function ProviderBtn({ icon, label, onClick, disabled }) {
+function ProviderBtn({ icon, label, onClick, disabled, comingSoon }) {
   const [h, setH] = useState(false);
+  const inactive = disabled || comingSoon;
   return (
     <button
-      onClick={disabled ? undefined : onClick}
-      onMouseEnter={() => !disabled && setH(true)}
+      onClick={inactive ? undefined : onClick}
+      onMouseEnter={() => !inactive && setH(true)}
       onMouseLeave={() => setH(false)}
-      disabled={disabled}
+      disabled={inactive}
       style={{
         display:"flex", alignItems:"center", gap:14,
         width:"100%", padding:"14px 20px",
-        background: disabled ? "rgba(255,255,255,0.02)" : h ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.04)",
-        border:`1px solid ${disabled ? "rgba(255,255,255,0.05)" : h ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.1)"}`,
-        borderRadius:12, cursor: disabled ? "not-allowed" : "pointer",
-        color: disabled ? "rgba(255,255,255,0.25)" : "#F1F3F9",
+        background: inactive ? "rgba(255,255,255,0.02)" : h ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.04)",
+        border:`1px solid ${inactive ? "rgba(255,255,255,0.05)" : h ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.1)"}`,
+        borderRadius:12, cursor: inactive ? "not-allowed" : "pointer",
+        color: inactive ? "rgba(255,255,255,0.25)" : "#F1F3F9",
         fontFamily:"'Outfit', sans-serif",
         fontSize:15, fontWeight:600, letterSpacing:0.2,
         transition:"all 0.18s",
-        transform: h && !disabled ? "translateY(-1px)" : "none",
-        boxShadow: h && !disabled ? "0 8px 24px rgba(0,0,0,0.4)" : "none",
+        transform: h && !inactive ? "translateY(-1px)" : "none",
+        boxShadow: h && !inactive ? "0 8px 24px rgba(0,0,0,0.4)" : "none",
       }}>
-      <span style={{ fontSize:20, width:28, textAlign:"center", flexShrink:0, opacity: disabled ? 0.3 : 1 }}>{icon}</span>
+      <span style={{ fontSize:20, width:28, textAlign:"center", flexShrink:0, opacity: inactive ? 0.3 : 1 }}>{icon}</span>
       <span style={{ flex:1, textAlign:"left" }}>{label}</span>
-      {disabled && (
+      {comingSoon && (
         <span style={{ fontSize:10, padding:"2px 8px", borderRadius:99, background:"rgba(255,255,255,0.05)", color:"rgba(255,255,255,0.25)", letterSpacing:"0.05em" }}>
           soon
         </span>
@@ -395,6 +396,7 @@ export default function LandingPage() {
                 label="Continue with Steam"
                 onClick={() => handleSignIn("steam")}
                 disabled={!!loadingProvider}
+                comingSoon={true}
               />
             </div>
 
