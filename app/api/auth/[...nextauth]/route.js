@@ -1,6 +1,10 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import SteamProvider from "next-auth-steam";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 const providers = [
   GoogleProvider({
@@ -32,7 +36,11 @@ if (process.env.STEAM_SECRET && !process.env.STEAM_SECRET.startsWith("INCOLLA"))
 }
 
 export const authOptions = {
+  adapter: PrismaAdapter(prisma),
   providers,
+  session: {
+    strategy: "jwt",
+  },
   callbacks: {
     async session({ session, token }) {
       session.user.id = token.sub;
