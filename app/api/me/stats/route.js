@@ -34,7 +34,7 @@ export async function GET() {
     const account = MOCK_PLATFORM_ACCOUNTS.find((a) => a.provider === p.provider);
     return {
       ...p,
-      status: account?.status ?? "not_connected",
+      status: account?.status ?? "disconnected",
       confidence: account?.confidence ?? "Incomplete",
       lastSyncAt: account?.lastSyncAt ?? null,
       summary: account?.summary ?? null,
