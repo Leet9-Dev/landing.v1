@@ -4,7 +4,7 @@ import { ProfileTabs } from "@/components/profile/ProfileTabs";
 import { ProfileOverview } from "@/components/profile/ProfileOverview";
 import { ProfileGames } from "@/components/profile/ProfileGames";
 import { ProfileStats } from "@/components/profile/ProfileStats";
-import { ProfilePlaceholder } from "@/components/profile/ProfilePlaceholder";
+import { ProfileTribe } from "@/components/profile/ProfileTribe";
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -16,21 +16,7 @@ export default function ProfilePage() {
       {activeTab === "overview" && <ProfileOverview />}
       {activeTab === "games" && <ProfileGames />}
       {activeTab === "stats" && <ProfileStats />}
-      {activeTab === "tribe" && (
-        <ProfilePlaceholder
-          icon="⬡"
-          label="Tribe"
-          description="Join a tribe to track shared rankings, roles, and most-played games with your community."
-          upcoming={[
-            "Tribe identity",
-            "Members",
-            "Roles",
-            "Tribe stats",
-            "Most-played games",
-            "Tribe rankings",
-          ]}
-        />
-      )}
+      {activeTab === "tribe" && <ProfileTribe />}
     </div>
   );
 }
