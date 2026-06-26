@@ -1,5 +1,5 @@
 import { MOCK_PLATFORM_ACCOUNTS } from "@/lib/mock/platformAccounts";
-import { getPlatform, PLATFORM_ACCOUNT_STATUS_LABELS } from "@/lib/platforms/platforms";
+import { getPlatform, PLATFORM_ACCOUNT_STATUS_LABELS, PLATFORM_SYNC_STATUS_LABELS } from "@/lib/platforms/platforms";
 import { apiOk } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 
@@ -15,6 +15,7 @@ export async function GET() {
     return {
       ...a,
       statusLabel: PLATFORM_ACCOUNT_STATUS_LABELS[a.status] ?? a.status,
+      syncStatusLabel: PLATFORM_SYNC_STATUS_LABELS[a.syncStatus] ?? a.syncStatus,
       capabilities: platform?.capabilities ?? null,
       label: platform?.label ?? a.provider,
     };
