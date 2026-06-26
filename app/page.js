@@ -170,7 +170,7 @@ export default function LandingPage() {
 
   async function handleSignIn(provider) {
     setLoadingProvider(provider);
-    await signIn(provider, { callbackUrl: "/dashboard" });
+    await signIn(provider, { callbackUrl: "/app" });
   }
 
   if (status === "loading") {
