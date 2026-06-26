@@ -52,6 +52,9 @@ as illustrative.
 - [ ] No duplicate canonical games
 - [ ] Game cards show source platform badges
 - [ ] Game cards open Game Deep Dive
+- [ ] Discovery shows at least one Steam-only game (e.g. Hollow Knight)
+- [ ] Discovery shows at least one PSN-only game (e.g. God of War Ragnarök)
+- [ ] Discovery shows a Steam+PSN game once with both badges (e.g. Elden Ring)
 
 ## Game Deep Dive
 
@@ -131,6 +134,28 @@ as illustrative.
 - [ ] Current user tribe is highlighted
 - [ ] No tribe management actions exist
 
+## Platform Integration Readiness
+
+Mock-backed platform-agnostic readiness (no real Steam/PSN sync yet).
+
+- [ ] Platform Sources section renders on Profile Overview
+- [ ] Steam status renders (connected)
+- [ ] PSN status renders (not connected)
+- [ ] PSN placeholder connect CTA is clearly non-functional (disabled, "Soon")
+- [ ] Each platform shows what it contributes (library / achievements / trophies / playtime)
+- [ ] Last sync status renders for connected Steam
+- [ ] "Real platform sync coming later" note is visible
+- [ ] Discovery shows a Steam-only game
+- [ ] Discovery shows a PSN-only game
+- [ ] Discovery shows a Steam+PSN game once with both badges
+- [ ] No duplicate canonical games appear in Discovery
+- [ ] `/api/platforms` returns supported providers and capabilities (200)
+- [ ] `/api/platforms/detected-games` (signed in) returns matched + unmatched detections
+- [ ] Same game detected on Steam + PSN collapses to one canonical game
+- [ ] Unmatched detected game is reported separately (not added to Discovery)
+- [ ] Unauthenticated `/api/me/platform-accounts` returns `UNAUTHENTICATED`
+- [ ] Unauthenticated `/api/platforms/detected-games` returns `UNAUTHENTICATED`
+
 ## API / Auth Smoke Tests
 
 When signed out, each protected endpoint should return HTTP 401 with
@@ -147,6 +172,9 @@ When signed out, each protected endpoint should return HTTP 401 with
 - [ ] Unauthenticated `/api/me/tribe` returns 401
 - [ ] Unauthenticated `/api/tribes/tribe_neon_wolves` returns 401
 - [ ] Unauthenticated `/api/tribes/tribe_neon_wolves/members` returns 401
+- [ ] Unauthenticated `/api/me/platform-accounts` returns 401
+- [ ] Unauthenticated `/api/platforms/detected-games` returns 401
+- [ ] `/api/platforms` returns 200 (public metadata)
 
 ## Regression Before Real Data
 

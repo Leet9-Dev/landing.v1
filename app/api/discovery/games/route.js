@@ -1,4 +1,6 @@
 import { MOCK_GAMES } from "@/lib/mock/games";
+import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
+import { buildSourcePlatformMap } from "@/lib/platforms/canonicalMatching";
 import { apiOk } from "@/lib/api/response";
 
 export async function GET(request) {
@@ -9,7 +11,15 @@ export async function GET(request) {
   const recentOnly = searchParams.get("recentOnly") === "true";
   const trendingOnly = searchParams.get("trendingOnly") === "true";
 
-  let games = [...MOCK_GAMES];
+  // Discovery is platform-agnostic. Each canonical game appears once; its source
+  // badges are derived from the normalized GameExternalSource records (not raw
+  // platform data), so Steam-only, PSN-only, and Steam+PSN games are all handled
+  // explicitly. Falls back to the game's own value if no source records exist.
+  const sourceMap = buildSourcePlatformMap(MOCK_EXTERNAL_SOURCES);
+  let games = MOCK_GAMES.map((g) => ({
+    ...g,
+    sourcePlatforms: sourceMap.get(g.id) ?? g.sourcePlatforms,
+  }));
 
   if (q) {
     games = games.filter(
