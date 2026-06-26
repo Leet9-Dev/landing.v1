@@ -1,9 +1,13 @@
 "use client";
 import { signOut } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import { NAV_ITEMS } from "@/lib/navigation";
 
-export function TopBar({ active, user }) {
-  const section = NAV_ITEMS.find(n => n.id === active);
+export function TopBar({ user }) {
+  const pathname = usePathname();
+  const section = NAV_ITEMS.find(
+    (n) => pathname === n.href || pathname.startsWith(n.href + "/")
+  );
 
   return (
     <header style={{
