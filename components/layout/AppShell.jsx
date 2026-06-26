@@ -1,13 +1,8 @@
 "use client";
-import { useState } from "react";
 import { Sidebar, SIDEBAR_W } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
-import { NAV_ITEMS } from "@/lib/navigation";
 
-export function AppShell({ user }) {
-  const [active, setActive] = useState("discovery");
-  const section = NAV_ITEMS.find(n => n.id === active);
-
+export function AppShell({ user, children }) {
   return (
     <div style={{
       background: "#07080F",
@@ -23,7 +18,7 @@ export function AppShell({ user }) {
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
       `}</style>
 
-      <Sidebar active={active} onSelect={setActive} />
+      <Sidebar />
 
       <div style={{
         marginLeft: SIDEBAR_W,
@@ -31,68 +26,11 @@ export function AppShell({ user }) {
         flexDirection: "column",
         minHeight: "100vh",
       }}>
-        <TopBar active={active} user={user} />
+        <TopBar user={user} />
 
-        <main style={{ flex: 1, padding: "36px 32px" }}>
-          <PlaceholderPanel section={section} />
+        <main style={{ flex: 1 }}>
+          {children}
         </main>
-      </div>
-    </div>
-  );
-}
-
-function PlaceholderPanel({ section }) {
-  if (!section) return null;
-
-  return (
-    <div style={{
-      border: "1px dashed rgba(255,255,255,0.09)",
-      borderRadius: 16,
-      padding: "72px 40px",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 14,
-      minHeight: 340,
-      background: "rgba(255,255,255,0.012)",
-      textAlign: "center",
-    }}>
-      <div style={{ fontSize: 36, opacity: 0.2 }}>
-        {section.icon}
-      </div>
-      <div style={{
-        fontSize: 18,
-        fontWeight: 700,
-        color: "rgba(241,243,249,0.55)",
-        letterSpacing: "-0.01em",
-        fontFamily: "'Outfit', sans-serif",
-      }}>
-        {section.label}
-      </div>
-      <div style={{
-        fontSize: 14,
-        color: "rgba(241,243,249,0.28)",
-        maxWidth: 380,
-        lineHeight: 1.65,
-        fontFamily: "'Outfit', sans-serif",
-      }}>
-        {section.placeholder}
-      </div>
-      <div style={{
-        marginTop: 6,
-        fontSize: 10,
-        fontWeight: 700,
-        color: "rgba(200,255,0,0.3)",
-        letterSpacing: "0.14em",
-        textTransform: "uppercase",
-        padding: "4px 12px",
-        borderRadius: 99,
-        border: "1px solid rgba(200,255,0,0.12)",
-        background: "rgba(200,255,0,0.03)",
-        fontFamily: "'Outfit', sans-serif",
-      }}>
-        Coming soon
       </div>
     </div>
   );

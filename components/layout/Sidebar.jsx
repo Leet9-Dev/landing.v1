@@ -3,7 +3,7 @@ import { AppNav } from "@/components/navigation/AppNav";
 
 export const SIDEBAR_W = 220;
 
-export function Sidebar({ active, onSelect }) {
+export function Sidebar() {
   return (
     <aside style={{
       width: SIDEBAR_W,
@@ -60,7 +60,7 @@ export function Sidebar({ active, onSelect }) {
         }}>
           Menu
         </div>
-        <AppNav active={active} onSelect={onSelect} />
+        <AppNav />
       </div>
 
       {/* Footer */}
