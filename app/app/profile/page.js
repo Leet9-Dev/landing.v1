@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ProfileTabs } from "@/components/profile/ProfileTabs";
 import { ProfileOverview } from "@/components/profile/ProfileOverview";
 import { ProfileGames } from "@/components/profile/ProfileGames";
+import { ProfileStats } from "@/components/profile/ProfileStats";
 import { ProfilePlaceholder } from "@/components/profile/ProfilePlaceholder";
 
 export default function ProfilePage() {
@@ -14,22 +15,7 @@ export default function ProfilePage() {
 
       {activeTab === "overview" && <ProfileOverview />}
       {activeTab === "games" && <ProfileGames />}
-      {activeTab === "stats" && (
-        <ProfilePlaceholder
-          icon="◆"
-          label="Stats"
-          description="Your Gamer DNA, L9 point breakdown, mastery summary, and momentum will appear here once the stats engine is built."
-          upcoming={[
-            "L9 point breakdown",
-            "Platform confidence",
-            "Playtime identity",
-            "Achievements & rarity",
-            "Gamer DNA",
-            "Momentum",
-            "Mastery summary",
-          ]}
-        />
-      )}
+      {activeTab === "stats" && <ProfileStats />}
       {activeTab === "tribe" && (
         <ProfilePlaceholder
           icon="⬡"
