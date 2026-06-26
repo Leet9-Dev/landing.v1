@@ -1,29 +1,32 @@
 "use client";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { NAV_ITEMS } from "@/lib/navigation";
 
-export function AppNav({ active, onSelect }) {
+export function AppNav() {
+  const pathname = usePathname();
+
   return (
     <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {NAV_ITEMS.map((item) => {
-        const isActive = active === item.id;
+        const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
         return (
-          <button
+          <Link
             key={item.id}
-            onClick={() => onSelect(item.id)}
+            href={item.href}
             style={{
               display: "flex",
               alignItems: "center",
               gap: 12,
               padding: "10px 14px",
               borderRadius: 9,
-              border: "none",
               borderLeft: `2px solid ${isActive ? "#C8FF00" : "transparent"}`,
               background: isActive ? "rgba(200,255,0,0.07)" : "transparent",
               color: isActive ? "#C8FF00" : "rgba(241,243,249,0.4)",
               fontFamily: "'Outfit', sans-serif",
               fontSize: 14,
               fontWeight: isActive ? 700 : 500,
-              cursor: "pointer",
+              textDecoration: "none",
               textAlign: "left",
               letterSpacing: 0.1,
               transition: "all 0.15s",
@@ -46,7 +49,7 @@ export function AppNav({ active, onSelect }) {
               {item.icon}
             </span>
             <span>{item.label}</span>
-          </button>
+          </Link>
         );
       })}
     </nav>
