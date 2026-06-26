@@ -176,6 +176,24 @@ When signed out, each protected endpoint should return HTTP 401 with
 - [ ] Unauthenticated `/api/platforms/detected-games` returns 401
 - [ ] `/api/platforms` returns 200 (public metadata)
 
+## Platform Status Vocabulary Consistency
+
+Before any real Steam/PSN integration, verify the official vocabulary is used
+everywhere. Constants live in `lib/platforms/platforms.js`.
+
+Connection status values (must be one of):
+- `connected` · `disconnected` · `needs_reauth` · `unavailable`
+
+Sync status values (must be one of):
+- `idle` · `syncing` · `success` · `failed` · `partial`
+
+- [ ] `lib/mock/platformAccounts.js` uses only official `status` values
+- [ ] `lib/mock/platformAccounts.js` uses only official `syncStatus` values
+- [ ] `/api/me/platform-accounts` response includes `statusLabel` and `syncStatusLabel`
+- [ ] `/api/platforms` response includes `connectionStatuses` and `syncStatuses`
+- [ ] No code references old/unofficial status strings (`not_connected`, `expired`, `sync_failed`, `revoked`)
+- [ ] `docs/PLATFORM_INTEGRATION_READINESS.md` vocabulary tables match `lib/platforms/platforms.js`
+
 ## Regression Before Real Data
 
 - [ ] `npm run lint` passes

@@ -105,14 +105,54 @@ the UI.
 
 None of the above is implemented in this phase.
 
-## 9. Relevant code (this phase)
+## 9. Official platform status vocabulary
 
-- `lib/platforms/platforms.js` — providers, capabilities, normalized statuses
+All platform-related code must use these values. The constants live in
+`lib/platforms/platforms.js` and are the single source of truth.
+
+### Connection status (`status` field on a platform account)
+
+Describes whether the platform account is connected.
+
+| Value | Meaning |
+|---|---|
+| `connected` | Account is linked and active |
+| `disconnected` | Not connected / never linked |
+| `needs_reauth` | Was connected but requires re-authentication |
+| `unavailable` | Platform integration temporarily unavailable |
+
+### Sync status (`syncStatus` field on a platform account)
+
+Describes the outcome of the latest data sync attempt.
+
+| Value | Meaning |
+|---|---|
+| `idle` | Never synced (connected but no sync run yet) |
+| `syncing` | Sync currently in progress |
+| `success` | Last sync completed successfully |
+| `failed` | Last sync failed |
+| `partial` | Last sync completed with partial data only |
+
+### Key distinction
+
+- **connection status** — is the platform account linked?
+- **sync status** — did the last data import succeed?
+
+Example:
+
+```json
+{ "provider": "steam",  "status": "connected",    "syncStatus": "success" }
+{ "provider": "psn",    "status": "disconnected",  "syncStatus": "idle"    }
+```
+
+## 10. Relevant code
+
+- `lib/platforms/platforms.js` — providers, capabilities, all official status constants
 - `lib/platforms/normalization.js` — normalized detected-game / external-source shapes
 - `lib/platforms/canonicalMatching.js` — canonical matching + source derivation
 - `lib/mock/platformDetectedGames.js` — raw Steam/PSN detected games (mock)
 - `lib/mock/platformAccounts.js` — Steam connected / PSN disconnected (mock)
 - `lib/mock/gameExternalSources.js` — externalId → canonical gameId mapping (mock)
-- `app/api/platforms` — public platform metadata
+- `app/api/platforms` — public platform metadata (providers + status vocabularies)
 - `app/api/me/platform-accounts` — current user's platform states (auth)
 - `app/api/platforms/detected-games` — normalized detected games (auth)

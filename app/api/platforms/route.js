@@ -1,4 +1,4 @@
-import { SUPPORTED_PLATFORMS, PLATFORM_ACCOUNT_STATUS_LABELS } from "@/lib/platforms/platforms";
+import { SUPPORTED_PLATFORMS, PLATFORM_ACCOUNT_STATUS_LABELS, PLATFORM_SYNC_STATUS_LABELS } from "@/lib/platforms/platforms";
 import { apiOk } from "@/lib/api/response";
 
 // Public platform metadata: which providers Leet9 supports as game-data sources
@@ -16,6 +16,7 @@ export async function GET() {
 
   return apiOk({
     providers,
-    statuses: PLATFORM_ACCOUNT_STATUS_LABELS,
+    connectionStatuses: PLATFORM_ACCOUNT_STATUS_LABELS,
+    syncStatuses: PLATFORM_SYNC_STATUS_LABELS,
   });
 }
