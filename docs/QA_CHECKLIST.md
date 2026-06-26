@@ -176,6 +176,25 @@ When signed out, each protected endpoint should return HTTP 401 with
 - [ ] Unauthenticated `/api/platforms/detected-games` returns 401
 - [ ] `/api/platforms` returns 200 (public metadata)
 
+## Steam Sync Preparation (Phase 9)
+
+Dry-run only — no real Steam API is called, nothing is persisted.
+
+- [ ] `GET /api/integrations/steam/sync-preview` returns 401 when signed out
+- [ ] `GET /api/integrations/steam/sync-preview` (signed in) returns `mode: "dry_run"`
+- [ ] Response includes `provider: "steam"`
+- [ ] `summary.rawGamesDetected` is > 0
+- [ ] `matchedGames` contains games with valid `canonicalGameId`
+- [ ] `unmatchedGames` contains games with no canonical mapping
+- [ ] `plannedUserGameCreates` and `plannedUserGameUpdates` are clearly separated
+- [ ] `warnings` array is present and non-empty
+- [ ] `dryRunNote` confirms no data was persisted
+- [ ] Platform Sources section shows Steam Library Sync readiness card
+- [ ] Steam readiness card shows "PREPARED" badge
+- [ ] Steam readiness "Preview sync" button is disabled (not clickable)
+- [ ] No real Steam API call is made (no STEAM_API_KEY required)
+- [ ] No env vars or secrets are required for the sync preview
+
 ## Platform Status Vocabulary Consistency
 
 Before any real Steam/PSN integration, verify the official vocabulary is used

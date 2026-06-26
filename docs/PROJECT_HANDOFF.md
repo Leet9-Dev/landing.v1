@@ -24,6 +24,8 @@ data exists yet.
 | 5 | Profile Stats Vertical Slice | #9 |
 | 6 | Lightweight Tribe Vertical Slice | #10 |
 | 7 | Platform Integration Readiness | #11 |
+| 8 | Contract & Data Model Alignment | #13 |
+| 9 | Steam Library Sync Preparation (dry-run) | #14 |
 
 The product triangle — **Discovery** (what games exist in the community),
 **Profile** (who I am as a gamer), **Rankings** (how I compare) — is complete and
@@ -68,6 +70,9 @@ Platforms (Phase 7)
 - `GET /api/me/platform-accounts` — current user's Steam/PSN states
 - `GET /api/platforms/detected-games` — normalized detections + canonical mapping
 
+Steam sync dry-run (Phase 9)
+- `GET /api/integrations/steam/sync-preview` — dry-run sync plan (no persistence, no real Steam call)
+
 All `/api/me/*`, `/api/rankings/*`, `/api/tribes/*`, and
 `/api/platforms/detected-games` require a session (return
 `UNAUTHENTICATED` / HTTP 401 when signed out). `/api/discovery/*`,
@@ -90,8 +95,10 @@ Platform contracts live in `lib/platforms/` (`platforms.js`,
 ## Important docs
 
 - `docs/QA_CHECKLIST.md` — area-by-area manual QA backlog (deferred; owner: Mattia)
-- `docs/PLATFORM_INTEGRATION_READINESS.md` — platform-agnostic architecture, the
-  normalized ingestion flow, canonical matching, and future integration steps
+- `docs/PLATFORM_INTEGRATION_READINESS.md` — platform-agnostic architecture, normalized
+  ingestion flow, canonical matching, official status vocabulary, and future steps
+- `docs/STEAM_SYNC_PREPARATION.md` — Phase 9: what was prepared, what must happen before
+  real sync, normalized shape, dry-run plan shape, persistence needs, PSN parity note
 
 ## Important product rule
 
@@ -138,16 +145,18 @@ release or real-data integration. See `docs/QA_CHECKLIST.md`. Outstanding:
 
 ## Recommended next phase
 
-**Phase 8 — Contract & Data Model Alignment.**
+**Phase 10 — Real Steam Sync MVP** (or Persistence Model Planning first).
 
-**Why next:** the platform status vocabulary must be aligned before real
-Steam/PSN integration. Phase 7 introduced normalized account statuses
-(`connected` / `disconnected` / `needs_reauth` / `unavailable`) in
-`lib/platforms/platforms.js`, while the original `API_CONTRACT.md` /
-`DATA_MODEL.md` use an older set (`not_connected` / `expired` / `sync_failed` /
-`revoked`). These should be reconciled — along with the rest of the API/data-model
-contract — so the data shapes are stable before persistence and sync are built on
-top of them.
+Phase 9 built the dry-run preparation layer. The next logical step is:
+
+1. Add `STEAM_API_KEY` to Vercel env vars (Francesco's Steam developer key).
+2. Add the real Prisma schema tables: `PlatformAccount`, `DetectedGame`,
+   `GameExternalSource` (real), `UserGame` (real).
+3. Activate `steamClient.js` (flip `DRY_RUN = false`).
+4. Build the sync job: call `fetchSteamOwnedGames`, normalize, match, persist.
+5. Wire `sync-preview` to real data; keep dry-run mode as a flag.
+
+Do not activate real sync before persistence is in place.
 
 ## Suggested next commands (for Mattia)
 

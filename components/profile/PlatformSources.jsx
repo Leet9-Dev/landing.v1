@@ -39,10 +39,72 @@ export function PlatformSources() {
           <PlatformCard key={a.id} account={a} />
         ))}
       </div>
+      <SteamSyncReadinessCard />
+
       <div style={{ fontSize: 11, color: "rgba(241,243,249,0.3)", marginTop: 10, lineHeight: 1.6 }}>
         Leet9 is platform-agnostic: Steam and PSN are both first-class game-data sources that feed
         the same canonical catalogue. Real platform sync is coming later — these states are mock.
       </div>
+    </div>
+  );
+}
+
+function SteamSyncReadinessCard() {
+  return (
+    <div style={{
+      borderRadius: 12,
+      border: "1px dashed rgba(185,216,245,0.18)",
+      background: "rgba(185,216,245,0.02)",
+      padding: 16,
+      marginTop: 12,
+      display: "flex",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: 16,
+      flexWrap: "wrap",
+    }}>
+      <div style={{ flex: 1, minWidth: 200 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: "#b9d8f5", letterSpacing: "-0.01em" }}>
+            Steam Library Sync
+          </span>
+          <span style={{
+            fontSize: 9,
+            fontWeight: 700,
+            padding: "2px 7px",
+            borderRadius: 5,
+            background: "rgba(185,216,245,0.08)",
+            border: "1px solid rgba(185,216,245,0.2)",
+            color: "rgba(185,216,245,0.6)",
+            letterSpacing: "0.08em",
+          }}>
+            PREPARED
+          </span>
+        </div>
+        <div style={{ fontSize: 11, color: "rgba(241,243,249,0.38)", lineHeight: 1.55 }}>
+          The sync pipeline is ready: normalization, canonical matching, and dry-run planning are built.
+          Real sync requires a Steam API key and persistence layer — both coming in a future phase.
+        </div>
+      </div>
+      <button
+        disabled
+        title="Real sync requires Steam API key and persistence — coming soon"
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          padding: "7px 14px",
+          borderRadius: 8,
+          border: "1px solid rgba(185,216,245,0.15)",
+          background: "rgba(185,216,245,0.03)",
+          color: "rgba(185,216,245,0.35)",
+          cursor: "not-allowed",
+          fontFamily: "'Outfit', sans-serif",
+          flexShrink: 0,
+          whiteSpace: "nowrap",
+        }}
+      >
+        Preview sync · Coming soon
+      </button>
     </div>
   );
 }
