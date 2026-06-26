@@ -1,52 +1,29 @@
-export default function RankingsPage() {
-  return (
-    <div style={{ padding: "36px 32px" }}>
-      <PlaceholderPanel
-        icon="◆"
-        label="Rankings"
-        description="Player, game, and tribe rankings will appear here."
-      />
-    </div>
-  );
-}
+"use client";
+import { useState } from "react";
+import { RankingsTabs } from "@/components/rankings/RankingsTabs";
+import { PlayerRankings } from "@/components/rankings/PlayerRankings";
+import { GameRankings } from "@/components/rankings/GameRankings";
+import { TribeRankings } from "@/components/rankings/TribeRankings";
 
-function PlaceholderPanel({ icon, label, description }) {
+export default function RankingsPage() {
+  const [activeTab, setActiveTab] = useState("players");
+
   return (
-    <div style={{
-      border: "1px dashed rgba(255,255,255,0.09)",
-      borderRadius: 16,
-      padding: "72px 40px",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 14,
-      minHeight: 340,
-      background: "rgba(255,255,255,0.012)",
-      textAlign: "center",
-      fontFamily: "'Outfit', sans-serif",
-    }}>
-      <div style={{ fontSize: 36, opacity: 0.2 }}>{icon}</div>
-      <div style={{ fontSize: 18, fontWeight: 700, color: "rgba(241,243,249,0.55)", letterSpacing: "-0.01em" }}>
-        {label}
+    <div style={{ padding: "36px 32px", fontFamily: "'Outfit', sans-serif" }}>
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: "#F1F3F9", letterSpacing: "-0.02em", marginBottom: 6 }}>
+          Rankings
+        </h1>
+        <p style={{ fontSize: 13, color: "rgba(241,243,249,0.38)", fontWeight: 500 }}>
+          How players, games, and tribes compare across Leet9.
+        </p>
       </div>
-      <div style={{ fontSize: 14, color: "rgba(241,243,249,0.28)", maxWidth: 380, lineHeight: 1.65 }}>
-        {description}
-      </div>
-      <div style={{
-        marginTop: 6,
-        fontSize: 10,
-        fontWeight: 700,
-        color: "rgba(200,255,0,0.3)",
-        letterSpacing: "0.14em",
-        textTransform: "uppercase",
-        padding: "4px 12px",
-        borderRadius: 99,
-        border: "1px solid rgba(200,255,0,0.12)",
-        background: "rgba(200,255,0,0.03)",
-      }}>
-        Coming soon
-      </div>
+
+      <RankingsTabs active={activeTab} onChange={setActiveTab} />
+
+      {activeTab === "players" && <PlayerRankings />}
+      {activeTab === "games" && <GameRankings />}
+      {activeTab === "tribes" && <TribeRankings />}
     </div>
   );
 }
