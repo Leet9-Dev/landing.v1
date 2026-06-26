@@ -100,11 +100,23 @@ as illustrative.
 - [ ] Confidence language is visible
 - [ ] Unauthenticated `/api/me/stats` returns `UNAUTHENTICATED`
 
-## Profile Tribe Placeholder
+## Profile Tribe
 
 - [ ] Tribe tab loads
-- [ ] Placeholder text is intentional
-- [ ] No broken actions
+- [ ] Tribe hero renders (name, tag, motto)
+- [ ] Tribe emblem / initials render
+- [ ] Current user role renders (Your role badge in hero)
+- [ ] Tribe stats render (total L9, members/max, unique games, achievements, global rank)
+- [ ] Most-played games render
+- [ ] Most-played games link to Game Deep Dive
+- [ ] Members list renders
+- [ ] Current user member is highlighted (YOU badge + lime row)
+- [ ] Role badges render (founder / council / member)
+- [ ] Placeholder actions are clearly non-functional (disabled, "not active yet")
+- [ ] Unauthenticated `/api/me/tribe` returns `UNAUTHENTICATED`
+- [ ] Unauthenticated `/api/tribes/[tribeId]` returns `UNAUTHENTICATED`
+- [ ] Unauthenticated `/api/tribes/[tribeId]/members` returns `UNAUTHENTICATED`
+- [ ] `/api/tribes/[tribeId]` with an unknown id returns `TRIBE_NOT_FOUND` (404) when signed in
 
 ## Rankings
 
@@ -132,6 +144,9 @@ When signed out, each protected endpoint should return HTTP 401 with
 - [ ] Unauthenticated `/api/rankings/players` returns 401
 - [ ] Unauthenticated `/api/rankings/games` returns 401
 - [ ] Unauthenticated `/api/rankings/tribes` returns 401
+- [ ] Unauthenticated `/api/me/tribe` returns 401
+- [ ] Unauthenticated `/api/tribes/tribe_neon_wolves` returns 401
+- [ ] Unauthenticated `/api/tribes/tribe_neon_wolves/members` returns 401
 
 ## Regression Before Real Data
 
@@ -154,3 +169,4 @@ Not manually tested yet:
 - [ ] Steam provider real login (if not configured)
 - [ ] Cross-browser pass
 - [ ] Accessibility pass
+- [ ] Tribe management/admin (create, invite, leave, kick, promote, role transfer, settings) — deferred, not built
