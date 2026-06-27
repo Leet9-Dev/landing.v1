@@ -163,6 +163,17 @@ through the normal deploy process. The schema changes in this PR are validated
 and ready for that step. `npm run build` still passes because it runs
 `prisma generate` (which does not require a database connection).
 
+> **Phase 11 update — migration application is BLOCKED until DB safety is resolved.**
+> The schema exists, but **no migration has been applied**. Today there is only
+> **one Neon database and it is production** — there is no dev/staging DB — so any
+> migration command would mutate production. **Do not run `prisma migrate dev`,
+> `prisma db push`, `prisma migrate reset`, or `prisma migrate deploy` against
+> production.** An offline, Prisma-generated **draft** of the Phase 10 tables now
+> exists at `prisma/migrations-draft/0001_platform_sync_persistence.draft.sql`
+> (inert — outside `prisma/migrations/`, so it can't be auto-applied). The safe
+> path to apply it is documented in `docs/DB_MIGRATION_SAFETY.md` and
+> `docs/MIGRATION_READINESS_CHECKLIST.md`.
+
 ## Future Phase 11/12 recommendations
 
 1. **Phase 11 — Migration + real `PlatformAccount` write path:** generate the

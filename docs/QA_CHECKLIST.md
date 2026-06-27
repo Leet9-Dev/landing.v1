@@ -218,6 +218,24 @@ Schema/docs/pure-helper only — no runtime DB wiring, no real sync.
 - [ ] No real PSN API calls are made
 - [ ] No `.env`/secrets are changed
 
+## DB Safety + Migration Readiness (Phase 11)
+
+Docs/safety only — no production migration, no DB mutation.
+
+- [ ] `docs/DB_MIGRATION_SAFETY.md` exists
+- [ ] `docs/MIGRATION_READINESS_CHECKLIST.md` exists
+- [ ] Inert draft SQL exists at `prisma/migrations-draft/0001_platform_sync_persistence.draft.sql`
+- [ ] `prisma/migrations/` (real, auto-applied) directory does NOT exist
+- [ ] No production migration was run (no `migrate dev`/`deploy`/`db push`/`reset`)
+- [ ] No database was mutated; no DB connection was made
+- [ ] No `.env`/secrets changed; no `STEAM_API_KEY` added
+- [ ] No runtime DB write path added (current routes still mock-backed)
+- [ ] `/api/integrations/steam/sync-preview` remains dry-run only
+- [ ] `npx prisma validate` still passes
+- [ ] `npm run build` still passes
+- [ ] No real Steam/PSN API calls
+- [ ] `npm run db:safety-check` runs, prints guidance, exits 0 (no DB connection)
+
 ## Platform Status Vocabulary Consistency
 
 Before any real Steam/PSN integration, verify the official vocabulary is used
