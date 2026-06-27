@@ -8,8 +8,8 @@ data exists yet.
 
 - **Repo:** `Leet9-Dev/landing.v1`
 - **Local path:** `~/Desktop/landing.v1`
-- **Latest main:** `d0a7b0a docs: add database migration safety readiness (#16)`
-  (Phase 12 — Legacy Mobile/Backend Audit — is in its own branch/PR on top of this)
+- **Latest main:** `7b4969c docs: audit legacy mobile backend work (#17)`
+  (Phase 13 — Legacy Steam/PSN Ingestion Extraction — is in its own branch/PR on top of this)
 - **Stack:** Next.js 16 (App Router, Turbopack), React 19, NextAuth (Google +
   Steam), Prisma + Postgres (Neon) for auth persistence only. JavaScript
   (`.js/.jsx`), inline styles.
@@ -29,7 +29,8 @@ data exists yet.
 | 9 | Steam Library Sync Preparation (dry-run) | #14 |
 | 10 | Platform Sync Persistence Model (Prisma schema; no runtime wiring) | #15 |
 | 11 | DB Safety + Migration Readiness (docs/safety; no migration applied) | #16 |
-| 12 | Legacy Mobile/Backend Audit (docs-only strategic audit) | pending |
+| 12 | Legacy Mobile/Backend Audit (docs-only strategic audit) | #17 |
+| 13 | Legacy Steam/PSN Ingestion Extraction (docs-only) | pending |
 
 The product triangle — **Discovery** (what games exist in the community),
 **Profile** (who I am as a gamer), **Rankings** (how I compare) — is complete and
@@ -115,6 +116,11 @@ Platform contracts live in `lib/platforms/` (`platforms.js`,
 - `docs/LEGACY_AUDIT_ACTION_PLAN.md` — Phase 12: short follow-up checklist (legacy logic to
   inspect deeper, missing design exports to request, open decisions, implementation risks,
   GitHub repo cleanup actions + owner-review checklist)
+- `docs/LEGACY_INGESTION_EXTRACTION.md` — Phase 13: extraction of legacy Steam/PSN ingestion
+  (endpoints, fields, edge cases, anti-gaming rules) mapped onto the new normalized model;
+  Steam = adapt-as-reference, PSN = revalidate before building
+- `docs/LEGACY_INGESTION_PORTING_PLAN.md` — Phase 13: Steam/PSN port checklists, data-model
+  mapping, future PR sequence, and risks
 
 ## Legacy GitHub repos (Phase 12 inventory)
 
