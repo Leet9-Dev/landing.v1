@@ -8,8 +8,8 @@ data exists yet.
 
 - **Repo:** `Leet9-Dev/landing.v1`
 - **Local path:** `~/Desktop/landing.v1`
-- **Latest main:** `d353520 feat: add platform sync persistence model (#15)`
-  (Phase 11 — DB Safety + Migration Readiness — is in its own branch/PR on top of this)
+- **Latest main:** `d0a7b0a docs: add database migration safety readiness (#16)`
+  (Phase 12 — Legacy Mobile/Backend Audit — is in its own branch/PR on top of this)
 - **Stack:** Next.js 16 (App Router, Turbopack), React 19, NextAuth (Google +
   Steam), Prisma + Postgres (Neon) for auth persistence only. JavaScript
   (`.js/.jsx`), inline styles.
@@ -28,7 +28,8 @@ data exists yet.
 | 8 | Contract & Data Model Alignment | #13 |
 | 9 | Steam Library Sync Preparation (dry-run) | #14 |
 | 10 | Platform Sync Persistence Model (Prisma schema; no runtime wiring) | #15 |
-| 11 | DB Safety + Migration Readiness (docs/safety; no migration applied) | pending |
+| 11 | DB Safety + Migration Readiness (docs/safety; no migration applied) | #16 |
+| 12 | Legacy Mobile/Backend Audit (docs-only strategic audit) | pending |
 
 The product triangle — **Discovery** (what games exist in the community),
 **Profile** (who I am as a gamer), **Rankings** (how I compare) — is complete and
@@ -109,6 +110,10 @@ Platform contracts live in `lib/platforms/` (`platforms.js`,
   forbidden commands, the safe production-migration process, rollback considerations
 - `docs/MIGRATION_READINESS_CHECKLIST.md` — Phase 11: step-by-step checklist (A–H) for the
   DB owner to take the Phase 10 schema from defined → applied safely
+- `docs/LEGACY_MOBILE_BACKEND_AUDIT.md` — Phase 12: audit of the legacy iOS + backend
+  microservices; what survives / is redesigned / deferred / discarded into the web-first product
+- `docs/LEGACY_AUDIT_ACTION_PLAN.md` — Phase 12: short follow-up checklist (legacy logic to
+  inspect deeper, missing design exports to request, open decisions, implementation risks)
 
 ## Database state
 
@@ -121,7 +126,12 @@ Platform contracts live in `lib/platforms/` (`platforms.js`,
   `prisma/migrations-draft/0001_platform_sync_persistence.draft.sql` (outside
   `prisma/migrations/`, so it cannot be auto-deployed).
 - Next safe step: create a Neon dev/staging branch and generate the tracked
-  migration there (Phase 12) — never `migrate dev`/`db push` against production.
+  migration there — never `migrate dev`/`db push` against production.
+- **DB work is paused** pending Mattia's feedback on Neon dev/staging setup.
+  **Phase 12 (Legacy Mobile/Backend Audit) was a docs-only strategic audit
+  during this pause — it changes no runtime behavior, DB, schema, or settings.**
+  The next *technical* phase (migration artifact → `PlatformAccount` write path →
+  real Steam sync) still depends on that DB/dev-staging decision.
 
 ## Important product rule
 

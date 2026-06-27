@@ -236,6 +236,21 @@ Docs/safety only — no production migration, no DB mutation.
 - [ ] No real Steam/PSN API calls
 - [ ] `npm run db:safety-check` runs, prints guidance, exits 0 (no DB connection)
 
+## Legacy Mobile/Backend Audit (Phase 12)
+
+Docs-only strategic audit — no runtime, DB, schema, or behavior change.
+
+- [ ] `docs/LEGACY_MOBILE_BACKEND_AUDIT.md` exists
+- [ ] `docs/LEGACY_AUDIT_ACTION_PLAN.md` exists
+- [ ] Legacy source inventory included (found + missing + confidence level)
+- [ ] Current web product mapping included (legacy → web equivalent)
+- [ ] Keep / redesign / defer / discard decisions included (decision log)
+- [ ] Open strategic questions for Francesco/Mattia listed
+- [ ] No runtime behavior changed
+- [ ] No DB/schema changes
+- [ ] No migrations run
+- [ ] No secrets/env/settings touched
+
 ## Platform Status Vocabulary Consistency
 
 Before any real Steam/PSN integration, verify the official vocabulary is used
