@@ -265,3 +265,44 @@ Copy this into the next team sync and tick items off:
 
 This phase produces only this document. All actions above are manual steps for
 the team to execute in Phase 15 and beyond.
+
+---
+
+## Phase 15 outcome (Dev/Staging Migration Artifact)
+
+**Status: artifact committed. Dev/staging application pending DB owner.**
+
+The official Prisma migration artifact was created at:
+
+```
+prisma/migrations/20260627000000_platform_sync_persistence/migration.sql
+```
+
+- Generated from the reviewed draft SQL in `prisma/migrations-draft/`
+- Content verified: 5 new tables only (`PlatformAccount`, `PlatformSyncRun`,
+  `PlatformDetectedGame`, `GameExternalSource`, `UserGame`)
+- All additive: `CREATE TABLE`, indexes, unique constraints, FKs only — no `DROP`,
+  no `ALTER … DROP`, no destructive operations
+- Matches the Prisma schema exactly: column types, defaults, relations, idempotency constraints
+- `prisma validate` and `prisma generate` require internet access (Prisma engine
+  binary download) — confirmed to work on Vercel; blocked in the cloud sandbox
+
+### Still required before production (DB owner: Mattia)
+
+Run these against **dev/staging only** first (with the dev `DATABASE_URL` in `.env.local`):
+
+```bash
+npx prisma migrate status    # should show 1 pending migration
+npx prisma migrate deploy    # apply to dev/staging
+npx prisma generate          # regenerate client
+npm run build                # confirm build passes
+```
+
+Then, with a Neon production restore point confirmed and Mattia's explicit approval:
+
+```bash
+# Switch DATABASE_URL to production (Vercel env / local override)
+npx prisma migrate deploy    # apply to production
+```
+
+See `docs/MIGRATION_READINESS_CHECKLIST.md` sections D–H for the full approval gate.
