@@ -8,8 +8,8 @@ data exists yet.
 
 - **Repo:** `Leet9-Dev/landing.v1`
 - **Local path:** `~/Desktop/landing.v1`
-- **Latest main:** `b6bc01b feat: prepare steam library sync dry run (Phase 9) (#14)`
-  (Phase 10 — Platform Sync Persistence Model — is in its own branch/PR on top of this)
+- **Latest main:** `d353520 feat: add platform sync persistence model (#15)`
+  (Phase 11 — DB Safety + Migration Readiness — is in its own branch/PR on top of this)
 - **Stack:** Next.js 16 (App Router, Turbopack), React 19, NextAuth (Google +
   Steam), Prisma + Postgres (Neon) for auth persistence only. JavaScript
   (`.js/.jsx`), inline styles.
@@ -27,7 +27,8 @@ data exists yet.
 | 7 | Platform Integration Readiness | #11 |
 | 8 | Contract & Data Model Alignment | #13 |
 | 9 | Steam Library Sync Preparation (dry-run) | #14 |
-| 10 | Platform Sync Persistence Model (Prisma schema; no runtime wiring) | pending |
+| 10 | Platform Sync Persistence Model (Prisma schema; no runtime wiring) | #15 |
+| 11 | DB Safety + Migration Readiness (docs/safety; no migration applied) | pending |
 
 The product triangle — **Discovery** (what games exist in the community),
 **Profile** (who I am as a gamer), **Rankings** (how I compare) — is complete and
@@ -104,6 +105,23 @@ Platform contracts live in `lib/platforms/` (`platforms.js`,
 - `docs/PLATFORM_SYNC_PERSISTENCE_MODEL.md` — Phase 10: the Prisma models behind the
   normalized flow (`PlatformAccount`, `PlatformSyncRun`, `PlatformDetectedGame`,
   `GameExternalSource`, `UserGame`), idempotency rules, dry_run vs execute, migration notes
+- `docs/DB_MIGRATION_SAFETY.md` — Phase 11: DB reality (one prod Neon, no dev/staging),
+  forbidden commands, the safe production-migration process, rollback considerations
+- `docs/MIGRATION_READINESS_CHECKLIST.md` — Phase 11: step-by-step checklist (A–H) for the
+  DB owner to take the Phase 10 schema from defined → applied safely
+
+## Database state
+
+- **One Neon database, and it is production.** No dev/staging DB exists yet;
+  Mattia controls Neon/Vercel DB access.
+- Production currently holds only the **NextAuth** tables. The Phase 10 product/
+  sync models exist in `prisma/schema.prisma` but **not in the database**.
+- **No production migration has been applied.** An inert, Prisma-generated draft
+  of the Phase 10 tables is at
+  `prisma/migrations-draft/0001_platform_sync_persistence.draft.sql` (outside
+  `prisma/migrations/`, so it cannot be auto-deployed).
+- Next safe step: create a Neon dev/staging branch and generate the tracked
+  migration there (Phase 12) — never `migrate dev`/`db push` against production.
 
 ## Important product rule
 
@@ -152,24 +170,25 @@ release or real-data integration. See `docs/QA_CHECKLIST.md`. Outstanding:
 
 ## Recommended next phase
 
-**Phase 11 — Migration + real `PlatformAccount` write path.**
+**Phase 12 — Migration Artifact Generation / Dev DB Setup.**
 
-Phase 9 built the dry-run preparation layer; Phase 10 modeled persistence in
-`prisma/schema.prisma` (not yet migrated/wired). The next logical steps:
+Phase 9 built the dry-run layer; Phase 10 modeled persistence; Phase 11 added the
+DB-safety guardrails and an inert draft migration. The next safe steps (gated by
+DB-owner approval — see `docs/DB_MIGRATION_SAFETY.md` and
+`docs/MIGRATION_READINESS_CHECKLIST.md`):
 
-1. Generate and apply the Prisma migration against a real/shadow Postgres, then
-   deploy to Neon (`prisma migrate dev --name platform_sync_persistence`). This
-   could not be done in the agent environment (no local DB; see
-   `docs/PLATFORM_SYNC_PERSISTENCE_MODEL.md` → Migration notes).
-2. Persist Steam connection state on login (`PlatformAccount`).
-3. Add `STEAM_API_KEY` to Vercel env vars (never commit it).
-4. Activate `steamClient.js` (flip `DRY_RUN = false`) and run an `execute`-mode
-   `PlatformSyncRun`: normalize → match → persist `PlatformDetectedGame` /
-   `GameExternalSource` / `UserGame`; route unmatched games to a review queue.
-5. Recompute Profile/Stats/Rankings from `UserGame`; keep dry-run as a flag.
+1. **Create a Neon dev/staging branch** (non-production `DATABASE_URL`, never committed).
+2. Generate the **tracked** Prisma migration there
+   (`prisma migrate dev --name platform_sync_persistence`); diff it against
+   `prisma/migrations-draft/0001_platform_sync_persistence.draft.sql`.
+3. Get **owner approval + a Neon restore point**, then `prisma migrate deploy` to production.
+4. **Phase 13:** persist Steam connection state on login (`PlatformAccount` write path).
+5. **Phase 14:** add `STEAM_API_KEY` (Vercel only), activate `steamClient.js`, run an
+   `execute`-mode sync, persist `PlatformDetectedGame`/`GameExternalSource`/`UserGame`,
+   route unmatched games to a review queue, then recompute Profile/Stats/Rankings.
 
-Do not activate real sync before the migration is applied and the write path is
-in place.
+Do not run `migrate dev`/`db push`/`deploy` against production, and do not
+activate real sync before the migration is applied and the write path is in place.
 
 ## Suggested next commands (for Mattia)
 
