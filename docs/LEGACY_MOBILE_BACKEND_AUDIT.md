@@ -355,3 +355,110 @@ the achievements model (Q4), and PSN revalidation (Q8). These decisions gate the
 scoring and competition phases and should not be assumed.
 
 See `docs/LEGACY_AUDIT_ACTION_PLAN.md` for the short actionable follow-up list.
+
+---
+
+## 13. GitHub Legacy Repo Inventory
+
+**Read-only inventory** of all repositories under the `Leet9-Dev` GitHub org
+(via `gh repo list`, authenticated as `BaGitGiolo`). **18 repos total; none are
+archived.** Nothing in GitHub was modified — this is an inventory only.
+
+Inspection note: the `leet9-*` repos and `PWA_V1` were inspected from local
+clones under `~/Desktop/leet9-audit/` (and `~/Desktop/leet9-product-architecture`,
+`~/Desktop/leet9-project-status`); the two `*demo*` repos were inspected via the
+read-only GitHub contents API. Backend services `game`/`shared`/`user` were read
+deeply in §2–§4; others were inspected at structure level.
+
+| Repo | Vis | Lang | Last push | Inspected | Appears to contain | Relevance | Recommendation | Del. risk |
+|---|---|---|---|---|---|---|---|---|
+| `landing.v1` | public | JS | 2026-06 | yes (this repo) | The current web MVP (source of truth) | **Critical — active** | **Keep active** | high |
+| `leet9-product-architecture` | private | docs | 2026-06 | yes | Product/architecture docs (UX ref, data model, API contract, build plan) | **Critical — active reference** | **Keep active** | high |
+| `leet9-game-service` | private | TS | 2025-09 | yes (deep) | Steam+PSN ingestion, L9 scoring algorithm, leaderboard, rewards, cron sync | Highest-value legacy logic reference | Keep as archive/reference | high |
+| `leet9-shared-service` | private | TS | 2025-09 | yes (deep) | Core Mongoose models (User, UserRecord, Game, L9key, Bonus, Level, achievements) | Data-model DNA reference | Keep as archive/reference | high |
+| `leet9-user-service` | private | TS | 2026-05 | yes | User logic + rewards (`Rewards/`, gameplay mock) | Scoring/reward reference | Keep as archive/reference | medium |
+| `leet9-ios` | private | Swift | 2025-09 | yes | iOS app: Games/Discovery, MyGames, Details/Stats, Leaderboard, Profile, Settings | Product/UX DNA reference | Keep as archive/reference | medium |
+| `leet9-android` | private | Kotlin | 2025-06 | yes (structure) | Android app | Secondary product DNA | Keep as archive/reference | medium |
+| `leet9-cron` | private | TS | 2023-08 | yes (structure) | Scheduled gameplay/reward sync (daily/weekly) | Future sync-scheduling reference | Keep as archive/reference | medium |
+| `leet9-blockchain-service` | private | TS | 2025-09 | yes (structure) | Wallet/NFT/blockchain reward logic | Deferred/out-of-scope domain | Archive candidate | medium |
+| `leet9-notification-service` | private | TS | 2025-07 | yes (structure) | Push/notification service | Deferred domain | Archive candidate | low-medium |
+| `leet9-email-service` | private | TS | 2025-05 | yes (structure) | Transactional email | Deferred domain | Archive candidate | low-medium |
+| `leet9-api-gateway` | private | — | 2025-05 | yes (structure) | API gateway/routing config | Deploy/routing reference | Archive candidate | medium |
+| `leet9-api-service` | private | — | 2023-10 | yes (structure) | Older API service (pre-microservice split?) | Possibly superseded | Needs owner review | medium |
+| `leet9-common-service` | private | — | 2023-07 | yes (structure) | Oldest shared/common service | Possibly superseded | Needs owner review | medium |
+| `leet9-project-status` | public | docs | 2026-06 | yes | Tiny status README (~13 lines) | Low; public visibility unclear | Needs owner review (visibility) | low |
+| `PWA_V1` | private | — | 2026-05 | yes | **Empty** (0 files, no default branch) | None (superseded by `landing.v1`) | Needs owner review → likely delete | low |
+| `demo-repository` | private | HTML | 2026-05 | yes (API) | GitHub default "demo" template (README/index.html/package.json) | None — not a Leet9 project | Deletion candidate | low |
+| `refactored-funicular-demo-repository` | private | HTML | 2026-05 | yes (API) | Byte-identical copy of the GitHub demo template | None — not a Leet9 project | Deletion candidate | low |
+
+Useful concepts found (by repo), beyond §3–§4:
+
+- `leet9-game-service` / `leet9-shared-service`: the entire normalized-ingestion +
+  scoring DNA (see §4). Preserve until the new real Steam sync is proven.
+- `leet9-cron`: daily/weekly gameplay sync scheduling — reference for future sync
+  jobs (not built in the web app yet).
+- `leet9-ios`: discovery sections, achievement/badge collection, profile
+  score/level — design/UX intent (partial; the named design exports are still
+  missing — see §2).
+
+Risks / obsolete assumptions found:
+
+- Blockchain/wallet/NFT coupling concentrated in `leet9-blockchain-service` and
+  woven into shared/user models — out of scope per current product rules.
+- `leet9-api-service` and `leet9-common-service` are from 2023 and may be
+  superseded by the later `game`/`user`/`shared` services — ownership/superseding
+  status is unclear and must be confirmed.
+- Two `*demo*` repos are GitHub onboarding artifacts, not Leet9 work.
+
+## 14. Repo Cleanup Recommendations
+
+> **No repository was deleted, archived, renamed, transferred, or had its
+> visibility/settings changed in this phase.** These are recommendations only and
+> require owner (Francesco/Mattia) approval before any action.
+
+### 1. Keep active (current source of truth)
+- `landing.v1` — the web MVP.
+- `leet9-product-architecture` — product/architecture docs.
+
+### 2. Keep as archive/reference (useful legacy knowledge; do not develop further)
+Preserve **at least until the real Steam sync MVP is working and validated**:
+- `leet9-game-service` (ingestion + L9 algorithm + leaderboard + rewards)
+- `leet9-shared-service` (core data models)
+- `leet9-user-service` (user/reward logic)
+- `leet9-ios` (product/UX DNA)
+- `leet9-android` (secondary product DNA)
+- `leet9-cron` (sync scheduling reference)
+
+### 3. Archive candidates (likely superseded; preserve read-only)
+- `leet9-blockchain-service` (deferred/out-of-scope domain)
+- `leet9-notification-service`
+- `leet9-email-service`
+- `leet9-api-gateway`
+
+### 4. Deletion candidates (no unique Leet9 value, duplicated/templated)
+- `demo-repository` — GitHub default demo template.
+- `refactored-funicular-demo-repository` — byte-identical demo template.
+- `PWA_V1` — **only if confirmed empty/intentionally abandoned** (currently 0
+  files); otherwise owner review.
+
+(Even these require owner approval — see safety rules below.)
+
+### 5. Needs owner review (unclear context/ownership/supersession/visibility)
+- `leet9-api-service` (2023; superseded?)
+- `leet9-common-service` (2023; superseded?)
+- `leet9-project-status` (public; intended visibility?)
+- `PWA_V1` (empty; intended placeholder vs abandoned?)
+
+### Deletion safety rules
+
+- **No repo may be deleted without explicit owner approval.**
+- **Prefer archiving over deletion** whenever there is any uncertainty.
+- Before deleting any repo, verify it has **no unique code, docs, assets, issues,
+  PRs, releases, wikis, or deployments** that exist nowhere else.
+- Check **Vercel, Neon, OAuth apps, GitHub Actions/workflows, webhooks, and
+  cross-repo package references** before deleting — a repo may back a live
+  deployment or integration.
+- **Export/backup** (clone + push to backup, or download archive) before any
+  deletion.
+- Treat deletion as **irreversible** — it is a product/engineering decision, not
+  a cleanup task. When in doubt, archive.

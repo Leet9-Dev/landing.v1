@@ -65,3 +65,42 @@ here is implemented in Phase 12; this is the to-do/decision list.
   relying on it.
 - **Historical-playtime over-counting.** Port the first-connection rule or risk
   inflated stats on initial sync.
+
+## GitHub repo cleanup actions (owner approval required)
+
+See `docs/LEGACY_MOBILE_BACKEND_AUDIT.md` §13–§14 for the full inventory. **No
+repo action was taken in this phase.**
+
+- [ ] **Confirm `PWA_V1` is empty/abandoned** (currently 0 files) → archive or delete.
+- [ ] **Confirm the two `*demo*` repos are GitHub onboarding artifacts** → delete
+      (`demo-repository`, `refactored-funicular-demo-repository`).
+- [ ] **Confirm `leet9-api-service` / `leet9-common-service` (2023) are superseded**
+      by `game`/`user`/`shared` services → archive.
+- [ ] **Confirm `leet9-project-status` intended visibility** (currently public).
+- [ ] Archive (read-only, do not develop): `leet9-blockchain-service`,
+      `leet9-notification-service`, `leet9-email-service`, `leet9-api-gateway`.
+- [ ] **Preserve until real Steam sync works:** `leet9-game-service`,
+      `leet9-shared-service`, `leet9-user-service`, `leet9-ios`, `leet9-android`,
+      `leet9-cron`.
+
+## Owner-review checklist before ANY repo deletion/archive
+
+- [ ] Owner (Francesco/Mattia) has explicitly approved the specific action.
+- [ ] No unique code/docs/assets/issues/PRs/releases/wikis exist only in that repo.
+- [ ] No live deployment depends on it (Vercel / Render / other hosting).
+- [ ] No Neon DB, OAuth app, webhook, or GitHub Action references it.
+- [ ] No other repo imports it as a package/submodule.
+- [ ] A backup/export was taken (clone pushed to backup or archive downloaded).
+- [ ] Prefer **archive** over **delete** if any box is unchecked.
+
+## Repos that need deeper inspection (before cleanup)
+
+- [ ] `leet9-api-service`, `leet9-common-service` — confirm superseded vs still wired.
+- [ ] `leet9-api-gateway` — confirm whether it still fronts any live service.
+- [ ] `leet9-blockchain-service` — confirm no live wallet/contract dependency.
+
+## Repos to preserve until real Steam sync is working
+
+- [ ] `leet9-game-service`, `leet9-shared-service`, `leet9-user-service`,
+      `leet9-cron` (ingestion/scoring/scheduling reference) — do not delete until
+      the new normalized Steam sync is validated end-to-end.

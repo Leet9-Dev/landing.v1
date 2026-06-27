@@ -113,7 +113,25 @@ Platform contracts live in `lib/platforms/` (`platforms.js`,
 - `docs/LEGACY_MOBILE_BACKEND_AUDIT.md` — Phase 12: audit of the legacy iOS + backend
   microservices; what survives / is redesigned / deferred / discarded into the web-first product
 - `docs/LEGACY_AUDIT_ACTION_PLAN.md` — Phase 12: short follow-up checklist (legacy logic to
-  inspect deeper, missing design exports to request, open decisions, implementation risks)
+  inspect deeper, missing design exports to request, open decisions, implementation risks,
+  GitHub repo cleanup actions + owner-review checklist)
+
+## Legacy GitHub repos (Phase 12 inventory)
+
+- Phase 12 included a **read-only GitHub legacy repo inventory and cleanup
+  recommendations** (`docs/LEGACY_MOBILE_BACKEND_AUDIT.md` §13–§14): 18 repos
+  under `Leet9-Dev`, none archived.
+- **Keep active:** `landing.v1`, `leet9-product-architecture`.
+- **Keep as reference (preserve until real Steam sync works):** `leet9-game-service`,
+  `leet9-shared-service`, `leet9-user-service`, `leet9-ios`, `leet9-android`, `leet9-cron`.
+- **Archive candidates:** `leet9-blockchain-service`, `leet9-notification-service`,
+  `leet9-email-service`, `leet9-api-gateway`.
+- **Deletion candidates:** `demo-repository`, `refactored-funicular-demo-repository`
+  (GitHub demo templates), and `PWA_V1` (empty) — owner review.
+- **Needs owner review:** `leet9-api-service`, `leet9-common-service` (2023, possibly
+  superseded), `leet9-project-status` (public).
+- **No repos were deleted, archived, renamed, transferred, or had visibility/settings
+  changed.** All repo cleanup decisions **require owner (Francesco/Mattia) approval.**
 
 ## Database state
 

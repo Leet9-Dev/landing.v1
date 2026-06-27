@@ -250,6 +250,12 @@ Docs-only strategic audit — no runtime, DB, schema, or behavior change.
 - [ ] No DB/schema changes
 - [ ] No migrations run
 - [ ] No secrets/env/settings touched
+- [ ] GitHub repo inventory included (`LEGACY_MOBILE_BACKEND_AUDIT.md` §13)
+- [ ] Archive/deletion candidates clearly marked
+- [ ] Deletion risk levels (low/medium/high) included
+- [ ] No repo deletion/archive/rename/transfer/visibility/settings changes performed
+- [ ] Owner (Francesco/Mattia) review required before any repo cleanup
+- [ ] Current Leet9 web repo (`landing.v1`) remains the only modified repo
 
 ## Platform Status Vocabulary Consistency
 
