@@ -195,6 +195,29 @@ Dry-run only — no real Steam API is called, nothing is persisted.
 - [ ] No real Steam API call is made (no STEAM_API_KEY required)
 - [ ] No env vars or secrets are required for the sync preview
 
+## Platform Sync Persistence Model (Phase 10)
+
+Schema/docs/pure-helper only — no runtime DB wiring, no real sync.
+
+- [ ] Prisma schema includes `PlatformAccount`
+- [ ] Prisma schema includes `PlatformSyncRun`
+- [ ] Prisma schema includes `PlatformDetectedGame`
+- [ ] Prisma schema includes `GameExternalSource`
+- [ ] Prisma schema includes `UserGame`
+- [ ] `PlatformAccount` is distinct from NextAuth's `Account` (NextAuth models unchanged)
+- [ ] Platform connection statuses match official vocabulary (connected/disconnected/needs_reauth/unavailable)
+- [ ] Sync statuses match official vocabulary (idle/syncing/success/failed/partial)
+- [ ] Idempotency constraints present (unique userId+provider, account+provider+externalGameId, provider+externalGameId, userId+canonicalGameId)
+- [ ] `npx prisma format` succeeds
+- [ ] `npx prisma validate` reports the schema is valid
+- [ ] Migration file created OR migration limitation documented (local DB/env unavailable)
+- [ ] `lib/platforms/persistenceMapping.js` is pure (no DB writes, no Prisma client import)
+- [ ] No runtime DB reads/writes added — current mock product routes still work
+- [ ] `/api/integrations/steam/sync-preview` remains dry-run only
+- [ ] No real Steam API calls are made
+- [ ] No real PSN API calls are made
+- [ ] No `.env`/secrets are changed
+
 ## Platform Status Vocabulary Consistency
 
 Before any real Steam/PSN integration, verify the official vocabulary is used

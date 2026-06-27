@@ -44,6 +44,11 @@ model User {
   createdAt     DateTime  @default(now())
   accounts      Account[]
   sessions      Session[]
+
+  // Phase 10 platform-sync persistence (see models below). Additive only —
+  // does not affect NextAuth's Account/Session relations above.
+  platformAccounts PlatformAccount[]
+  userGames        UserGame[]
 }
 
 model VerificationToken {
@@ -52,4 +57,165 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// ===========================================================================
+// Platform sync persistence (Phase 10)
+//
+// Persistence foundation for the normalized, platform-agnostic ingestion flow:
+//
+//   PlatformAccount -> PlatformSyncRun -> PlatformDetectedGame
+//     -> GameExternalSource -> (canonical Game) -> UserGame
+//     -> Discovery / Profile / Stats / Rankings
+//
+// Status fields are plain Strings (not Prisma enums) and MUST use the official
+// vocabularies declared in lib/platforms/platforms.js so the DB and the JS
+// constants never drift:
+//
+//   PlatformAccount.status      : connected | disconnected | needs_reauth | unavailable   (PLATFORM_ACCOUNT_STATUS)
+//   *.syncStatus / run status   : idle | syncing | success | failed | partial             (PLATFORM_SYNC_STATUS)
+//   PlatformSyncRun.mode        : dry_run | execute
+//   PlatformDetectedGame.match  : matched | unmatched | ignored
+//   GameExternalSource.status   : active | deprecated | review_required
+//
+// NOTE: This is a NEW model named PlatformAccount — it intentionally does NOT
+// reuse NextAuth's `Account` model above. No runtime code reads or writes these
+// models yet; this phase is schema + docs only.
+// See docs/PLATFORM_SYNC_PERSISTENCE_MODEL.md.
+// ===========================================================================
+
+// A user's connected (or connectable) game-data platform account (Steam, PSN, …).
+model PlatformAccount {
+  id             String    @id @default(cuid())
+  userId         String
+  provider       String // "steam" | "psn" | future providers
+  externalUserId String? // e.g. steamid64, PSN account id
+  username       String?
+  displayName    String?
+  status         String    @default("disconnected") // PLATFORM_ACCOUNT_STATUS
+  syncStatus     String    @default("idle") // PLATFORM_SYNC_STATUS
+  connectedAt    DateTime?
+  disconnectedAt DateTime?
+  lastSyncAt     DateTime?
+  needsReauthAt  DateTime?
+  capabilities   Json? // snapshot of platform capabilities at connect time
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  syncRuns      PlatformSyncRun[]
+  detectedGames PlatformDetectedGame[]
+
+  // One account per user per provider.
+  @@unique([userId, provider])
+  @@index([provider])
+  @@index([status])
+  @@index([syncStatus])
+}
+
+// One sync attempt (or dry-run) against a platform account. Provides audit/history.
+model PlatformSyncRun {
+  id                    String    @id @default(cuid())
+  platformAccountId     String
+  provider              String
+  mode                  String    @default("dry_run") // "dry_run" | "execute"
+  status                String    @default("idle") // PLATFORM_SYNC_STATUS
+  startedAt             DateTime?
+  finishedAt            DateTime?
+  rawGamesDetected      Int       @default(0)
+  matchedCanonicalGames Int       @default(0)
+  unmatchedGames        Int       @default(0)
+  userGamesToCreate     Int       @default(0)
+  userGamesToUpdate     Int       @default(0)
+  warnings              Json?
+  errorCode             String?
+  errorMessage          String?
+  metadata              Json?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  platformAccount PlatformAccount        @relation(fields: [platformAccountId], references: [id], onDelete: Cascade)
+  detectedGames   PlatformDetectedGame[]
+
+  @@index([provider])
+  @@index([status])
+  @@index([startedAt])
+}
+
+// A normalized detected game from a platform account (raw + normalized snapshots
+// kept for auditability). Resolved to a canonical game via GameExternalSource.
+model PlatformDetectedGame {
+  id                   String    @id @default(cuid())
+  platformAccountId    String
+  syncRunId            String?
+  provider             String
+  externalGameId       String // Steam appId / PSN titleId
+  externalTitle        String?
+  playtimeHours        Float?
+  achievementsUnlocked Int?
+  trophiesUnlocked     Int?
+  lastPlayedAt         DateTime?
+  canonicalGameId      String? // null until matched
+  matchStatus          String    @default("unmatched") // "matched" | "unmatched" | "ignored"
+  raw                  Json? // untrusted raw platform payload (audit)
+  normalized           Json? // normalized Leet9 detected-game shape
+  firstDetectedAt      DateTime  @default(now())
+  lastDetectedAt       DateTime  @default(now())
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  platformAccount PlatformAccount  @relation(fields: [platformAccountId], references: [id], onDelete: Cascade)
+  syncRun         PlatformSyncRun? @relation(fields: [syncRunId], references: [id], onDelete: SetNull)
+
+  // Idempotency: a platform account reports each external game at most once.
+  @@unique([platformAccountId, provider, externalGameId])
+  @@index([provider])
+  @@index([canonicalGameId])
+  @@index([matchStatus])
+}
+
+// Maps a platform externalId to a canonical Leet9 game. The single source of
+// truth for canonical matching; canonical game data is never duplicated here.
+model GameExternalSource {
+  id              String   @id @default(cuid())
+  provider        String
+  externalGameId  String
+  externalTitle   String?
+  canonicalGameId String // canonical Leet9 game id (String for now — no persisted Game model yet)
+  confidence      String? // e.g. "high" | "medium" | "low"
+  status          String   @default("active") // "active" | "deprecated" | "review_required"
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // One mapping per platform external game.
+  @@unique([provider, externalGameId])
+  @@index([canonicalGameId])
+  @@index([status])
+}
+
+// A user's relationship to a canonical game (created/updated by real sync later).
+model UserGame {
+  id                      String    @id @default(cuid())
+  userId                  String
+  canonicalGameId         String
+  sourceProvider          String? // which platform first contributed this game
+  sourcePlatformAccountId String? // PlatformAccount.id reference (loose, not FK)
+  firstDetectedAt         DateTime?
+  lastDetectedAt          DateTime?
+  playtimeHours           Float?
+  achievementsUnlocked    Int?
+  trophiesUnlocked        Int?
+  sourceConfidence        String?
+  metadata                Json?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // A user has one record per canonical game (no duplicates).
+  @@unique([userId, canonicalGameId])
+  @@index([canonicalGameId])
+  @@index([sourceProvider])
 }
