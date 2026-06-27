@@ -8,7 +8,8 @@ data exists yet.
 
 - **Repo:** `Leet9-Dev/landing.v1`
 - **Local path:** `~/Desktop/landing.v1`
-- **Latest main:** `b3dd00b feat: prepare platform integration architecture (#11)`
+- **Latest main:** `b6bc01b feat: prepare steam library sync dry run (Phase 9) (#14)`
+  (Phase 10 — Platform Sync Persistence Model — is in its own branch/PR on top of this)
 - **Stack:** Next.js 16 (App Router, Turbopack), React 19, NextAuth (Google +
   Steam), Prisma + Postgres (Neon) for auth persistence only. JavaScript
   (`.js/.jsx`), inline styles.
@@ -26,6 +27,7 @@ data exists yet.
 | 7 | Platform Integration Readiness | #11 |
 | 8 | Contract & Data Model Alignment | #13 |
 | 9 | Steam Library Sync Preparation (dry-run) | #14 |
+| 10 | Platform Sync Persistence Model (Prisma schema; no runtime wiring) | pending |
 
 The product triangle — **Discovery** (what games exist in the community),
 **Profile** (who I am as a gamer), **Rankings** (how I compare) — is complete and
@@ -99,6 +101,9 @@ Platform contracts live in `lib/platforms/` (`platforms.js`,
   ingestion flow, canonical matching, official status vocabulary, and future steps
 - `docs/STEAM_SYNC_PREPARATION.md` — Phase 9: what was prepared, what must happen before
   real sync, normalized shape, dry-run plan shape, persistence needs, PSN parity note
+- `docs/PLATFORM_SYNC_PERSISTENCE_MODEL.md` — Phase 10: the Prisma models behind the
+  normalized flow (`PlatformAccount`, `PlatformSyncRun`, `PlatformDetectedGame`,
+  `GameExternalSource`, `UserGame`), idempotency rules, dry_run vs execute, migration notes
 
 ## Important product rule
 
@@ -136,7 +141,9 @@ release or real-data integration. See `docs/QA_CHECKLIST.md`. Outstanding:
 
 - Real Steam sync
 - Real PSN sync
-- Real database-backed product data (only NextAuth persistence exists)
+- Real database-backed product data — **as of Phase 10 the persistence *models*
+  exist in `prisma/schema.prisma`, but no migration is applied and no runtime
+  code reads/writes them; all product data is still mock-backed**
 - Competitions / competition scoring
 - Rewards / marketplace
 - Wallet / blockchain / NFT
@@ -145,18 +152,24 @@ release or real-data integration. See `docs/QA_CHECKLIST.md`. Outstanding:
 
 ## Recommended next phase
 
-**Phase 10 — Real Steam Sync MVP** (or Persistence Model Planning first).
+**Phase 11 — Migration + real `PlatformAccount` write path.**
 
-Phase 9 built the dry-run preparation layer. The next logical step is:
+Phase 9 built the dry-run preparation layer; Phase 10 modeled persistence in
+`prisma/schema.prisma` (not yet migrated/wired). The next logical steps:
 
-1. Add `STEAM_API_KEY` to Vercel env vars (Francesco's Steam developer key).
-2. Add the real Prisma schema tables: `PlatformAccount`, `DetectedGame`,
-   `GameExternalSource` (real), `UserGame` (real).
-3. Activate `steamClient.js` (flip `DRY_RUN = false`).
-4. Build the sync job: call `fetchSteamOwnedGames`, normalize, match, persist.
-5. Wire `sync-preview` to real data; keep dry-run mode as a flag.
+1. Generate and apply the Prisma migration against a real/shadow Postgres, then
+   deploy to Neon (`prisma migrate dev --name platform_sync_persistence`). This
+   could not be done in the agent environment (no local DB; see
+   `docs/PLATFORM_SYNC_PERSISTENCE_MODEL.md` → Migration notes).
+2. Persist Steam connection state on login (`PlatformAccount`).
+3. Add `STEAM_API_KEY` to Vercel env vars (never commit it).
+4. Activate `steamClient.js` (flip `DRY_RUN = false`) and run an `execute`-mode
+   `PlatformSyncRun`: normalize → match → persist `PlatformDetectedGame` /
+   `GameExternalSource` / `UserGame`; route unmatched games to a review queue.
+5. Recompute Profile/Stats/Rankings from `UserGame`; keep dry-run as a flag.
 
-Do not activate real sync before persistence is in place.
+Do not activate real sync before the migration is applied and the write path is
+in place.
 
 ## Suggested next commands (for Mattia)
 

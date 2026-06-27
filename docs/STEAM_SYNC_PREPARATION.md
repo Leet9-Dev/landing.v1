@@ -130,11 +130,17 @@ After `planSteamSync()` resolves `canonicalGameId`:
 | Record | Purpose |
 |---|---|
 | `PlatformAccount` | User's Steam connection state, steamId64, last sync time, sync status |
-| `DetectedGame` | Raw detected game per sync run (for auditability) |
+| `PlatformDetectedGame` | Raw + normalized detected game per sync run (for auditability) |
+| `PlatformSyncRun` | One sync attempt / dry-run (audit & history) |
 | `GameExternalSource` | Steam appId → canonical gameId mapping (currently mocked) |
 | `UserGame` | User's relationship to each canonical game (create/update on sync) |
 
-None of these are persisted in this phase.
+None of these are persisted in this phase (Phase 9).
+
+> **Phase 10 update:** these records are now defined as Prisma models in
+> `prisma/schema.prisma` (the audit/raw-detection record is named
+> `PlatformDetectedGame`). Still schema-only — no runtime wiring, no real sync.
+> See `docs/PLATFORM_SYNC_PERSISTENCE_MODEL.md`.
 
 ## Audit / history needs
 

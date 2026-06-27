@@ -105,6 +105,11 @@ the UI.
 
 None of the above is implemented in this phase.
 
+> **Update (Phase 10):** steps 3–6 are now **modeled** in `prisma/schema.prisma`
+> (`PlatformAccount`, `PlatformSyncRun`, `PlatformDetectedGame`,
+> `GameExternalSource`, `UserGame`) — schema and docs only, no runtime wiring or
+> real sync. See `docs/PLATFORM_SYNC_PERSISTENCE_MODEL.md`.
+
 ## 9. Official platform status vocabulary
 
 All platform-related code must use these values. The constants live in
