@@ -104,3 +104,17 @@ repo action was taken in this phase.**
 - [ ] `leet9-game-service`, `leet9-shared-service`, `leet9-user-service`,
       `leet9-cron` (ingestion/scoring/scheduling reference) — do not delete until
       the new normalized Steam sync is validated end-to-end.
+
+## Phase 13 follow-up — ingestion extraction (done)
+
+Steam/PSN ingestion was extracted and mapped in
+`docs/LEGACY_INGESTION_EXTRACTION.md` (+ `LEGACY_INGESTION_PORTING_PLAN.md`).
+Outstanding decisions/validation before any real-sync build:
+
+- [ ] **Validate the PSN access path** (official partner API vs unofficial
+      `psn-api`/NPSSO) — BLOCKER before any PSN build.
+- [ ] Decide Steam env var name (`STEAM_API_KEY` vs legacy `STEAM_APIKEY`).
+- [ ] Decide whether NPSSO may be stored (encrypted) or must be avoided.
+- [ ] Confirm first-connection historical playtime is excluded from L9 score.
+- [ ] Replace legacy N+1 Steam achievement fetch with a batched/deferred approach.
+- [ ] Resolve the Steam `firstPlayed` gap (legacy never computed it).

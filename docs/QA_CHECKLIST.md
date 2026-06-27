@@ -257,6 +257,25 @@ Docs-only strategic audit — no runtime, DB, schema, or behavior change.
 - [ ] Owner (Francesco/Mattia) review required before any repo cleanup
 - [ ] Current Leet9 web repo (`landing.v1`) remains the only modified repo
 
+## Legacy Ingestion Extraction (Phase 13)
+
+Docs-only extraction/mapping — no real Steam/PSN calls, no runtime/DB changes.
+
+- [ ] `docs/LEGACY_INGESTION_EXTRACTION.md` exists
+- [ ] `docs/LEGACY_INGESTION_PORTING_PLAN.md` exists
+- [ ] Legacy Steam ingestion inspected (files/functions/endpoints listed)
+- [ ] Legacy PSN ingestion inspected (auth path, library, fields listed)
+- [ ] Source files listed (game-service repository/services/helpers, cron, shared models)
+- [ ] Env var **names** listed without values (e.g. `STEAM_APIKEY`, `ENCRYPT_SECRET`, `ENCRYPT_IV`)
+- [ ] Reusable pieces identified (endpoints, parsers, anti-gaming rules)
+- [ ] Rewrite/defer/discard decisions made (storage, matching, scoring separation)
+- [ ] Mapping to `PlatformAccount` / `PlatformSyncRun` / `PlatformDetectedGame` / `GameExternalSource` / `UserGame` included
+- [ ] PSN marked as needs-revalidation (unofficial API + NPSSO)
+- [ ] No runtime code changed
+- [ ] No DB/schema/migration changes
+- [ ] No secrets/env/settings changed
+- [ ] No real Steam/PSN API calls made
+
 ## Platform Status Vocabulary Consistency
 
 Before any real Steam/PSN integration, verify the official vocabulary is used
