@@ -8,8 +8,7 @@ data exists yet.
 
 - **Repo:** `Leet9-Dev/landing.v1`
 - **Local path:** `~/Desktop/landing.v1`
-- **Latest main:** `7b4969c docs: audit legacy mobile backend work (#17)`
-  (Phase 13 — Legacy Steam/PSN Ingestion Extraction — is in its own branch/PR on top of this)
+- **Latest main:** `1b04ac9 docs: extract legacy Steam PSN ingestion plan (#18)`
 - **Stack:** Next.js 16 (App Router, Turbopack), React 19, NextAuth (Google +
   Steam), Prisma + Postgres (Neon) for auth persistence only. JavaScript
   (`.js/.jsx`), inline styles.
@@ -30,7 +29,8 @@ data exists yet.
 | 10 | Platform Sync Persistence Model (Prisma schema; no runtime wiring) | #15 |
 | 11 | DB Safety + Migration Readiness (docs/safety; no migration applied) | #16 |
 | 12 | Legacy Mobile/Backend Audit (docs-only strategic audit) | #17 |
-| 13 | Legacy Steam/PSN Ingestion Extraction (docs-only) | pending |
+| 13 | Legacy Steam/PSN Ingestion Extraction (docs-only) | #18 |
+| 14 | DB/Staging Decision + Migration Path (docs-only) | pending |
 
 The product triangle — **Discovery** (what games exist in the community),
 **Profile** (who I am as a gamer), **Rankings** (how I compare) — is complete and
@@ -121,6 +121,9 @@ Platform contracts live in `lib/platforms/` (`platforms.js`,
   Steam = adapt-as-reference, PSN = revalidate before building
 - `docs/LEGACY_INGESTION_PORTING_PLAN.md` — Phase 13: Steam/PSN port checklists, data-model
   mapping, future PR sequence, and risks
+- `docs/DB_STAGING_AND_MIGRATION_PATH.md` — Phase 14: the two options (Neon branch vs
+  prod-only), migration commands policy, the four gates before the `PlatformAccount` write
+  path, the recommended phase sequence, and the decision checklist for Francesco/Mattia
 
 ## Legacy GitHub repos (Phase 12 inventory)
 
@@ -151,11 +154,14 @@ Platform contracts live in `lib/platforms/` (`platforms.js`,
   `prisma/migrations/`, so it cannot be auto-deployed).
 - Next safe step: create a Neon dev/staging branch and generate the tracked
   migration there — never `migrate dev`/`db push` against production.
-- **DB work is paused** pending Mattia's feedback on Neon dev/staging setup.
-  **Phase 12 (Legacy Mobile/Backend Audit) was a docs-only strategic audit
-  during this pause — it changes no runtime behavior, DB, schema, or settings.**
+- **DB work is paused** pending Mattia's action on Neon dev/staging setup.
+  **Phases 12–14 were docs-only phases during this pause** — they change no
+  runtime behavior, DB, schema, or settings. Phase 14 (`docs/DB_STAGING_AND_MIGRATION_PATH.md`)
+  documents the decision: Option A (Neon branch, recommended) vs Option B
+  (prod-only, not recommended), the four gates before the `PlatformAccount`
+  write path, and the decision checklist for Francesco/Mattia.
   The next *technical* phase (migration artifact → `PlatformAccount` write path →
-  real Steam sync) still depends on that DB/dev-staging decision.
+  real Steam sync) still depends on Mattia creating the Neon dev branch.
 
 ## Important product rule
 
@@ -204,22 +210,29 @@ release or real-data integration. See `docs/QA_CHECKLIST.md`. Outstanding:
 
 ## Recommended next phase
 
-**Phase 12 — Migration Artifact Generation / Dev DB Setup.**
+**Phase 15 — Dev DB + Migration Artifact Generation.**
 
-Phase 9 built the dry-run layer; Phase 10 modeled persistence; Phase 11 added the
-DB-safety guardrails and an inert draft migration. The next safe steps (gated by
-DB-owner approval — see `docs/DB_MIGRATION_SAFETY.md` and
-`docs/MIGRATION_READINESS_CHECKLIST.md`):
+Phases 9–14 built the dry-run layer, persistence model, DB-safety guardrails,
+inert draft migration, legacy ingestion extraction, and the DB/staging decision.
+The next safe steps (fully documented in `docs/DB_STAGING_AND_MIGRATION_PATH.md`):
 
-1. **Create a Neon dev/staging branch** (non-production `DATABASE_URL`, never committed).
-2. Generate the **tracked** Prisma migration there
+1. **Mattia: create a Neon dev/staging branch** (~10 min in the Neon Console).
+   Store the branch `DATABASE_URL` in `.env.local` only — never commit, never
+   add to Vercel production env vars.
+2. **Francesco: generate the tracked migration** against the dev branch
    (`prisma migrate dev --name platform_sync_persistence`); diff it against
    `prisma/migrations-draft/0001_platform_sync_persistence.draft.sql`.
-3. Get **owner approval + a Neon restore point**, then `prisma migrate deploy` to production.
-4. **Phase 13:** persist Steam connection state on login (`PlatformAccount` write path).
-5. **Phase 14:** add `STEAM_API_KEY` (Vercel only), activate `steamClient.js`, run an
+3. **Review + commit** the generated migration (inside `prisma/migrations/`).
+4. **Mattia: approve + apply to production** — confirm a Neon restore point, then
+   `prisma migrate deploy`. Gate: owner approval required.
+5. **Phase 16:** persist Steam connection state on login (`PlatformAccount` write path).
+6. **Phase 17:** add `STEAM_API_KEY` (Vercel only), flip `DRY_RUN=false`, run an
    `execute`-mode sync, persist `PlatformDetectedGame`/`GameExternalSource`/`UserGame`,
    route unmatched games to a review queue, then recompute Profile/Stats/Rankings.
+
+See `docs/DB_STAGING_AND_MIGRATION_PATH.md` for the full decision record,
+migration commands policy, four gates before the write path, and the checklist
+for Francesco/Mattia.
 
 Do not run `migrate dev`/`db push`/`deploy` against production, and do not
 activate real sync before the migration is applied and the write path is in place.

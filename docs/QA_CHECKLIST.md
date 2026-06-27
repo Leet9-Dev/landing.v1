@@ -294,6 +294,23 @@ Sync status values (must be one of):
 - [ ] No code references old/unofficial status strings (`not_connected`, `expired`, `sync_failed`, `revoked`)
 - [ ] `docs/PLATFORM_INTEGRATION_READINESS.md` vocabulary tables match `lib/platforms/platforms.js`
 
+## DB Staging and Migration Path (Phase 14)
+
+Docs-only decision record — no runtime, DB, schema, or settings change.
+
+- [ ] `docs/DB_STAGING_AND_MIGRATION_PATH.md` exists
+- [ ] Option A (Neon branch, recommended) and Option B (prod-only, not recommended) documented
+- [ ] Migration commands policy table present (allowed anytime / dev only / prod with approval / forbidden)
+- [ ] Four gates before `PlatformAccount` write path documented
+- [ ] Decision checklist for Francesco/Mattia present
+- [ ] Recommended phase sequence (Phase 15–19) included
+- [ ] No runtime code changed
+- [ ] No DB/schema/migration changes
+- [ ] No secrets/env/settings changed
+- [ ] No real Steam/PSN API calls made
+- [ ] `docs/PROJECT_HANDOFF.md` updated with Phase 14 entry
+- [ ] `docs/QA_CHECKLIST.md` updated with Phase 14 section
+
 ## Regression Before Real Data
 
 - [ ] `npm run lint` passes
