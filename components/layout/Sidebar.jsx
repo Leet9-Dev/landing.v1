@@ -5,7 +5,7 @@ export const SIDEBAR_W = 220;
 
 export function Sidebar() {
   return (
-    <aside style={{
+    <aside className="l9-sidebar" style={{
       width: SIDEBAR_W,
       minWidth: SIDEBAR_W,
       height: "100vh",
@@ -14,7 +14,6 @@ export function Sidebar() {
       left: 0,
       background: "#0A0C14",
       borderRight: "1px solid rgba(255,255,255,0.07)",
-      display: "flex",
       flexDirection: "column",
       zIndex: 30,
     }}>
