@@ -294,6 +294,28 @@ Sync status values (must be one of):
 - [ ] No code references old/unofficial status strings (`not_connected`, `expired`, `sync_failed`, `revoked`)
 - [ ] `docs/PLATFORM_INTEGRATION_READINESS.md` vocabulary tables match `lib/platforms/platforms.js`
 
+## Dev/Staging Migration Artifact (Phase 15)
+
+Official migration artifact committed — dev/staging application and production
+application are manual steps for the DB owner.
+
+- [ ] `prisma/migrations/20260627000000_platform_sync_persistence/migration.sql` exists
+- [ ] Migration is under `prisma/migrations/` (not `migrations-draft/`)
+- [ ] Draft at `prisma/migrations-draft/0001_platform_sync_persistence.draft.sql` still present as reference
+- [ ] Migration SQL is additive only: 5 `CREATE TABLE` + indexes + FKs, no `DROP`
+- [ ] Tables: `PlatformAccount`, `PlatformSyncRun`, `PlatformDetectedGame`, `GameExternalSource`, `UserGame`
+- [ ] Unique constraints: `userId+provider`, `platformAccountId+provider+externalGameId`, `provider+externalGameId`, `userId+canonicalGameId`
+- [ ] FK cascade rules match schema (`ON DELETE CASCADE` / `SET NULL`)
+- [ ] No runtime code changes in this phase
+- [ ] No Prisma schema changes in this phase
+- [ ] No secrets/env/settings changed
+- [ ] No real Steam/PSN API calls
+- [ ] Vercel preview build passes (Vercel can run `prisma generate`; sandbox cannot)
+- [ ] `npm run lint` passes (0 errors, 5 pre-existing warnings)
+- [ ] **Pending (DB owner):** `npx prisma migrate status` shows 1 pending migration against dev/staging
+- [ ] **Pending (DB owner):** `npx prisma migrate deploy` applied to dev/staging
+- [ ] **Pending (Mattia approval):** migration applied to production with restore point confirmed
+
 ## DB Staging and Migration Path (Phase 14)
 
 Docs-only decision record — no runtime, DB, schema, or settings change.
