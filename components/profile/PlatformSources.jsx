@@ -142,7 +142,10 @@ export function PlatformSources() {
 
 function PlatformCard({ provider, value, onChange, onConnect, onDisconnect, onReload, busy }) {
   const account = provider.account;
-  const status = account?.status || "disconnected";
+  // Normalize casing defensively — provider id / status may arrive as "STEAM" /
+  // "CONNECTED" from some data paths. All comparisons below use the normalized form.
+  const providerId = String(provider.id || "").toLowerCase();
+  const status = String(account?.status || "disconnected").toLowerCase();
   const isConnected = status === "connected";
   const wasConnected = account && !isConnected;
   const s = STATUS_STYLES[status] || STATUS_STYLES.disconnected;
@@ -153,7 +156,7 @@ function PlatformCard({ provider, value, onChange, onConnect, onDisconnect, onRe
     caps.trophies && "Trophies",
     caps.playtime && "Playtime",
   ].filter(Boolean);
-  const hint = IDENTITY_HINT[provider.id] || { placeholder: "Account identifier", help: "" };
+  const hint = IDENTITY_HINT[providerId] || { placeholder: "Account identifier", help: "" };
 
   return (
     <div style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)", padding: 16 }}>
@@ -186,7 +189,7 @@ function PlatformCard({ provider, value, onChange, onConnect, onDisconnect, onRe
             {account.lastSyncAt ? ` · Last sync ${new Date(account.lastSyncAt).toLocaleDateString()}` : " · Library sync not active yet"}
           </div>
 
-          {provider.id === "steam" && <SteamSyncActions onReload={onReload} />}
+          {providerId === "steam" && <SteamSyncActions onReload={onReload} />}
 
           <button onClick={onDisconnect} disabled={busy} style={{
             marginTop: 12, fontSize: 11, fontWeight: 700, padding: "6px 12px", borderRadius: 8,
