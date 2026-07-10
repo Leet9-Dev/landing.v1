@@ -294,6 +294,43 @@ Sync status values (must be one of):
 - [ ] No code references old/unofficial status strings (`not_connected`, `expired`, `sync_failed`, `revoked`)
 - [ ] `docs/PLATFORM_INTEGRATION_READINESS.md` vocabulary tables match `lib/platforms/platforms.js`
 
+## Dev/Staging Migration Artifact (Phase 15)
+
+Official migration artifact committed — dev/staging application and production
+application are manual steps for the DB owner.
+
+- [ ] `prisma/migrations/20260627000000_platform_sync_persistence/migration.sql` exists
+- [ ] Migration is under `prisma/migrations/` (not `migrations-draft/`)
+- [ ] Draft at `prisma/migrations-draft/0001_platform_sync_persistence.draft.sql` still present as reference
+- [ ] Migration SQL is additive only: 5 `CREATE TABLE` + indexes + FKs, no `DROP`
+- [ ] Tables: `PlatformAccount`, `PlatformSyncRun`, `PlatformDetectedGame`, `GameExternalSource`, `UserGame`
+- [ ] Unique constraints: `userId+provider`, `platformAccountId+provider+externalGameId`, `provider+externalGameId`, `userId+canonicalGameId`
+- [ ] FK cascade rules match schema (`ON DELETE CASCADE` / `SET NULL`)
+- [ ] No runtime code changes in this phase
+- [ ] No Prisma schema changes in this phase
+- [ ] No secrets/env/settings changed
+- [ ] No real Steam/PSN API calls
+- [ ] Vercel preview build passes (Vercel can run `prisma generate`; sandbox cannot)
+- [ ] `npm run lint` passes (0 errors, 5 pre-existing warnings)
+
+### Phase 15 revision — P3005 baseline (this PR update)
+
+Staging `migrate deploy` failed with `P3005 (database schema is not empty)` — the
+non-empty staging clone has no Prisma migration history. Fixed by baselining.
+
+- [ ] `prisma/migrations/migration_lock.toml` exists (`provider = "postgresql"`)
+- [ ] Baseline migration `prisma/migrations/20260101000000_existing_production_baseline/migration.sql` exists
+- [ ] Baseline SQL = existing NextAuth schema (`Account`, `Session`, `User`, `VerificationToken`)
+- [ ] Baseline timestamp is earlier than the platform-sync migration
+- [ ] Baseline + platform-sync compose to the current `prisma/schema.prisma` (verified offline via `prisma migrate diff`)
+- [ ] `prisma/migrations/README.md` documents P3005 + baseline strategy + exact commands
+- [ ] `prisma validate` passes (placeholder `DATABASE_URL`, no DB connection)
+- [ ] No production DB mutated; no `migrate resolve`/`deploy`/`db push`/`reset` run by the agent
+- [ ] **Pending (DB owner, staging clone ONLY):** `prisma migrate resolve --applied 20260101000000_existing_production_baseline`
+- [ ] **Pending (DB owner, staging clone ONLY):** `prisma migrate deploy` → then `migrate status` shows no pending
+- [ ] **Pending (Mattia approval):** same baseline+deploy sequence against production with restore point confirmed
+- [ ] **PR #20 stays blocked** until baseline + deploy succeed cleanly on the staging clone
+
 ## DB Staging and Migration Path (Phase 14)
 
 Docs-only decision record — no runtime, DB, schema, or settings change.

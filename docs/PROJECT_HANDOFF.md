@@ -8,7 +8,7 @@ data exists yet.
 
 - **Repo:** `Leet9-Dev/landing.v1`
 - **Local path:** `~/Desktop/landing.v1`
-- **Latest main:** `1b04ac9 docs: extract legacy Steam PSN ingestion plan (#18)`
+- **Latest main:** `e36a710 docs: define database staging migration path (#19)`
 - **Stack:** Next.js 16 (App Router, Turbopack), React 19, NextAuth (Google +
   Steam), Prisma + Postgres (Neon) for auth persistence only. JavaScript
   (`.js/.jsx`), inline styles.
@@ -30,7 +30,8 @@ data exists yet.
 | 11 | DB Safety + Migration Readiness (docs/safety; no migration applied) | #16 |
 | 12 | Legacy Mobile/Backend Audit (docs-only strategic audit) | #17 |
 | 13 | Legacy Steam/PSN Ingestion Extraction (docs-only) | #18 |
-| 14 | DB/Staging Decision + Migration Path (docs-only) | pending |
+| 14 | DB/Staging Decision + Migration Path (docs-only) | #19 |
+| 15 | Dev/Staging Migration Artifact (official Prisma migration; dev/staging only) | pending |
 
 The product triangle — **Discovery** (what games exist in the community),
 **Profile** (who I am as a gamer), **Rankings** (how I compare) — is complete and
@@ -148,12 +149,21 @@ Platform contracts live in `lib/platforms/` (`platforms.js`,
   Mattia controls Neon/Vercel DB access.
 - Production currently holds only the **NextAuth** tables. The Phase 10 product/
   sync models exist in `prisma/schema.prisma` but **not in the database**.
-- **No production migration has been applied.** An inert, Prisma-generated draft
-  of the Phase 10 tables is at
-  `prisma/migrations-draft/0001_platform_sync_persistence.draft.sql` (outside
-  `prisma/migrations/`, so it cannot be auto-deployed).
-- Next safe step: create a Neon dev/staging branch and generate the tracked
-  migration there — never `migrate dev`/`db push` against production.
+- **No production migration has been applied.** The tracked migration artifact
+  now lives in `prisma/migrations/` (Phase 15, PR #20): an
+  `20260101000000_existing_production_baseline` (the existing NextAuth schema) +
+  `20260627000000_platform_sync_persistence` (the 5 new tables) + `migration_lock.toml`.
+- **Phase 15 revision — P3005.** A staging `migrate deploy` failed with
+  `P3005 (database schema is not empty)`: the staging/production-clone already has
+  the NextAuth tables but **no Prisma migration history**. Fix = the **baseline
+  migration** above, marked applied via
+  `prisma migrate resolve --applied 20260101000000_existing_production_baseline`
+  (SQL not executed on existing DBs), then `migrate deploy` for the platform-sync
+  migration. Full sequence in `prisma/migrations/README.md` and
+  `docs/DB_STAGING_AND_MIGRATION_PATH.md`. **PR #20 stays blocked until baseline +
+  deploy succeed on the staging clone.**
+- Next safe step: run the baseline `resolve` + `migrate deploy` against the Neon
+  **staging/production-clone only** — never `migrate dev`/`db push`/`reset` against production.
 - **DB work is paused** pending Mattia's action on Neon dev/staging setup.
   **Phases 12–14 were docs-only phases during this pause** — they change no
   runtime behavior, DB, schema, or settings. Phase 14 (`docs/DB_STAGING_AND_MIGRATION_PATH.md`)
@@ -210,32 +220,31 @@ release or real-data integration. See `docs/QA_CHECKLIST.md`. Outstanding:
 
 ## Recommended next phase
 
-**Phase 15 — Dev DB + Migration Artifact Generation.**
+**Phase 16 — `PlatformAccount` Write Path.**
 
-Phases 9–14 built the dry-run layer, persistence model, DB-safety guardrails,
-inert draft migration, legacy ingestion extraction, and the DB/staging decision.
-The next safe steps (fully documented in `docs/DB_STAGING_AND_MIGRATION_PATH.md`):
+Phase 15 produced and committed the official migration artifact
+(`prisma/migrations/20260627000000_platform_sync_persistence/migration.sql`).
+The migration was validated against dev/staging only. The remaining steps before
+the `PlatformAccount` write path can be activated:
 
-1. **Mattia: create a Neon dev/staging branch** (~10 min in the Neon Console).
-   Store the branch `DATABASE_URL` in `.env.local` only — never commit, never
-   add to Vercel production env vars.
-2. **Francesco: generate the tracked migration** against the dev branch
-   (`prisma migrate dev --name platform_sync_persistence`); diff it against
-   `prisma/migrations-draft/0001_platform_sync_persistence.draft.sql`.
-3. **Review + commit** the generated migration (inside `prisma/migrations/`).
-4. **Mattia: approve + apply to production** — confirm a Neon restore point, then
-   `prisma migrate deploy`. Gate: owner approval required.
-5. **Phase 16:** persist Steam connection state on login (`PlatformAccount` write path).
-6. **Phase 17:** add `STEAM_API_KEY` (Vercel only), flip `DRY_RUN=false`, run an
+1. **Mattia + Francesco (locally, with dev `DATABASE_URL`):**
+   - `npx prisma migrate status` — confirm migration is pending
+   - `npx prisma migrate deploy` — apply to dev/staging only
+   - Verify the 5 new tables exist in the dev DB
+2. **Mattia: approve + apply to production** — confirm a Neon restore point, then
+   `npx prisma migrate deploy` against production. Gate: owner approval required.
+3. **Phase 16:** implement `PlatformAccount` write path — persist Steam connection
+   state on NextAuth login; update sync status on steam login.
+4. **Phase 17:** add `STEAM_API_KEY` (Vercel only), flip `DRY_RUN=false`, run an
    `execute`-mode sync, persist `PlatformDetectedGame`/`GameExternalSource`/`UserGame`,
    route unmatched games to a review queue, then recompute Profile/Stats/Rankings.
 
-See `docs/DB_STAGING_AND_MIGRATION_PATH.md` for the full decision record,
-migration commands policy, four gates before the write path, and the checklist
-for Francesco/Mattia.
+See `docs/DB_STAGING_AND_MIGRATION_PATH.md` and `docs/MIGRATION_READINESS_CHECKLIST.md`
+for the full gates and checklist.
 
-Do not run `migrate dev`/`db push`/`deploy` against production, and do not
-activate real sync before the migration is applied and the write path is in place.
+Do not run `migrate dev`/`db push`/`deploy` against production without owner
+approval, and do not activate real sync before the migration is applied and the
+write path is in place.
 
 ## Suggested next commands (for Mattia)
 
