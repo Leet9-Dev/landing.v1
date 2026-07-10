@@ -312,9 +312,24 @@ application are manual steps for the DB owner.
 - [ ] No real Steam/PSN API calls
 - [ ] Vercel preview build passes (Vercel can run `prisma generate`; sandbox cannot)
 - [ ] `npm run lint` passes (0 errors, 5 pre-existing warnings)
-- [ ] **Pending (DB owner):** `npx prisma migrate status` shows 1 pending migration against dev/staging
-- [ ] **Pending (DB owner):** `npx prisma migrate deploy` applied to dev/staging
-- [ ] **Pending (Mattia approval):** migration applied to production with restore point confirmed
+
+### Phase 15 revision — P3005 baseline (this PR update)
+
+Staging `migrate deploy` failed with `P3005 (database schema is not empty)` — the
+non-empty staging clone has no Prisma migration history. Fixed by baselining.
+
+- [ ] `prisma/migrations/migration_lock.toml` exists (`provider = "postgresql"`)
+- [ ] Baseline migration `prisma/migrations/20260101000000_existing_production_baseline/migration.sql` exists
+- [ ] Baseline SQL = existing NextAuth schema (`Account`, `Session`, `User`, `VerificationToken`)
+- [ ] Baseline timestamp is earlier than the platform-sync migration
+- [ ] Baseline + platform-sync compose to the current `prisma/schema.prisma` (verified offline via `prisma migrate diff`)
+- [ ] `prisma/migrations/README.md` documents P3005 + baseline strategy + exact commands
+- [ ] `prisma validate` passes (placeholder `DATABASE_URL`, no DB connection)
+- [ ] No production DB mutated; no `migrate resolve`/`deploy`/`db push`/`reset` run by the agent
+- [ ] **Pending (DB owner, staging clone ONLY):** `prisma migrate resolve --applied 20260101000000_existing_production_baseline`
+- [ ] **Pending (DB owner, staging clone ONLY):** `prisma migrate deploy` → then `migrate status` shows no pending
+- [ ] **Pending (Mattia approval):** same baseline+deploy sequence against production with restore point confirmed
+- [ ] **PR #20 stays blocked** until baseline + deploy succeed cleanly on the staging clone
 
 ## DB Staging and Migration Path (Phase 14)
 

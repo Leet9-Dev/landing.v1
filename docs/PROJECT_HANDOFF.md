@@ -149,12 +149,21 @@ Platform contracts live in `lib/platforms/` (`platforms.js`,
   Mattia controls Neon/Vercel DB access.
 - Production currently holds only the **NextAuth** tables. The Phase 10 product/
   sync models exist in `prisma/schema.prisma` but **not in the database**.
-- **No production migration has been applied.** An inert, Prisma-generated draft
-  of the Phase 10 tables is at
-  `prisma/migrations-draft/0001_platform_sync_persistence.draft.sql` (outside
-  `prisma/migrations/`, so it cannot be auto-deployed).
-- Next safe step: create a Neon dev/staging branch and generate the tracked
-  migration there — never `migrate dev`/`db push` against production.
+- **No production migration has been applied.** The tracked migration artifact
+  now lives in `prisma/migrations/` (Phase 15, PR #20): an
+  `20260101000000_existing_production_baseline` (the existing NextAuth schema) +
+  `20260627000000_platform_sync_persistence` (the 5 new tables) + `migration_lock.toml`.
+- **Phase 15 revision — P3005.** A staging `migrate deploy` failed with
+  `P3005 (database schema is not empty)`: the staging/production-clone already has
+  the NextAuth tables but **no Prisma migration history**. Fix = the **baseline
+  migration** above, marked applied via
+  `prisma migrate resolve --applied 20260101000000_existing_production_baseline`
+  (SQL not executed on existing DBs), then `migrate deploy` for the platform-sync
+  migration. Full sequence in `prisma/migrations/README.md` and
+  `docs/DB_STAGING_AND_MIGRATION_PATH.md`. **PR #20 stays blocked until baseline +
+  deploy succeed on the staging clone.**
+- Next safe step: run the baseline `resolve` + `migrate deploy` against the Neon
+  **staging/production-clone only** — never `migrate dev`/`db push`/`reset` against production.
 - **DB work is paused** pending Mattia's action on Neon dev/staging setup.
   **Phases 12–14 were docs-only phases during this pause** — they change no
   runtime behavior, DB, schema, or settings. Phase 14 (`docs/DB_STAGING_AND_MIGRATION_PATH.md`)

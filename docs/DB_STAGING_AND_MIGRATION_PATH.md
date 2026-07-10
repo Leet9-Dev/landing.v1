@@ -289,20 +289,79 @@ prisma/migrations/20260627000000_platform_sync_persistence/migration.sql
 
 ### Still required before production (DB owner: Mattia)
 
-Run these against **dev/staging only** first (with the dev `DATABASE_URL` in `.env.local`):
+> ⚠️ **Superseded by the Phase 15 revision below.** A plain `migrate deploy`
+> fails with **P3005** because the target DB is non-empty and has no migration
+> history. Use the baseline sequence in the next section (and
+> `prisma/migrations/README.md`), not a bare `migrate deploy`.
 
-```bash
-npx prisma migrate status    # should show 1 pending migration
-npx prisma migrate deploy    # apply to dev/staging
-npx prisma generate          # regenerate client
-npm run build                # confirm build passes
+---
+
+## Phase 15 revision — P3005 (non-empty DB) and baseline strategy
+
+**Staging validation result (Francesco, staging / production-clone):**
+
+- `DATABASE_URL` loaded; target = Neon staging/production-clone.
+- `prisma migrate status` (before): 1 migration found, **pending**
+  `20260627000000_platform_sync_persistence`.
+- `prisma migrate deploy` → **failed: `P3005 — The database schema is not empty.`**
+- `prisma migrate status` (after): migration still pending.
+- `prisma generate` succeeded locally; git clean; **production untouched; no
+  secrets committed; no runtime code changed.**
+
+**Interpretation.** The staging clone already contains the NextAuth Auth/User
+tables (it mirrors production), but that schema was created **without a tracked
+Prisma migration history** (`_prisma_migrations` is empty/absent). `migrate
+deploy` refuses to apply migrations onto a non-empty, unbaselined database — this
+is expected Prisma behavior when adopting Prisma Migrate on an existing DB.
+
+**Revised strategy: add an existing-production baseline migration.** PR #20 now
+contains **two** migrations plus the required lock file:
+
+```
+prisma/migrations/
+  migration_lock.toml
+  20260101000000_existing_production_baseline/migration.sql   # NextAuth Auth/User schema
+  20260627000000_platform_sync_persistence/migration.sql      # 5 platform-sync tables (FKs → User)
 ```
 
-Then, with a Neon production restore point confirmed and Mattia's explicit approval:
+The baseline represents the schema that already exists. It is **marked applied
+without running its SQL** on existing databases, and only executed when building
+a fresh empty database. Composing both migrations reproduces the current
+`prisma/schema.prisma` exactly (verified offline with `prisma migrate diff`).
+
+### Exact staging validation sequence (staging / production-clone ONLY)
+
+Do not print the connection string. See `prisma/migrations/README.md` for detail.
 
 ```bash
-# Switch DATABASE_URL to production (Vercel env / local override)
-npx prisma migrate deploy    # apply to production
+# (optional) regenerate baseline SQL from the ACTUAL staging schema if an exact
+# physical match is required (reads staging read-only; prints only SQL):
+#   npx prisma migrate diff --from-empty --to-url "$DATABASE_URL" --script
+
+# 1. Mark the baseline as already-applied (does NOT run its SQL — tables exist):
+npx prisma migrate resolve --applied 20260101000000_existing_production_baseline
+
+# 2. Apply the pending platform-sync migration:
+npx prisma migrate deploy
+
+# 3. Confirm clean (both applied, no pending):
+npx prisma migrate status
+
+# 4. Regenerate the client:
+npx prisma generate
 ```
+
+### Production rollout (LATER — explicit approval + restore point)
+
+```bash
+# Against production DATABASE_URL, only after Mattia's approval + a Neon restore point:
+npx prisma migrate resolve --applied 20260101000000_existing_production_baseline
+npx prisma migrate deploy
+npx prisma migrate status
+npx prisma generate
+```
+
+**PR #20 remains BLOCKED** until the baseline + `migrate deploy` succeed cleanly
+against the staging/production clone.
 
 See `docs/MIGRATION_READINESS_CHECKLIST.md` sections D–H for the full approval gate.
