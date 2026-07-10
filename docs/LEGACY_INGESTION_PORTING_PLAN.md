@@ -7,19 +7,21 @@ approval.
 
 ## Steam port checklist
 
-- [ ] Resolve `steamid64` from the NextAuth Steam JWT → `PlatformAccount.externalUserId`.
-- [ ] Read `STEAM_API_KEY` server-side only (reconcile legacy `STEAM_APIKEY` name); never commit/expose.
-- [ ] `fetchSteamOwnedGames` real path behind `DRY_RUN` (`GetOwnedGames/v1`, `include_appinfo=true`).
-- [ ] Store the **raw** response before normalizing (audit).
-- [ ] Normalize: appid→externalGameId, `playtime_forever` min→`playtimeHours`,
-      `rtime_last_played` (0=null)→`lastPlayedAt`, name→externalTitle.
-- [ ] Achievements via `GetPlayerAchievements/v1` as a **batched follow-up** (no N+1).
-- [ ] Match `(steam, appid)` → `GameExternalSource.canonicalGameId`; unmatched → review queue.
-- [ ] Add retry/backoff (429/503) + private-profile handling (empty/403) + per-game error isolation.
-- [ ] Decide handling for absent Steam `firstPlayed` (legacy never computed it).
-- [ ] Persist `PlatformSyncRun` (mode/status/counts/warnings) + `PlatformDetectedGame` (idempotent upsert).
-- [ ] Create/update `UserGame` with first-connection + incremental-delta rules.
-- [ ] **No score writes during ingestion** — scoring is a separate step.
+_Phase 16 = PlatformAccount identity; Phase 17 = validation + owned-games detection._
+
+- [x] Store `steamid64` on `PlatformAccount.externalUserId` (Phase 16, from user-provided identity).
+- [x] Read `STEAM_API_KEY` **server-side only** in `lib/integrations/steam/steamApiClient.js`; never committed/exposed/logged (Phase 17). (Canonical name `STEAM_API_KEY`; legacy used `STEAM_APIKEY` — documented.)
+- [x] Real `GetOwnedGames/v1` (`include_appinfo=true`) via `POST /sync-preview` execute (Phase 17).
+- [x] Store sanitized **raw** per detection in `PlatformDetectedGame.raw` before/with normalizing (Phase 17).
+- [x] Normalize: appid→externalGameId, `playtime_forever` min→`playtimeHours`, `rtime_last_played` (0=null)→`lastPlayedAt`, name→externalTitle (Phase 17, pure normalizer).
+- [x] Persist `PlatformSyncRun` (status/counts/warnings) + `PlatformDetectedGame` (idempotent upsert) (Phase 17).
+- [x] `GetPlayerSummaries` validation + private-profile detection via `POST /validate` (Phase 17).
+- [ ] Achievements via `GetPlayerAchievements/v1` as a **batched follow-up** (no N+1). _(deferred)_
+- [ ] Match `(steam, appid)` → `GameExternalSource.canonicalGameId`; unmatched → review queue. _(Phase 18)_
+- [ ] Add retry/backoff (429/503); currently a single timed request with sanitized error. _(follow-up)_
+- [ ] Decide handling for absent Steam `firstPlayed` (legacy never computed it). _(open)_
+- [ ] Create/update `UserGame` with first-connection + incremental-delta rules. _(Phase 18+)_
+- [x] **No score writes during ingestion** — Phase 17 writes detections only, no scoring.
 
 ## PSN port checklist (gated — all to-be-validated)
 

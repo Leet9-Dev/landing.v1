@@ -375,6 +375,40 @@ Phase 16 must **not** be merged/deployed to production unless **all** are true
 - [ ] **Mattia confirms** production migration completion
 - [ ] The agent ran **no** migration in this phase (confirmed)
 
+## Steam Validation + Sync Preview (Phase 17)
+
+Real Steam Web API. Requires **server** `STEAM_API_KEY` and a signed-in session
+with a connected Steam account + the migration applied. Most checks are **manual
+QA** on a configured deploy; the 401s, normalizer, lint, and build run without a
+key/DB.
+
+### Automated / no-DB / no-key checks (done)
+
+- [x] Unauthenticated `POST /api/integrations/steam/validate` → 401
+- [x] Unauthenticated `POST /api/integrations/steam/sync-preview` → 401
+- [x] Unauthenticated `GET /api/integrations/steam/sync-preview` (legacy mock) → 401
+- [x] Owned-games normalizer unit cases pass (empty, invalid/missing appid, dedupe, missing name, playtime/lastPlayed, sanitized raw) — 12/12
+- [x] `npm run lint` (0 errors) and `npm run build` pass
+- [x] `STEAM_API_KEY` absent locally → no real Steam call is made by the agent
+- [x] No `.env`/schema/migration/package.json changes
+
+### Manual QA (deploy with `STEAM_API_KEY` + signed in + connected Steam)
+
+- [ ] Missing `STEAM_API_KEY` → validate/sync return `503 STEAM_NOT_CONFIGURED`; UI shows config message
+- [ ] `POST /validate` on a valid public steamID64 → `valid:true`, persona/visibility stored in `metadata.steamProfile`
+- [ ] `POST /validate` with no connected Steam account → 404
+- [ ] `POST /validate` on a private profile → validates but flags private/limited
+- [ ] `POST /sync-preview {mode:"preview"}` → returns game count + samples, **writes no `PlatformDetectedGame`**, creates **no** `PlatformSyncRun`
+- [ ] `POST /sync-preview {mode:"execute"}` → creates a `PlatformSyncRun` (success) + `PlatformDetectedGame` rows (`matchStatus:"unmatched"`)
+- [ ] Rerun execute → **no duplicate** detected-game rows (idempotent upsert); rows updated in place
+- [ ] Execute updates `PlatformAccount.lastSyncAt` + `syncStatus`
+- [ ] Steam API failure in execute → `PlatformSyncRun` marked `failed` with sanitized error; response is safe
+- [ ] No response leaks the API key, full request URL, headers, or a stack trace
+- [ ] No `GameExternalSource` or `UserGame` rows are created
+- [ ] Discovery/Profile/Games/Stats/Rankings are **unchanged** by sync
+- [ ] PSN has **no** sync UI/endpoint (identity connect only)
+- [ ] `userId` is always from the session (client cannot override ownership)
+
 ## DB Staging and Migration Path (Phase 14)
 
 Docs-only decision record — no runtime, DB, schema, or settings change.

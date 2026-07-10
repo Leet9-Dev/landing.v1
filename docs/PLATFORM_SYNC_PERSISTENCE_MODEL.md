@@ -10,9 +10,18 @@ auditably.
 > `lib/prisma.js`) — the first real DB write in the product. Scope is
 > **connection identity only**: connect stores a safe public identifier (Steam
 > steamid64 / PSN onlineId), disconnect is a **soft-disconnect** (status →
-> `disconnected`, row kept). No Steam/PSN API is called, no `PlatformSyncRun`/
-> `PlatformDetectedGame`/`UserGame` is written, and **no NPSSO/token is stored**.
-> The other four models remain schema-only until the sync phases.
+> `disconnected`, row kept). No Steam/PSN API is called and **no NPSSO/token is stored**.
+
+> **Update (Phase 17):** `PlatformSyncRun` and `PlatformDetectedGame` now have
+> **live write paths** for **Steam** via `POST /api/integrations/steam/sync-preview`
+> (`mode:"execute"`, real `GetOwnedGames`). Execute records a `PlatformSyncRun`
+> (status lifecycle `syncing → success/failed`, counts, sanitized errors) and
+> **idempotently upserts** `PlatformDetectedGame` rows on
+> `@@unique([platformAccountId, provider, externalGameId])`, all `matchStatus:
+> "unmatched"`. `mode:"preview"` calls Steam but **persists nothing**.
+> `GameExternalSource` and `UserGame` remain **schema-only** — canonical matching
+> and `UserGame` creation are Phase 18. Detected games do not yet power any
+> product surface (Discovery/Profile/Stats/Rankings).
 
 ## Purpose
 

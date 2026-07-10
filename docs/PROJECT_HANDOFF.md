@@ -8,8 +8,8 @@ data exists yet.
 
 - **Repo:** `Leet9-Dev/landing.v1`
 - **Local path:** `~/Desktop/landing.v1`
-- **Latest main:** `a12d1da feat: add platform sync persistence migration (#20)`
-  (Phase 16 — PlatformAccount Write Path — is in its own branch/PR on top of this)
+- **Latest main:** `548c8ea feat: add platform account write path (#22)`
+  (Phase 17 — Steam Account Validation + Sync Preview — is in its own branch/PR on top of this)
 - **Stack:** Next.js 16 (App Router, Turbopack), React 19, NextAuth (Google +
   Steam), Prisma + Postgres (Neon). As of Phase 16, Prisma persists NextAuth
   **and** the first product record (`PlatformAccount`). JavaScript (`.js/.jsx`),
@@ -34,7 +34,8 @@ data exists yet.
 | 13 | Legacy Steam/PSN Ingestion Extraction (docs-only) | #18 |
 | 14 | DB/Staging Decision + Migration Path (docs-only) | #19 |
 | 15 | Dev/Staging Migration Artifact (official Prisma migration + P3005 baseline) | #20 |
-| 16 | PlatformAccount Write Path (first real DB read/write; auth-only) | pending |
+| 16 | PlatformAccount Write Path (first real DB read/write; auth-only) | #22 |
+| 17 | Steam Validation + Sync Preview (real Steam API; PlatformSyncRun + PlatformDetectedGame) | pending |
 
 The product triangle — **Discovery** (what games exist in the community),
 **Profile** (who I am as a gamer), **Rankings** (how I compare) — is complete and
@@ -87,8 +88,17 @@ Platform accounts (Phase 16 — **first real DB read/write**)
   keep the row + history; never deletes related sync/detected-game/user-game data).
 - All three are authenticated; `userId` is derived from the session, never from the client.
 
-Steam sync dry-run (Phase 9)
-- `GET /api/integrations/steam/sync-preview` — dry-run sync plan (no persistence, no real Steam call)
+Steam integration (Phase 9 mock + Phase 17 real)
+- `GET /api/integrations/steam/sync-preview` — legacy **mock** dry-run plan (no persistence, no real Steam call)
+- `POST /api/integrations/steam/validate` — **real** Steam API (`GetPlayerSummaries`);
+  validates the user's connected steamID64, stores safe public profile fields
+  (persona/avatar/visibility/`lastValidatedAt`) on `PlatformAccount.metadata`. No library.
+- `POST /api/integrations/steam/sync-preview` — **real** Steam API (`GetOwnedGames`).
+  `mode:"preview"` (default) reads + normalizes in memory, **saves nothing**;
+  `mode:"execute"` records a `PlatformSyncRun` and idempotently upserts
+  `PlatformDetectedGame` rows (unmatched). No canonical matching, no `UserGame`,
+  no Discovery/Profile/Stats/Rankings impact. Requires server `STEAM_API_KEY`
+  (else 503 `STEAM_NOT_CONFIGURED`).
 
 All `/api/me/*`, `/api/rankings/*`, `/api/tribes/*`, and
 `/api/platforms/detected-games` require a session (return
@@ -234,47 +244,50 @@ release or real-data integration. See `docs/QA_CHECKLIST.md`. Outstanding:
 
 ## Not built yet
 
-- Real Steam sync (library/achievements) — Phase 16 only stores the connection
-  identity; no Steam API is called
-- Real PSN sync (library/trophies) — gated on secure credential handling; Phase 16
-  stores an onlineId identity record only, no NPSSO/token
-- Real database-backed product data — **as of Phase 16, `PlatformAccount` is the
-  first table with a live read/write path; everything else (Discovery, Profile,
-  Games, Stats, Rankings, Tribe) is still mock-backed**
+- Steam **achievements** sync (Phase 17 syncs owned games only) and canonical
+  matching (`GameExternalSource`) / `UserGame` creation — Phase 17 stores raw
+  `PlatformDetectedGame` detections (unmatched) only
+- Real PSN sync (library/trophies) — gated on secure credential handling; only an
+  onlineId identity record is stored, no NPSSO/token
+- Real database-backed **product** data — **as of Phase 17, `PlatformAccount`,
+  `PlatformSyncRun`, and `PlatformDetectedGame` have live write paths, but
+  Discovery, Profile, Games, Stats, Rankings, and Tribe are still mock-backed**
+  (detected games do not yet flow into any product surface)
 - Competitions / competition scoring
 - Rewards / marketplace
 - Wallet / blockchain / NFT
 - Game downloads
 - Real tribe management (create / invite / leave / kick / promote / settings)
 
+## Required environment variables (Phase 17)
+
+- `STEAM_API_KEY` — **server-only** Steam Web API key, set in **Vercel env vars**
+  (never `NEXT_PUBLIC_*`, never committed). Without it, the Steam validate/sync
+  endpoints return a controlled `503 STEAM_NOT_CONFIGURED` and the UI shows an
+  admin/config message. The key is never logged or returned.
+
 ## Recommended next phase
 
-**Phase 17 — Steam Account Validation + Sync Preview Execute Path.**
+**Phase 18 — Steam Canonical Game Matching.**
 
-Phase 16 built the `PlatformAccount` write path (connect/read/soft-disconnect,
-identity only). Before real Steam library sync:
+Phase 17 persists raw Steam detections (`PlatformDetectedGame`, `matchStatus:
+"unmatched"`). The next step is the canonical-matching layer:
 
-1. **Apply the migration to production** (gated on Mattia + restore point) so the
-   Phase 16 write path can run in production — same baseline `resolve` + `deploy`
-   sequence validated on staging (`prisma/migrations/README.md`).
-2. **Phase 17 — Steam:** validate the connected Steam `externalUserId` (steamid64),
-   add `STEAM_API_KEY` (Vercel only), and wire the `sync-preview` to real
-   `GetOwnedGames` behind the existing `DRY_RUN` flag — still no persistence of
-   games until reviewed. Then an `execute`-mode `PlatformSyncRun` persists
-   `PlatformDetectedGame`/`GameExternalSource`/`UserGame`, routing unmatched games
-   to a review queue.
-3. **PSN remains gated** on a secure encrypted-credential design (no NPSSO stored) —
-   revalidate the access path before building PSN sync (see
-   `docs/LEGACY_INGESTION_EXTRACTION.md`).
+1. Match `PlatformDetectedGame (steam, appid)` → `GameExternalSource` → canonical
+   `Game`; set `matchStatus`/`canonicalGameId`; route unmatched to a review queue.
+2. Draft the `UserGame` create/update path from matched detections (behind review).
+3. **Still** do not power Discovery/Profile/Stats/Rankings from synced data, and do
+   not build scoring/rewards/competitions.
+4. **PSN remains gated** on a secure encrypted-credential design (no NPSSO stored) —
+   revalidate the access path before building PSN sync
+   (`docs/LEGACY_INGESTION_EXTRACTION.md`).
 
-**Not** PSN full sync yet unless credential security is resolved.
-
-See `docs/DB_STAGING_AND_MIGRATION_PATH.md` and `docs/MIGRATION_READINESS_CHECKLIST.md`
-for the full gates and checklist.
+**Prerequisite for running Phase 17 in production:** the platform-sync migration
+must be applied to production (baseline `resolve` + `deploy`, gated on Mattia +
+restore point — `prisma/migrations/README.md`) and `STEAM_API_KEY` set in Vercel.
 
 Do not run `migrate dev`/`db push`/`deploy` against production without owner
-approval, and do not activate real sync before the migration is applied and the
-write path is in place.
+approval.
 
 ## Suggested next commands (for Mattia)
 
