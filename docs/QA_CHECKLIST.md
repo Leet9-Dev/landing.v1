@@ -331,6 +331,50 @@ non-empty staging clone has no Prisma migration history. Fixed by baselining.
 - [ ] **Pending (Mattia approval):** same baseline+deploy sequence against production with restore point confirmed
 - [ ] **PR #20 stays blocked** until baseline + deploy succeed cleanly on the staging clone
 
+## PlatformAccount Write Path (Phase 16)
+
+First real DB read/write path. **Requires a database + a signed-in session** — the
+authenticated flows below are **manual QA** against a deploy where the migration is
+applied (dev/staging/production-clone), since the sandbox has no DB. The
+unauthenticated 401 checks and lint/build run without a DB.
+
+### Automated / no-DB checks (done)
+
+- [x] Unauthenticated `GET /api/me/platform-accounts` → 401 `UNAUTHENTICATED`
+- [x] Unauthenticated `POST /api/me/platform-accounts` → 401
+- [x] Unauthenticated `DELETE /api/me/platform-accounts` → 401
+- [x] `npm run lint` passes (0 errors, 5 pre-existing warnings)
+- [x] `npm run build` passes (`prisma generate` produces the `platformAccount` client)
+- [x] No `.env`/secrets changed; no migration run by the agent; no schema.prisma change
+- [x] No real Steam/PSN API calls; no `STEAM_API_KEY`; no NPSSO/token stored
+
+### Manual QA (signed in, against a DB with the migration applied)
+
+- [ ] `GET` returns only the **current user's** accounts (userId from session, never from query/body)
+- [ ] `POST { provider:"steam", identifier:<steamID64> }` creates a `connected` record
+- [ ] `POST { provider:"psn", identifier:<onlineId> }` creates a `connected` record
+- [ ] `POST` ignores any client-supplied `userId` (ownership cannot be overridden)
+- [ ] Invalid platform (e.g. `xbox`) → 400 `VALIDATION_ERROR`
+- [ ] Invalid Steam id (not 17 digits) / invalid PSN onlineId → 400
+- [ ] `DELETE { provider }` sets status `disconnected` + `disconnectedAt`, **row NOT deleted**
+- [ ] `DELETE` for a provider with no record → 404 `PLATFORM_ACCOUNT_NOT_FOUND`
+- [ ] Reconnect: `POST` again after disconnect → status back to `connected`, same row id, history preserved
+- [ ] No response ever contains credentials/tokens/`metadata` (safe DTO only)
+- [ ] Platform Sources UI: connect Steam + PSN, disconnect, reconnect — reflects DB state
+- [ ] UI copy is honest: "connection record created", "library sync not active yet", PSN auth boundary noted
+- [ ] Platform Sources stays inside authenticated `/app` only
+
+### Production migration gate (BLOCKS merge/deploy to production)
+
+Phase 16 must **not** be merged/deployed to production unless **all** are true
+(or the feature is safely gated from production runtime):
+
+- [ ] Production DB baseline marked applied (`migrate resolve --applied 20260101000000_existing_production_baseline`)
+- [ ] Production DB has `20260627000000_platform_sync_persistence` applied
+- [ ] `prisma migrate status` clean against production
+- [ ] **Mattia confirms** production migration completion
+- [ ] The agent ran **no** migration in this phase (confirmed)
+
 ## DB Staging and Migration Path (Phase 14)
 
 Docs-only decision record — no runtime, DB, schema, or settings change.

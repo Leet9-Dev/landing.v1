@@ -5,6 +5,15 @@ wiring.** This phase adds the database models behind the normalized platform
 ingestion flow so a later phase can persist real sync results safely and
 auditably.
 
+> **Update (Phase 16):** `PlatformAccount` now has a **live, authenticated
+> read/write path** (`GET/POST/DELETE /api/me/platform-accounts` via
+> `lib/prisma.js`) — the first real DB write in the product. Scope is
+> **connection identity only**: connect stores a safe public identifier (Steam
+> steamid64 / PSN onlineId), disconnect is a **soft-disconnect** (status →
+> `disconnected`, row kept). No Steam/PSN API is called, no `PlatformSyncRun`/
+> `PlatformDetectedGame`/`UserGame` is written, and **no NPSSO/token is stored**.
+> The other four models remain schema-only until the sync phases.
+
 ## Purpose
 
 Phases 7–9 built the platform-agnostic contracts, mock data, and a Steam
