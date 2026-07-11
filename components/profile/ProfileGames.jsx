@@ -140,14 +140,25 @@ function ProfileGameCard({ userGame, onClick }) {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-          <Stat label="L9 Points" value={userGame.l9Points.toLocaleString()} accent />
+          <Stat label="L9 Points" value={userGame.l9Points != null ? userGame.l9Points.toLocaleString() : "—"} accent />
           <Stat label="Hours" value={userGame.hoursPlayed.toFixed(0)} />
-          <Stat label="Achievements" value={`${userGame.achievementsUnlocked}/${userGame.achievementsTotal}`} />
-          <Stat label="Mastery" value={`${userGame.masteryPct.toFixed(0)}%`} />
+          <Stat
+            label="Achievements"
+            value={
+              userGame.achievementsUnlocked != null && userGame.achievementsTotal != null
+                ? `${userGame.achievementsUnlocked}/${userGame.achievementsTotal}`
+                : userGame.achievementsUnlocked != null
+                ? `${userGame.achievementsUnlocked}`
+                : "—"
+            }
+          />
+          <Stat label="Mastery" value={userGame.masteryPct != null ? `${userGame.masteryPct.toFixed(0)}%` : "—"} />
         </div>
 
         <div style={{ fontSize: 10, color: "rgba(241,243,249,0.25)" }}>
-          Last played {new Date(userGame.lastPlayedAt).toLocaleDateString()}
+          {userGame.lastPlayedAt
+            ? `Last played ${new Date(userGame.lastPlayedAt).toLocaleDateString()}`
+            : "No play date recorded"}
         </div>
       </div>
     </div>
@@ -220,7 +231,7 @@ function EmptyState({ query }) {
         No games in your profile yet
       </div>
       <div style={{ fontSize: 13, color: "rgba(241,243,249,0.25)" }}>
-        {query ? `No results for "${query}"` : "Add games to your profile from Discovery."}
+        {query ? `No results for "${query}"` : "Connect Steam and run a sync to see your library here."}
       </div>
     </div>
   );
