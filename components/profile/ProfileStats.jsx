@@ -60,8 +60,8 @@ export function ProfileStats() {
           Confidence: {stats.confidence}
         </span>
         <span>
-          Every signal below is explained by what it&apos;s based on. These are mock figures until
-          Steam and PSN data are connected.
+          These are estimated figures. Sync your Steam library in Profile → Platform Sources
+          to start building real stats.
         </span>
         <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(241,243,249,0.25)" }}>
           Calculated {new Date(stats.calculatedAt).toLocaleDateString()}
