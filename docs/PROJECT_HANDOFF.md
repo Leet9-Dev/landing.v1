@@ -1,19 +1,19 @@
 # Leet9 Project Handoff
 
-A closeout checkpoint for anyone taking over the Leet9 web MVP. The app is a
-modular, mock-backed product shell; no real platform sync or persistent product
-data exists yet.
+A closeout checkpoint for anyone taking over the Leet9 web MVP. The core
+product shell is complete and mock-backed; real Steam sync is now live
+end-to-end on production.
 
 ## Repo
 
 - **Repo:** `Leet9-Dev/landing.v1`
 - **Local path:** `~/Desktop/landing.v1`
-- **Latest main:** `a12d1da feat: add platform sync persistence migration (#20)`
-  (Phase 16 — PlatformAccount Write Path — is in its own branch/PR on top of this)
+- **Latest main:** `9c881ee feat: real Steam API integration — validate, preview, execute sync (#24)`
 - **Stack:** Next.js 16 (App Router, Turbopack), React 19, NextAuth (Google +
-  Steam), Prisma + Postgres (Neon). As of Phase 16, Prisma persists NextAuth
-  **and** the first product record (`PlatformAccount`). JavaScript (`.js/.jsx`),
-  inline styles.
+  Steam), Prisma + Postgres (Neon). Prisma persists NextAuth tables and all
+  platform-sync tables (`PlatformAccount`, `PlatformSyncRun`,
+  `PlatformDetectedGame`, `GameExternalSource`, `UserGame`). JavaScript
+  (`.js/.jsx`), inline styles.
 
 ## Merged phases
 
@@ -34,12 +34,14 @@ data exists yet.
 | 13 | Legacy Steam/PSN Ingestion Extraction (docs-only) | #18 |
 | 14 | DB/Staging Decision + Migration Path (docs-only) | #19 |
 | 15 | Dev/Staging Migration Artifact (official Prisma migration + P3005 baseline) | #20 |
-| 16 | PlatformAccount Write Path (first real DB read/write; auth-only) | pending |
+| 16 | Mobile sidebar fix + BottomNav | #21 |
+| 17 | PlatformAccount Write Path (first real DB read/write; manual identity) | #22 |
+| 18 | Real Steam API — validate, preview, execute sync (live end-to-end) | #24 |
 
 The product triangle — **Discovery** (what games exist in the community),
 **Profile** (who I am as a gamer), **Rankings** (how I compare) — is complete and
 mock-backed end to end, plus a lightweight Tribe community layer and
-platform-integration readiness for Steam + PSN.
+full Steam platform integration live on production.
 
 ## Product routes
 
@@ -49,12 +51,12 @@ platform-integration readiness for Steam + PSN.
 - `/app/discovery` — Discovery grid (search, platform filter, sort, sections)
 - `/app/discovery/[gameId]` — Game Deep Dive (+ Add to Profile mock action)
 - `/app/profile` — tabbed: **Overview**, **Games**, **Stats**, **Tribe**
-  (Overview includes a read-only Platform Sources section)
+  (Overview includes a live DB-backed Platform Sources section)
 - `/app/rankings` — tabbed: **Players**, **Games**, **Tribes**
 
 All `/app/*` routes are protected by the session guard in `app/app/layout.js`.
 
-## API routes (all mock-backed)
+## API routes
 
 Auth
 - `…/api/auth/[...nextauth]` — NextAuth (Google + Steam)
@@ -64,31 +66,33 @@ Discovery / Games
 - `GET /api/games/[gameId]` — game detail + external sources + current user game
 - `POST /api/me/games/[gameId]/add` — add to profile (mock)
 
-Current user / Profile
+Current user / Profile (mock-backed)
 - `GET /api/me` · `GET /api/me/profile` · `GET /api/me/games` ·
   `GET /api/me/activity` · `GET /api/me/stats`
 
-Rankings
+Rankings (mock-backed)
 - `GET /api/rankings/players` · `GET /api/rankings/games` · `GET /api/rankings/tribes`
 
-Tribe
+Tribe (mock-backed)
 - `GET /api/me/tribe` · `GET /api/tribes/[tribeId]` · `GET /api/tribes/[tribeId]/members`
 
 Platforms (Phase 7)
 - `GET /api/platforms` — **public** provider metadata + capabilities
 - `GET /api/platforms/detected-games` — normalized detections + canonical mapping (mock)
 
-Platform accounts (Phase 16 — **first real DB read/write**)
-- `GET /api/me/platform-accounts` — current user's `PlatformAccount` rows from the DB (safe DTOs)
-- `POST /api/me/platform-accounts` — connect/reconnect from a safe public identifier
-  (Steam steamid64 / PSN onlineId); upserts by `userId+provider`, marks `connected`.
-  No Steam/PSN API call, no library sync, no NPSSO/token storage.
-- `DELETE /api/me/platform-accounts` — **soft-disconnect** (status → `disconnected`,
-  keep the row + history; never deletes related sync/detected-game/user-game data).
-- All three are authenticated; `userId` is derived from the session, never from the client.
+Platform accounts (**real DB**)
+- `GET /api/me/platform-accounts` — current user's `PlatformAccount` rows (safe DTOs)
+- `POST /api/me/platform-accounts` — connect/reconnect; validates steamid64 via
+  `GetPlayerSummaries` when `STEAM_API_KEY` is set; stores real persona name
+- `DELETE /api/me/platform-accounts` — soft-disconnect (status → `disconnected`,
+  row preserved for audit/reconnect)
 
-Steam sync dry-run (Phase 9)
-- `GET /api/integrations/steam/sync-preview` — dry-run sync plan (no persistence, no real Steam call)
+Steam sync (**real, live**)
+- `GET /api/integrations/steam/sync-preview` — dry-run plan using real Steam library
+  when `STEAM_API_KEY` + connected account present; fixture fallback otherwise
+- `POST /api/integrations/steam/sync-execute` — **execute sync**: fetches real
+  Steam library, upserts `PlatformDetectedGame` + `UserGame` idempotently,
+  stamps `PlatformSyncRun`; requires `STEAM_API_KEY` + connected account
 
 All `/api/me/*`, `/api/rankings/*`, `/api/tribes/*`, and
 `/api/platforms/detected-games` require a session (return
@@ -96,24 +100,50 @@ All `/api/me/*`, `/api/rankings/*`, `/api/tribes/*`, and
 `/api/games/*`, and `/api/platforms` are currently public. Responses use the
 `{ ok, data, meta }` envelope from `lib/api/response.js`.
 
-## Mock-backed areas
+## Live vs mock-backed areas
 
-Everything below is mock data in `lib/mock/*.js`, joined to canonical games by
-`gameId` (canonical game data is never duplicated):
+**Live (real DB reads/writes):**
+- `PlatformAccount` — connect/disconnect, auto-created on Steam OAuth login
+- `PlatformSyncRun` — created + stamped on each execute sync
+- `PlatformDetectedGame` — upserted idempotently on execute sync
+- `UserGame` — upserted idempotently on execute sync (matched games only)
 
-- `currentUser`, `platformAccounts`, `platformDetectedGames`
-- `games`, `gameExternalSources`, `userGames`
+**Still mock-backed** (`lib/mock/*.js`):
+- `currentUser`, `platformDetectedGames` (for mock display)
+- `games`, `gameExternalSources` (used for canonical matching in sync)
 - `profile` (signature games, friends), `activity`, `achievements`, `statsSummary`
 - `rankings` (players), `tribes` (tribe rankings), `tribe` (detail + members)
+- Profile → Games, Stats, Rankings still read mock data
 
 Platform contracts live in `lib/platforms/` (`platforms.js`,
 `normalization.js`, `canonicalMatching.js`).
 
-**Exception (Phase 16):** `GET/POST/DELETE /api/me/platform-accounts` now read/write
-the real `PlatformAccount` table via `lib/prisma.js` — no longer mock. The
-Profile → Overview **Platform Sources** section is now DB-backed (connect/disconnect).
-Note the transitional inconsistency: Profile → **Stats** "Platform Confidence"
-still reads `lib/mock/platformAccounts.js` (Stats-from-DB is a later phase).
+## Steam integration (live)
+
+- `STEAM_API_KEY` is set in Vercel (Production + Preview)
+- Auto-connect: Steam OAuth login → `PlatformAccount` upserted via `signIn` callback in `lib/auth.js`
+- Manual connect: user enters steamid64 in Profile → Platform Sources UI
+- Validation: `GetPlayerSummaries` called on connect to verify account + fetch persona name
+- Preview sync: `GET /api/integrations/steam/sync-preview` uses real `GetOwnedGames`
+- Execute sync: `POST /api/integrations/steam/sync-execute` persists games idempotently
+- Canonical matching still uses `MOCK_EXTERNAL_SOURCES` — a future phase seeds `GameExternalSource` from real data
+
+## Database state
+
+**Production (Neon — Leet9 project, production branch):**
+- NextAuth tables: `User`, `Account`, `Session`, `VerificationToken` ✅
+- Platform-sync tables: `PlatformAccount`, `PlatformSyncRun`, `PlatformDetectedGame`,
+  `GameExternalSource`, `UserGame` ✅ (applied via Neon SQL Editor, Jul 11 2026)
+- Migration history: both entries recorded in `_prisma_migrations` ✅
+- `STEAM_API_KEY`: set in Vercel Production + Preview ✅
+
+**Staging (Neon — Leet9 project, staging branch):**
+- Full clone of production at branch time; migration validated here first ✅
+
+**Migration artifacts** (`prisma/migrations/`):
+- `20260101000000_existing_production_baseline` — NextAuth schema baseline (mark-applied only on existing DBs)
+- `20260627000000_platform_sync_persistence` — 5 platform-sync tables (additive only)
+- `migration_lock.toml` + `README.md` with full baseline strategy docs
 
 ## Important docs
 
@@ -123,82 +153,29 @@ still reads `lib/mock/platformAccounts.js` (Stats-from-DB is a later phase).
 - `docs/STEAM_SYNC_PREPARATION.md` — Phase 9: what was prepared, what must happen before
   real sync, normalized shape, dry-run plan shape, persistence needs, PSN parity note
 - `docs/PLATFORM_SYNC_PERSISTENCE_MODEL.md` — Phase 10: the Prisma models behind the
-  normalized flow (`PlatformAccount`, `PlatformSyncRun`, `PlatformDetectedGame`,
-  `GameExternalSource`, `UserGame`), idempotency rules, dry_run vs execute, migration notes
-- `docs/DB_MIGRATION_SAFETY.md` — Phase 11: DB reality (one prod Neon, no dev/staging),
-  forbidden commands, the safe production-migration process, rollback considerations
-- `docs/MIGRATION_READINESS_CHECKLIST.md` — Phase 11: step-by-step checklist (A–H) for the
-  DB owner to take the Phase 10 schema from defined → applied safely
-- `docs/LEGACY_MOBILE_BACKEND_AUDIT.md` — Phase 12: audit of the legacy iOS + backend
-  microservices; what survives / is redesigned / deferred / discarded into the web-first product
-- `docs/LEGACY_AUDIT_ACTION_PLAN.md` — Phase 12: short follow-up checklist (legacy logic to
-  inspect deeper, missing design exports to request, open decisions, implementation risks,
-  GitHub repo cleanup actions + owner-review checklist)
-- `docs/LEGACY_INGESTION_EXTRACTION.md` — Phase 13: extraction of legacy Steam/PSN ingestion
-  (endpoints, fields, edge cases, anti-gaming rules) mapped onto the new normalized model;
-  Steam = adapt-as-reference, PSN = revalidate before building
-- `docs/LEGACY_INGESTION_PORTING_PLAN.md` — Phase 13: Steam/PSN port checklists, data-model
-  mapping, future PR sequence, and risks
-- `docs/DB_STAGING_AND_MIGRATION_PATH.md` — Phase 14: the two options (Neon branch vs
-  prod-only), migration commands policy, the four gates before the `PlatformAccount` write
-  path, the recommended phase sequence, and the decision checklist for Francesco/Mattia
+  normalized flow, idempotency rules, dry_run vs execute, migration notes
+- `docs/DB_MIGRATION_SAFETY.md` — Phase 11: DB reality, forbidden commands, safe
+  production-migration process, rollback considerations
+- `docs/MIGRATION_READINESS_CHECKLIST.md` — Phase 11: step-by-step checklist (A–H)
+- `docs/LEGACY_MOBILE_BACKEND_AUDIT.md` — Phase 12: audit of legacy iOS + backend
+- `docs/LEGACY_AUDIT_ACTION_PLAN.md` — Phase 12: follow-up checklist
+- `docs/LEGACY_INGESTION_EXTRACTION.md` — Phase 13: Steam/PSN ingestion extraction
+- `docs/LEGACY_INGESTION_PORTING_PLAN.md` — Phase 13: Steam/PSN port checklists
+- `docs/DB_STAGING_AND_MIGRATION_PATH.md` — Phase 14: decision record, migration
+  commands policy, four gates, recommended phase sequence
+- `prisma/migrations/README.md` — baseline strategy, P3005 explanation, exact
+  staging + production migration commands
 
 ## Legacy GitHub repos (Phase 12 inventory)
 
-- Phase 12 included a **read-only GitHub legacy repo inventory and cleanup
-  recommendations** (`docs/LEGACY_MOBILE_BACKEND_AUDIT.md` §13–§14): 18 repos
-  under `Leet9-Dev`, none archived.
 - **Keep active:** `landing.v1`, `leet9-product-architecture`.
-- **Keep as reference (preserve until real Steam sync works):** `leet9-game-service`,
-  `leet9-shared-service`, `leet9-user-service`, `leet9-ios`, `leet9-android`, `leet9-cron`.
+- **Keep as reference:** `leet9-game-service`, `leet9-shared-service`,
+  `leet9-user-service`, `leet9-ios`, `leet9-android`, `leet9-cron`.
 - **Archive candidates:** `leet9-blockchain-service`, `leet9-notification-service`,
   `leet9-email-service`, `leet9-api-gateway`.
-- **Deletion candidates:** `demo-repository`, `refactored-funicular-demo-repository`
-  (GitHub demo templates), and `PWA_V1` (empty) — owner review.
-- **Needs owner review:** `leet9-api-service`, `leet9-common-service` (2023, possibly
-  superseded), `leet9-project-status` (public).
-- **No repos were deleted, archived, renamed, transferred, or had visibility/settings
-  changed.** All repo cleanup decisions **require owner (Francesco/Mattia) approval.**
-
-## Database state
-
-> ⚠️ **Phase 16 production gate.** Phase 16 introduces the first real DB reads/writes
-> (`PlatformAccount`). It **must not be merged/deployed to production** until: the
-> baseline is marked applied on production, the `20260627000000_platform_sync_persistence`
-> migration is applied to production, `prisma migrate status` is clean, and **Mattia
-> confirms** — OR the feature is safely gated off production runtime. Staging validation
-> already succeeded (baseline marked applied; platform-sync applied; status clean).
-> The Phase 16 PR **does not run any migration** and must not be merged before this gate.
-
-- **One Neon database, and it is production.** No dev/staging DB exists yet;
-  Mattia controls Neon/Vercel DB access. (A staging/production-clone was used for
-  Phase 15 migration validation.)
-- Production currently holds only the **NextAuth** tables. The Phase 10 product/
-  sync models exist in `prisma/schema.prisma` but **not yet in production** (applied
-  to the staging clone only).
-- **No production migration has been applied.** The tracked migration artifact
-  now lives in `prisma/migrations/` (Phase 15, PR #20): an
-  `20260101000000_existing_production_baseline` (the existing NextAuth schema) +
-  `20260627000000_platform_sync_persistence` (the 5 new tables) + `migration_lock.toml`.
-- **Phase 15 revision — P3005.** A staging `migrate deploy` failed with
-  `P3005 (database schema is not empty)`: the staging/production-clone already has
-  the NextAuth tables but **no Prisma migration history**. Fix = the **baseline
-  migration** above, marked applied via
-  `prisma migrate resolve --applied 20260101000000_existing_production_baseline`
-  (SQL not executed on existing DBs), then `migrate deploy` for the platform-sync
-  migration. Full sequence in `prisma/migrations/README.md` and
-  `docs/DB_STAGING_AND_MIGRATION_PATH.md`. **PR #20 stays blocked until baseline +
-  deploy succeed on the staging clone.**
-- Next safe step: run the baseline `resolve` + `migrate deploy` against the Neon
-  **staging/production-clone only** — never `migrate dev`/`db push`/`reset` against production.
-- **DB work is paused** pending Mattia's action on Neon dev/staging setup.
-  **Phases 12–14 were docs-only phases during this pause** — they change no
-  runtime behavior, DB, schema, or settings. Phase 14 (`docs/DB_STAGING_AND_MIGRATION_PATH.md`)
-  documents the decision: Option A (Neon branch, recommended) vs Option B
-  (prod-only, not recommended), the four gates before the `PlatformAccount`
-  write path, and the decision checklist for Francesco/Mattia.
-  The next *technical* phase (migration artifact → `PlatformAccount` write path →
-  real Steam sync) still depends on Mattia creating the Neon dev branch.
+- **Deletion candidates:** `demo-repository`, `refactored-funicular-demo-repository`,
+  `PWA_V1` — owner review required.
+- **No repos were deleted, archived, or changed.** All cleanup requires owner approval.
 
 ## Important product rule
 
@@ -219,74 +196,37 @@ Connected Platform Account
 Steam and PSN versions of the same title map to **one** canonical Game and appear
 **once** in Discovery with badges for every detected platform.
 
-## Deferred QA (owner: Mattia)
-
-Manual QA is intentionally deferred and must be completed before any public
-release or real-data integration. See `docs/QA_CHECKLIST.md`. Outstanding:
-
-- Signed-in full browser QA across all tabs and the core product loop
-  (login → Discovery → Game Deep Dive → Add to Profile → Profile Games → Rankings)
-- Mobile / responsive pass
-- Vercel production smoke test
-- Steam real login (if not configured) and cross-browser pass
-- Accessibility pass
-- Confirm every protected endpoint returns 401 when signed out
-
 ## Not built yet
 
-- Real Steam sync (library/achievements) — Phase 16 only stores the connection
-  identity; no Steam API is called
-- Real PSN sync (library/trophies) — gated on secure credential handling; Phase 16
-  stores an onlineId identity record only, no NPSSO/token
-- Real database-backed product data — **as of Phase 16, `PlatformAccount` is the
-  first table with a live read/write path; everything else (Discovery, Profile,
-  Games, Stats, Rankings, Tribe) is still mock-backed**
+- Profile / Stats / Rankings from real DB data (still mock-backed)
+- Real PSN sync — gated on secure credential handling (no NPSSO stored);
+  revalidate access path before building (see `docs/LEGACY_INGESTION_EXTRACTION.md`)
 - Competitions / competition scoring
 - Rewards / marketplace
 - Wallet / blockchain / NFT
 - Game downloads
 - Real tribe management (create / invite / leave / kick / promote / settings)
+- `GameExternalSource` seeded from real data (canonical matching uses mock sources)
 
-## Recommended next phase
+## Recommended next phases
 
-**Phase 17 — Steam Account Validation + Sync Preview Execute Path.**
+| Phase | Work |
+|---|---|
+| **19 — Profile/Stats from DB** | Replace mock Profile Games, Stats, Rankings with real `UserGame` reads after a sync |
+| **20 — PSN Revalidation** | Validate PSN auth path (NPSSO security design); build `psnClient.js` mirroring Steam |
+| **21 — GameExternalSource seeding** | Seed `GameExternalSource` from real Steam/PSN data so unmatched games get canonical IDs |
 
-Phase 16 built the `PlatformAccount` write path (connect/read/soft-disconnect,
-identity only). Before real Steam library sync:
+## Deferred QA (owner: Mattia)
 
-1. **Apply the migration to production** (gated on Mattia + restore point) so the
-   Phase 16 write path can run in production — same baseline `resolve` + `deploy`
-   sequence validated on staging (`prisma/migrations/README.md`).
-2. **Phase 17 — Steam:** validate the connected Steam `externalUserId` (steamid64),
-   add `STEAM_API_KEY` (Vercel only), and wire the `sync-preview` to real
-   `GetOwnedGames` behind the existing `DRY_RUN` flag — still no persistence of
-   games until reviewed. Then an `execute`-mode `PlatformSyncRun` persists
-   `PlatformDetectedGame`/`GameExternalSource`/`UserGame`, routing unmatched games
-   to a review queue.
-3. **PSN remains gated** on a secure encrypted-credential design (no NPSSO stored) —
-   revalidate the access path before building PSN sync (see
-   `docs/LEGACY_INGESTION_EXTRACTION.md`).
+- Signed-in full browser QA across all tabs and the core product loop
+- Mobile / responsive pass
+- Vercel production smoke test
+- Steam real login end-to-end + cross-browser pass
+- Accessibility pass
+- Confirm every protected endpoint returns 401 when signed out
 
-**Not** PSN full sync yet unless credential security is resolved.
-
-See `docs/DB_STAGING_AND_MIGRATION_PATH.md` and `docs/MIGRATION_READINESS_CHECKLIST.md`
-for the full gates and checklist.
-
-Do not run `migrate dev`/`db push`/`deploy` against production without owner
-approval, and do not activate real sync before the migration is applied and the
-write path is in place.
-
-## Suggested next commands (for Mattia)
-
-```bash
-git checkout main
-git pull origin main
-npm run lint
-npm run build
-```
-
-## Validation status at handoff
+## Validation status
 
 `npm run lint` → 0 errors (5 pre-existing warnings). `npm run build` → succeeds,
-all routes registered. No `.env`, OAuth, Vercel, or Neon settings were changed
-across any phase; no secrets are committed.
+all routes registered. Production migration applied. `STEAM_API_KEY` live on Vercel.
+No secrets committed.
