@@ -1,21 +1,19 @@
 // Authenticated PlatformAccount read/write path (Phase 16).
 //
-// First REAL database persistence path for connected gaming platforms. All
-// operations are authenticated and app-only; the userId is derived from the
-// session and NEVER accepted from the client.
+// All operations are authenticated; userId is derived from the session and
+// never accepted from the client.
 //
-// Scope boundaries (Phase 16):
-// - Connect = create a PlatformAccount *record* from a safe public identifier
-//   (Steam steamid64 / PSN onlineId). NO Steam/PSN API calls, NO library sync,
-//   NO achievements/trophies, NO STEAM_API_KEY, NO NPSSO/token storage.
-// - Disconnect = soft-disconnect (status → disconnected, keep the row + history).
-// - Raw platform data does not power Discovery/Profile/Stats/Rankings yet.
+// Connect validates the identifier format. When STEAM_API_KEY is set, Steam
+// steamid64 is also validated against GetPlayerSummaries (real account check +
+// persona name fetch). PSN onlineId format is validated locally only.
+// Disconnect soft-disconnects (status → disconnected, row preserved).
 
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/api/auth";
 import { apiOk, apiError } from "@/lib/api/response";
 import { SUPPORTED_PLATFORMS, getPlatform, PLATFORM_ACCOUNT_STATUS, PLATFORM_SYNC_STATUS } from "@/lib/platforms/platforms";
 import { validateConnectInput, validateProvider, toSafeAccountDto } from "@/lib/platforms/accountIdentity";
+import { hasSteamApiKey, fetchSteamPlayerSummaries } from "@/lib/integrations/steam/steamClient";
 
 const DB_META = { source: "database" };
 
@@ -69,8 +67,24 @@ export async function POST(request) {
   const parsed = validateConnectInput(body);
   if (!parsed.ok) return apiError("VALIDATION_ERROR", parsed.error, 400);
 
-  const { provider, externalUserId, username, displayName } = parsed.value;
+  let { provider, externalUserId, username, displayName } = parsed.value;
   const platform = getPlatform(provider);
+
+  // When STEAM_API_KEY is present, validate the steamid64 against the real
+  // Steam API and pull the persona name so we store an accurate display name.
+  if (provider === "steam" && hasSteamApiKey()) {
+    let player;
+    try {
+      player = await fetchSteamPlayerSummaries(externalUserId);
+    } catch (e) {
+      return apiError("STEAM_API_ERROR", "Could not reach Steam API. Try again shortly.", 502);
+    }
+    if (!player) {
+      return apiError("STEAM_ACCOUNT_NOT_FOUND", "No Steam account found for that steamID64. Double-check the ID.", 404);
+    }
+    username = player.personaname ?? null;
+    displayName = player.personaname ?? displayName;
+  }
 
   // Fields set on both create and reconnect. Credentials are never stored;
   // metadata records only how the record was created (no secrets).
