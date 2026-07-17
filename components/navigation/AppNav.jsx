@@ -9,6 +9,9 @@ export function AppNav() {
   return (
     <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {NAV_ITEMS.map((item) => {
+        if (item.divider) {
+          return <div key={item.id} style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "8px 6px" }} />;
+        }
         const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
         return (
           <Link
