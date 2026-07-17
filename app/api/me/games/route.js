@@ -2,6 +2,7 @@ import { requireSession } from "@/lib/api/auth";
 import { apiOk } from "@/lib/api/response";
 import { prisma } from "@/lib/prisma";
 import { MOCK_GAMES } from "@/lib/mock/games";
+import { computeL9Points } from "@/lib/scoring/l9Points";
 
 const GAME_BY_ID = new Map(MOCK_GAMES.map((g) => [g.id, g]));
 
@@ -62,7 +63,7 @@ export async function GET(request) {
         inLibrary: true,
         inProfile: true,
         sourcePlatforms: ug.sourceProvider ? [ug.sourceProvider] : [],
-        l9Points: null,       // scoring engine not yet built
+        l9Points: computeL9Points({ playtimeHours: ug.playtimeHours, achievementsUnlocked: ug.achievementsUnlocked }),
         hoursPlayed: ug.playtimeHours ?? 0,
         achievementsUnlocked: ug.achievementsUnlocked ?? null,
         achievementsTotal: null, // not tracked in DB or game catalogue yet
@@ -81,8 +82,10 @@ export async function GET(request) {
     games = games.filter((ug) => ug.sourcePlatforms.includes(source));
   }
 
-  // 5. Sort — l9Points and mastery fall back to hoursPlayed until scoring engine exists.
-  if (sort === "hoursPlayed" || sort === "l9Points" || sort === "mastery") {
+  // 5. Sort
+  if (sort === "l9Points") {
+    games = games.sort((a, b) => (b.l9Points ?? 0) - (a.l9Points ?? 0));
+  } else if (sort === "hoursPlayed" || sort === "mastery") {
     games = games.sort((a, b) => b.hoursPlayed - a.hoursPlayed);
   } else {
     // lastPlayed (default)

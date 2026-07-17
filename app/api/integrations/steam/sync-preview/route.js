@@ -4,14 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { fetchSteamOwnedGames, hasSteamApiKey } from "@/lib/integrations/steam/steamClient";
 import { planSteamSync } from "@/lib/integrations/steam/steamSyncPlanner";
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
-import { MOCK_USER_GAMES } from "@/lib/mock/userGames";
-
-// Steam sync preview (dry-run).
-//
-// When STEAM_API_KEY is set and the current user has a connected Steam
-// PlatformAccount, fetches their real library and computes the sync plan.
-// Never persists anything. Falls back to fixture data when the key or a
-// connected account is absent.
 
 export async function GET() {
   const { session, unauthenticated } = await requireSession();
@@ -34,7 +26,7 @@ export async function GET() {
   let rawSteamGames;
   try {
     rawSteamGames = await fetchSteamOwnedGames(steamId64 ?? "fixture");
-  } catch (e) {
+  } catch {
     return apiError("STEAM_API_ERROR", "Could not fetch Steam library. Try again shortly.", 502);
   }
 
@@ -55,18 +47,24 @@ export async function GET() {
     );
   }
 
+  // Load real existing UserGame rows for this user to compute accurate create/update plan.
+  const existingRows = live
+    ? await prisma.userGame.findMany({ where: { userId }, select: { canonicalGameId: true, playtimeHours: true } })
+    : [];
+
+  const existingUserGames = Object.fromEntries(
+    existingRows.map((r) => [r.canonicalGameId, { hoursPlayed: r.playtimeHours ?? 0 }])
+  );
+
   const plan = planSteamSync({
     rawSteamGames,
     externalSources: MOCK_EXTERNAL_SOURCES,
-    existingUserGames: MOCK_USER_GAMES,
+    existingUserGames,
   });
 
   const dryRunNote = live
     ? "No data was persisted. Real Steam library used."
     : "No data was persisted. No real Steam API was called (no key or no connected account).";
 
-  return apiOk(
-    { ...plan, dryRunNote },
-    { live, provider: "steam" }
-  );
+  return apiOk({ ...plan, dryRunNote }, { live, provider: "steam" });
 }

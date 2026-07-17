@@ -18,9 +18,19 @@ import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
 //   - STEAM_API_KEY set in environment
 //   - A connected PlatformAccount with a steamid64
 
+// Simple in-memory rate limit: 1 sync per user per 5 minutes.
+const syncCooldowns = new Map();
+const COOLDOWN_MS = 5 * 60 * 1000;
+
 export async function POST() {
   const { session, unauthenticated } = await requireSession();
   if (unauthenticated) return unauthenticated;
+
+  const lastSync = syncCooldowns.get(session.user.id);
+  if (lastSync && Date.now() - lastSync < COOLDOWN_MS) {
+    const remaining = Math.ceil((COOLDOWN_MS - (Date.now() - lastSync)) / 1000);
+    return apiError("SYNC_COOLDOWN", `Sync is on cooldown. Try again in ${remaining}s.`, 429);
+  }
 
   if (!hasSteamApiKey()) {
     return apiError("STEAM_API_KEY_MISSING", "STEAM_API_KEY is required to run an execute sync.", 503);
@@ -188,6 +198,8 @@ export async function POST() {
       where: { id: platformAccount.id },
       data: { syncStatus: "success", lastSyncAt: new Date() },
     });
+
+    syncCooldowns.set(session.user.id, Date.now());
 
     return apiOk({
       mode: "execute",
