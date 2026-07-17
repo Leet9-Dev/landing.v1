@@ -34,6 +34,12 @@ export function PlayerRankings() {
 
   return (
     <div>
+      <style>{`
+        @media (max-width: 639px) {
+          .l9-rank-col-hide { display: none !important; }
+          .l9-player-meta { display: none !important; }
+        }
+      `}</style>
       <RankingFilters groups={[{ value: scope, onChange: setScope, options: SCOPES }]} />
 
       <RankingPanel
@@ -51,10 +57,10 @@ export function PlayerRankings() {
             leading={<PlayerIdentity player={p} />}
           >
             <RankingStat label="L9 Points" value={p.l9Points.toLocaleString()} accent width={88} />
-            <RankingStat label="Level" value={p.level} width={48} />
+            <RankingStat label="Level" value={p.level} width={48} className="l9-rank-col-hide" />
             <RankingStat label="Games" value={p.gamesCount} width={52} />
-            <RankingStat label="Ach" value={p.achievementsCount} width={52} />
-            <div style={{ width: 22, textAlign: "right", flexShrink: 0, fontSize: 11, fontWeight: 700, color: TREND_COLOR[p.trend] }}>
+            <RankingStat label="Ach" value={p.achievementsCount} width={52} className="l9-rank-col-hide" />
+            <div className="l9-rank-col-hide" style={{ width: 22, textAlign: "right", flexShrink: 0, fontSize: 11, fontWeight: 700, color: TREND_COLOR[p.trend] }}>
               {TREND_ICON[p.trend]}
             </div>
           </RankingRow>
@@ -100,7 +106,7 @@ function PlayerIdentity({ player }) {
             </span>
           )}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
+        <div className="l9-player-meta" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
           {player.tribeTag && (
             <span style={{ fontSize: 10, color: "rgba(241,243,249,0.4)", fontWeight: 600 }}>
               [{player.tribeTag}]
