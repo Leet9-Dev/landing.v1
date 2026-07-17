@@ -4,7 +4,7 @@ const TABS = [
   { id: "overview", label: "Overview" },
   { id: "games", label: "Games" },
   { id: "stats", label: "Stats" },
-  { id: "tribe", label: "Tribe" },
+  { id: "tribe", label: "Community" },
 ];
 
 export function ProfileTabs({ active, onChange }) {
