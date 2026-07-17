@@ -8,14 +8,25 @@ import { apiOk } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 
 export async function GET() {
-  const { unauthenticated } = await requireSession();
+  const { session, unauthenticated } = await requireSession();
   if (unauthenticated) return unauthenticated;
 
+  // Game-data platforms only — exclude login providers like google
+  const GAME_PLATFORMS = ["steam", "psn", "xbox", "epic"];
   const platformsConnected = MOCK_PLATFORM_ACCOUNTS.filter(
-    (p) => p.status === "connected"
+    (p) => p.status === "connected" && GAME_PLATFORMS.includes(p.provider)
   ).map((p) => p.provider);
 
-  const user = { ...MOCK_USER, platformsConnected };
+  // Use real session identity; keep mock game progression for now
+  const realName = session.user.name || MOCK_USER.gamerTag;
+  const user = {
+    ...MOCK_USER,
+    platformsConnected,
+    gamerTag: realName,
+    displayName: realName,
+    avatarUrl: session.user.image || null,
+    avatarInitials: realName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2),
+  };
 
   const signatureGames = MOCK_SIGNATURE_GAMES.map((sg) => {
     const game = MOCK_GAMES.find((g) => g.id === sg.gameId);
