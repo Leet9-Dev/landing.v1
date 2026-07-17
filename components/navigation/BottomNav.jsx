@@ -21,7 +21,7 @@ export function BottomNav() {
       zIndex: 40,
       paddingBottom: "env(safe-area-inset-bottom)",
     }}>
-      {NAV_ITEMS.map((item) => {
+      {NAV_ITEMS.filter((item) => !item.divider).map((item) => {
         const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
         return (
           <Link
