@@ -32,43 +32,6 @@ export function ProfileOverview() {
       <FriendsComparison friendsComparison={data.friendsComparison} />
       <RecentActivity recentActivity={data.recentActivity} />
 
-      {/* Share card CTA */}
-      <div style={{
-        borderRadius: 14,
-        border: "1px dashed rgba(200,255,0,0.15)",
-        background: "rgba(200,255,0,0.02)",
-        padding: "20px 24px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 16,
-      }}>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#F1F3F9", marginBottom: 3 }}>
-            Share your Leet9 identity
-          </div>
-          <div style={{ fontSize: 11, color: "rgba(241,243,249,0.35)" }}>
-            A shareable profile card is coming soon.
-          </div>
-        </div>
-        <button
-          disabled
-          style={{
-            padding: "9px 16px",
-            borderRadius: 9,
-            border: "1px solid rgba(200,255,0,0.15)",
-            background: "rgba(200,255,0,0.04)",
-            color: "rgba(200,255,0,0.4)",
-            fontFamily: "'Outfit', sans-serif",
-            fontSize: 12,
-            fontWeight: 700,
-            cursor: "not-allowed",
-            flexShrink: 0,
-          }}
-        >
-          Share Card · Soon
-        </button>
-      </div>
     </div>
   );
 }
