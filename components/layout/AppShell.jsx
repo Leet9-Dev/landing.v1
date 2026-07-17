@@ -24,7 +24,7 @@ export function AppShell({ user, children }) {
 
         @media (max-width: 639px) {
           .l9-sidebar { display: none !important; }
-          .l9-main { margin-left: 0 !important; padding-bottom: 68px; }
+          .l9-main { margin-left: 0 !important; padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
           .l9-bottom-nav { display: flex !important; }
         }
       `}</style>

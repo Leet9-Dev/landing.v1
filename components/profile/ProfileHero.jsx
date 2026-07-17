@@ -150,13 +150,13 @@ export function ProfileHero({ user }) {
 
           {/* Action buttons */}
           <div className="l9-hero-actions" style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
-            <button style={{
+            <button disabled style={{
               fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 9,
-              border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)",
-              color: "#F1F3F9", cursor: "pointer", fontFamily: "'Outfit', sans-serif",
+              border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)",
+              color: "rgba(241,243,249,0.3)", cursor: "not-allowed", fontFamily: "'Outfit', sans-serif",
               whiteSpace: "nowrap",
             }}>
-              Edit Profile
+              Edit Profile · Soon
             </button>
             <button disabled style={{
               fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 9,

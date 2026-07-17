@@ -3,7 +3,12 @@ import { PlatformHub } from "@/components/settings/PlatformHub";
 
 export default function PlatformHubPage() {
   return (
-    <div style={{ padding: "36px 32px", fontFamily: "'Outfit', sans-serif", maxWidth: 900 }}>
+    <div className="l9-settings-page" style={{ padding: "36px 32px", fontFamily: "'Outfit', sans-serif", maxWidth: 900 }}>
+      <style>{`
+        @media (max-width: 639px) {
+          .l9-settings-page { padding: 20px 16px !important; }
+        }
+      `}</style>
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 22, fontWeight: 800, color: "#F1F3F9", letterSpacing: "-0.02em", marginBottom: 6 }}>
           Platform Hub
