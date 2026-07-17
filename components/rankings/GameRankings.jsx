@@ -44,6 +44,12 @@ export function GameRankings() {
 
   return (
     <div>
+      <style>{`
+        @media (max-width: 639px) {
+          .l9-rank-col-hide { display: none !important; }
+          .l9-player-meta { display: none !important; }
+        }
+      `}</style>
       <RankingFilters groups={[
         { value: source, onChange: setSource, options: SOURCES },
         { value: sort, onChange: setSort, options: SORTS },
@@ -64,8 +70,8 @@ export function GameRankings() {
             leading={<GameIdentity entry={r} />}
           >
             <RankingStat label="L9 Points" value={formatCompact(r.l9Points)} accent width={80} />
-            <RankingStat label="Players" value={r.playerCount.toLocaleString()} width={70} />
-            <RankingStat label="Ach" value={formatCompact(r.achievementsCount)} width={56} />
+            <RankingStat label="Players" value={r.playerCount.toLocaleString()} width={70} className="l9-rank-col-hide" />
+            <RankingStat label="Ach" value={formatCompact(r.achievementsCount)} width={56} className="l9-rank-col-hide" />
             <RankingStat label="Hours" value={formatCompact(r.hoursPlayed)} width={56} />
           </RankingRow>
         ))}
@@ -95,7 +101,7 @@ function GameIdentity({ entry }) {
           )}
           {entry.recentlyDetected && <Tag color="indigo">NEW</Tag>}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
+        <div className="l9-player-meta" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
           <span style={{ fontSize: 10, color: "rgba(241,243,249,0.4)" }}>{game.studio}</span>
           {entry.rating != null && (
             <span style={{ fontSize: 10, color: "rgba(200,255,0,0.7)", fontWeight: 600 }}>★ {entry.rating.toFixed(1)}</span>

@@ -1,7 +1,7 @@
 // A compact label/value cell used inside ranking rows.
-export function RankingStat({ label, value, accent, width = 78 }) {
+export function RankingStat({ label, value, accent, width = 78, className }) {
   return (
-    <div style={{ width, textAlign: "right", flexShrink: 0 }}>
+    <div className={className} style={{ width, textAlign: "right", flexShrink: 0 }}>
       <div style={{
         fontSize: 13,
         fontWeight: 800,

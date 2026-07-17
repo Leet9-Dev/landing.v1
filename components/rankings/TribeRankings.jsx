@@ -23,6 +23,11 @@ export function TribeRankings() {
 
   return (
     <div>
+      <style>{`
+        @media (max-width: 639px) {
+          .l9-rank-col-hide { display: none !important; }
+        }
+      `}</style>
       <p style={{ fontSize: 12, color: "rgba(241,243,249,0.35)", marginBottom: 16, lineHeight: 1.6, maxWidth: 560 }}>
         A preview of the Leet9 community layer. Full tribe profiles, membership, and
         management are coming in a later phase.
@@ -43,9 +48,9 @@ export function TribeRankings() {
             leading={<TribeIdentity tribe={t} />}
           >
             <RankingStat label="L9 Points" value={formatCompact(t.totalL9Points)} accent width={84} />
-            <RankingStat label="Members" value={t.membersCount} width={64} />
+            <RankingStat label="Members" value={t.membersCount} width={64} className="l9-rank-col-hide" />
             <RankingStat label="Games" value={t.gamesCount} width={56} />
-            <RankingStat label="Ach" value={formatCompact(t.achievementsCount)} width={56} />
+            <RankingStat label="Ach" value={formatCompact(t.achievementsCount)} width={56} className="l9-rank-col-hide" />
           </RankingRow>
         ))}
       </RankingPanel>

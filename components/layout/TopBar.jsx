@@ -10,7 +10,7 @@ export function TopBar({ user }) {
   );
 
   return (
-    <header style={{
+    <header className="l9-topbar" style={{
       height: 56,
       display: "flex",
       alignItems: "center",
@@ -21,6 +21,15 @@ export function TopBar({ user }) {
       backdropFilter: "blur(12px)",
       flexShrink: 0,
     }}>
+      <style>{`
+        @media (max-width: 639px) {
+          .l9-topbar { padding: 0 16px !important; }
+          .l9-topbar-right { gap: 10px !important; }
+          .l9-topbar-name { display: none !important; }
+          .l9-topbar-l9 { display: none !important; }
+        }
+      `}</style>
+
       {/* Section title */}
       <div style={{
         fontFamily: "'Outfit', sans-serif",
@@ -32,9 +41,9 @@ export function TopBar({ user }) {
         {section?.label || ""}
       </div>
 
-      {/* Right: points + avatar + sign out */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{
+      {/* Right: points + avatar + name + sign out */}
+      <div className="l9-topbar-right" style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div className="l9-topbar-l9" style={{
           padding: "4px 12px",
           borderRadius: 99,
           background: "rgba(200,255,0,0.07)",
@@ -44,6 +53,7 @@ export function TopBar({ user }) {
           fontWeight: 700,
           color: "#C8FF00",
           letterSpacing: 0.3,
+          whiteSpace: "nowrap",
         }}>
           0 L9
         </div>
@@ -52,7 +62,7 @@ export function TopBar({ user }) {
           ? <img
               src={user.image}
               alt={user.name || ""}
-              style={{ width: 30, height: 30, borderRadius: "50%", border: "1.5px solid rgba(200,255,0,0.3)" }}
+              style={{ width: 30, height: 30, borderRadius: "50%", border: "1.5px solid rgba(200,255,0,0.3)", flexShrink: 0 }}
             />
           : <div style={{
               width: 30, height: 30, borderRadius: "50%",
@@ -65,11 +75,12 @@ export function TopBar({ user }) {
             </div>
         }
 
-        <span style={{
+        <span className="l9-topbar-name" style={{
           fontFamily: "'Outfit', sans-serif",
           fontSize: 13,
           fontWeight: 600,
           color: "rgba(241,243,249,0.6)",
+          whiteSpace: "nowrap",
         }}>
           {user?.name || "Gamer"}
         </span>
@@ -87,6 +98,8 @@ export function TopBar({ user }) {
             fontWeight: 600,
             cursor: "pointer",
             transition: "all 0.15s",
+            whiteSpace: "nowrap",
+            flexShrink: 0,
           }}
           onMouseEnter={e => {
             e.currentTarget.style.borderColor = "rgba(255,255,255,0.22)";
