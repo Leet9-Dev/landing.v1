@@ -59,22 +59,24 @@ export function ProfileHero({ user }) {
                 ? <img src={user.avatarUrl} alt={user.gamerTag} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
                 : (user.avatarInitials || user.gamerTag?.[0] || "?")}
             </div>
-            <div style={{
-              position: "absolute",
-              bottom: -2,
-              right: -4,
-              background: "#07080F",
-              border: "1.5px solid rgba(200,255,0,0.5)",
-              borderRadius: 7,
-              padding: "2px 7px",
-              fontSize: 10,
-              fontWeight: 800,
-              color: "#C8FF00",
-              letterSpacing: "0.03em",
-              lineHeight: 1.4,
-            }}>
-              Lv {user.level}
-            </div>
+            {user.level != null && (
+              <div style={{
+                position: "absolute",
+                bottom: -2,
+                right: -4,
+                background: "#07080F",
+                border: "1.5px solid rgba(200,255,0,0.5)",
+                borderRadius: 7,
+                padding: "2px 7px",
+                fontSize: 10,
+                fontWeight: 800,
+                color: "#C8FF00",
+                letterSpacing: "0.03em",
+                lineHeight: 1.4,
+              }}>
+                Lv {user.level}
+              </div>
+            )}
           </div>
 
           {/* Identity */}
@@ -104,13 +106,15 @@ export function ProfileHero({ user }) {
 
             {/* Rank + percentile + archetype */}
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10, flexWrap: "wrap" }}>
-              <span style={{
-                fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 6,
-                background: `${rankColor}1a`, color: rankColor,
-                border: `1px solid ${rankColor}40`, letterSpacing: "0.04em",
-              }}>
-                ◆ {user.rankTier}
-              </span>
+              {user.rankTier && (
+                <span style={{
+                  fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 6,
+                  background: `${rankColor}1a`, color: rankColor,
+                  border: `1px solid ${rankColor}40`, letterSpacing: "0.04em",
+                }}>
+                  ◆ {user.rankTier}
+                </span>
+              )}
               {user.globalPercentile != null && (
                 <span style={{
                   fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 6,
@@ -187,32 +191,34 @@ export function ProfileHero({ user }) {
             L9 Points
           </span>
           <span style={{ fontSize: 22, fontWeight: 900, color: "#C8FF00", letterSpacing: "-0.01em" }}>
-            {user.l9Points?.toLocaleString()}
+            {user.l9Points != null ? user.l9Points.toLocaleString() : "—"}
           </span>
         </div>
       </div>
 
-      {/* Rank progress bar — full-width footer */}
-      <div style={{
-        padding: "0 28px 20px",
-        borderTop: "1px solid rgba(255,255,255,0.04)",
-        paddingTop: 16,
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: rankColor }}>{user.rankTier}</span>
-          <span style={{ fontSize: 11, color: "rgba(241,243,249,0.3)" }}>
-            {user.pointsToNextRank?.toLocaleString()} pts → {user.nextRank}
-          </span>
+      {/* Rank progress bar — full-width footer, only shown when rank data exists */}
+      {user.rankTier && (
+        <div style={{
+          padding: "0 28px 20px",
+          borderTop: "1px solid rgba(255,255,255,0.04)",
+          paddingTop: 16,
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: rankColor }}>{user.rankTier}</span>
+            <span style={{ fontSize: 11, color: "rgba(241,243,249,0.3)" }}>
+              {user.pointsToNextRank != null ? `${user.pointsToNextRank.toLocaleString()} pts → ${user.nextRank}` : ""}
+            </span>
+          </div>
+          <div style={{ height: 6, borderRadius: 99, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+            <div style={{
+              height: "100%",
+              width: `${user.rankProgressPct || 0}%`,
+              background: `linear-gradient(90deg, ${rankColor}, ${rankColor}bb)`,
+              borderRadius: 99,
+            }} />
+          </div>
         </div>
-        <div style={{ height: 6, borderRadius: 99, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
-          <div style={{
-            height: "100%",
-            width: `${user.rankProgressPct || 0}%`,
-            background: `linear-gradient(90deg, ${rankColor}, ${rankColor}bb)`,
-            borderRadius: 99,
-          }} />
-        </div>
-      </div>
+      )}
 
       <style>{`
         @media (max-width: 640px) {

@@ -34,7 +34,15 @@ export function ProfileStats() {
   }, [load]);
 
   if (loading) return <LoadingState />;
-  if (errored || !stats) return <ErrorState />;
+  if (errored) return <ErrorState />;
+
+  const hasData = stats && (
+    stats.totalL9Points != null ||
+    stats.totalGames != null ||
+    stats.totalHoursPlayed != null ||
+    stats.totalAchievements != null
+  );
+  if (!hasData) return <EmptyState />;
 
   return (
     <div>
@@ -128,6 +136,26 @@ function GenreDistribution({ genres }) {
         <div style={{ fontSize: 11, color: "rgba(241,243,249,0.35)", lineHeight: 1.6, marginTop: 2 }}>
           Based on the genres of the games in your tracked library.
         </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div style={{
+      textAlign: "center",
+      padding: "64px 40px",
+      border: "1px dashed rgba(255,255,255,0.08)",
+      borderRadius: 16,
+      fontFamily: "'Outfit', sans-serif",
+    }}>
+      <div style={{ fontSize: 30, marginBottom: 12, opacity: 0.2 }}>◆</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "rgba(241,243,249,0.5)", marginBottom: 8 }}>
+        No stats yet
+      </div>
+      <div style={{ fontSize: 13, color: "rgba(241,243,249,0.25)", lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>
+        Connect and sync your gaming platforms to start building your stats.
       </div>
     </div>
   );

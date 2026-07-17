@@ -1,48 +1,51 @@
-import { MOCK_USER } from "@/lib/mock/currentUser";
-import { MOCK_PLATFORM_ACCOUNTS } from "@/lib/mock/platformAccounts";
-import { MOCK_GAMES } from "@/lib/mock/games";
-import { MOCK_SIGNATURE_GAMES, MOCK_FRIENDS_COMPARISON } from "@/lib/mock/profile";
-import { MOCK_TROPHY_CASE } from "@/lib/mock/achievements";
-import { MOCK_RECENT_ACTIVITY } from "@/lib/mock/activity";
+import { prisma } from "@/lib/prisma";
 import { apiOk } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
+import { PLATFORM_ACCOUNT_STATUS } from "@/lib/platforms/platforms";
+
+const GAME_PLATFORMS = ["steam", "psn", "xbox", "epic"];
 
 export async function GET() {
   const { session, unauthenticated } = await requireSession();
   if (unauthenticated) return unauthenticated;
 
-  // Game-data platforms only — exclude login providers like google
-  const GAME_PLATFORMS = ["steam", "psn", "xbox", "epic"];
-  const platformsConnected = MOCK_PLATFORM_ACCOUNTS.filter(
-    (p) => p.status === "connected" && GAME_PLATFORMS.includes(p.provider)
-  ).map((p) => p.provider);
+  const userId = session.user.id;
+  const realName = session.user.name || "Gamer";
 
-  // Use real session identity; keep mock game progression for now
-  const realName = session.user.name || MOCK_USER.gamerTag;
+  // Real platform accounts from DB
+  const platformRows = await prisma.platformAccount.findMany({
+    where: { userId, status: PLATFORM_ACCOUNT_STATUS.CONNECTED },
+  });
+  const platformsConnected = platformRows
+    .map((r) => r.provider)
+    .filter((p) => GAME_PLATFORMS.includes(p));
+
   const user = {
-    ...MOCK_USER,
-    platformsConnected,
+    id: userId,
     gamerTag: realName,
     displayName: realName,
     avatarUrl: session.user.image || null,
     avatarInitials: realName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2),
+    location: null,
+    level: null,
+    l9Points: null,
+    rankTier: null,
+    nextRank: null,
+    rankProgressPct: null,
+    pointsToNextRank: null,
+    globalPercentile: null,
+    tribeId: null,
+    tribeTag: null,
+    archetype: null,
+    profileCompletenessPct: null,
+    platformsConnected,
   };
-
-  const signatureGames = MOCK_SIGNATURE_GAMES.map((sg) => {
-    const game = MOCK_GAMES.find((g) => g.id === sg.gameId);
-    return { ...sg, game };
-  }).filter((sg) => sg.game);
-
-  const trophyCase = MOCK_TROPHY_CASE.map((t) => {
-    const game = MOCK_GAMES.find((g) => g.id === t.gameId);
-    return { ...t, gameTitle: game?.canonicalTitle ?? "Unknown Game" };
-  });
 
   return apiOk({
     user,
-    signatureGames,
-    trophyCase,
-    friendsComparison: MOCK_FRIENDS_COMPARISON,
-    recentActivity: MOCK_RECENT_ACTIVITY.slice(0, 5),
+    signatureGames: [],
+    trophyCase: [],
+    friendsComparison: [],
+    recentActivity: [],
   });
 }
