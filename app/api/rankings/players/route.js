@@ -102,5 +102,5 @@ export async function GET() {
     };
   }
 
-  return apiOk({ rankings, currentUserRank });
+  return apiOk({ rankings, currentUserRank }, { _cacheSeconds: 120 });
 }

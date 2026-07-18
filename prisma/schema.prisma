@@ -138,6 +138,7 @@ model PlatformSyncRun {
   platformAccount PlatformAccount        @relation(fields: [platformAccountId], references: [id], onDelete: Cascade)
   detectedGames   PlatformDetectedGame[]
 
+  @@index([platformAccountId])
   @@index([provider])
   @@index([status])
   @@index([startedAt])
