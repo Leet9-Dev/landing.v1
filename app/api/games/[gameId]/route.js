@@ -1,10 +1,13 @@
 import { MOCK_GAMES } from "@/lib/mock/games";
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
-import { MOCK_USER_GAMES } from "@/lib/mock/userGames";
 import { apiOk, apiError } from "@/lib/api/response";
+import { requireSession } from "@/lib/api/auth";
+import { prisma } from "@/lib/prisma";
+import { computeL9Points } from "@/lib/scoring/l9Points";
 
 export async function GET(request, { params }) {
   const { gameId } = await params;
+  const { session } = await requireSession();
 
   const game =
     MOCK_GAMES.find((g) => g.id === gameId) ||
@@ -14,11 +17,36 @@ export async function GET(request, { params }) {
     return apiError("GAME_NOT_FOUND", "Game not found", 404);
   }
 
-  const externalSources = MOCK_EXTERNAL_SOURCES.filter(
-    (s) => s.gameId === game.id
-  );
+  const externalSources = MOCK_EXTERNAL_SOURCES.filter((s) => s.gameId === game.id);
 
-  const currentUserGame = MOCK_USER_GAMES[game.id] || null;
+  let currentUserGame = null;
+  if (session?.user?.id) {
+    const ug = await prisma.userGame.findUnique({
+      where: { userId_canonicalGameId: { userId: session.user.id, canonicalGameId: game.id } },
+      select: {
+        playtimeHours: true,
+        achievementsUnlocked: true,
+        firstDetectedAt: true,
+        lastDetectedAt: true,
+        sourceProvider: true,
+      },
+    });
+    if (ug) {
+      const hoursPlayed = ug.playtimeHours ?? 0;
+      const achievementsUnlocked = ug.achievementsUnlocked ?? 0;
+      currentUserGame = {
+        inLibrary: true,
+        inProfile: true,
+        hoursPlayed: Math.round(hoursPlayed * 10) / 10,
+        l9Points: computeL9Points({ playtimeHours: hoursPlayed, achievementsUnlocked }),
+        achievementsUnlocked,
+        achievementsTotal: 0,
+        masteryPct: 0,
+        lastPlayedAt: ug.lastDetectedAt?.toISOString() ?? null,
+        sourceProvider: ug.sourceProvider,
+      };
+    }
+  }
 
   return apiOk({ game, externalSources, currentUserGame });
 }
