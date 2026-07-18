@@ -194,8 +194,6 @@ export default function LandingPage() {
       overflow:"hidden",
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
-
         @keyframes fragFloat {
           0%   { opacity:0; transform:translateY(0px) scale(0.95); }
           10%  { opacity:0.55; }

@@ -65,5 +65,5 @@ export async function GET(request) {
     totalHours: MOCK_GAMES.reduce((s, g) => s + g.communityHours, 0),
   };
 
-  return apiOk({ games, stats, total: games.length });
+  return apiOk({ games, stats, total: games.length }, { _cacheSeconds: 60 });
 }
