@@ -151,7 +151,7 @@ function EmailForm({ onBack }) {
         </div>
       </form>
 
-      <div style={{ marginTop: 14, fontSize: 12, color: "rgba(255,255,255,0.3)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ marginTop: 14, fontSize: 12, color: "rgba(255,255,255,0.3)", display: "flex", flexDirection: "column", gap: 10 }}>
         <span>
           {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
           <button onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); }}
@@ -161,9 +161,9 @@ function EmailForm({ onBack }) {
         </span>
         {mode === "signin" && (
           <button onClick={() => { setMode("forgot"); setError(null); }}
-            style={{ background: "none", border: "none", color: "rgba(255,255,255,0.25)", fontFamily: "'Outfit', sans-serif", fontSize: 12, cursor: "pointer", padding: 0 }}
-            onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.5)"}
-            onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.25)"}>
+            style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", fontFamily: "'Outfit', sans-serif", fontSize: 12, cursor: "pointer", padding: 0, textAlign: "left" }}
+            onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.8)"}
+            onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.5)"}>
             Forgot password?
           </button>
         )}
