@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { apiOk, apiError } from "@/lib/api/response";
+import { createVerificationToken } from "@/lib/tokens";
+import { sendVerificationEmail } from "@/lib/email";
 import bcrypt from "bcryptjs";
 
 export async function POST(request) {
@@ -26,8 +28,12 @@ export async function POST(request) {
       email,
       name: name || email.split("@")[0],
       password: hashed,
+      emailVerified: null,
     },
   });
 
-  return apiOk({ id: user.id, email: user.email, name: user.name });
+  const token = await createVerificationToken(email);
+  await sendVerificationEmail({ to: email, token });
+
+  return apiOk({ id: user.id, email: user.email, name: user.name, emailPending: true });
 }
