@@ -368,7 +368,7 @@ export default function LandingPage() {
       display:"flex", flexDirection:"column",
       alignItems:"center", justifyContent:"center",
       fontFamily:"'Outfit', sans-serif",
-      overflow:"hidden",
+      overflowX:"hidden", overflowY:"auto",
     }}>
       <style>{`
         @keyframes fragFloat {
@@ -451,7 +451,7 @@ export default function LandingPage() {
         display:"flex",flexDirection:"column",
         alignItems:"center",justifyContent:"center",
         width:"100%",maxWidth:480,
-        padding:"0 24px",
+        padding:"24px 24px",
         textAlign:"center",
       }}>
 
