@@ -3,6 +3,113 @@ import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
+function EmailForm({ onBack }) {
+  const [mode, setMode] = useState("signin"); // "signin" | "signup"
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      if (mode === "signup") {
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, name }),
+        });
+        const json = await res.json();
+        if (!json.ok) { setError(json.error?.message || "Registration failed."); setLoading(false); return; }
+      }
+      const result = await signIn("credentials", { email, password, redirect: false });
+      if (result?.error) { setError("Invalid email or password."); setLoading(false); return; }
+      window.location.href = "/app";
+    } catch {
+      setError("Something went wrong. Try again.");
+      setLoading(false);
+    }
+  }
+
+  const inputStyle = {
+    width: "100%", padding: "11px 14px", borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
+    color: "#F1F3F9", fontFamily: "'Outfit', sans-serif", fontSize: 14,
+    outline: "none", boxSizing: "border-box",
+    transition: "border-color 0.15s",
+  };
+
+  return (
+    <div style={{ width: "100%", animation: "slideUp 0.35s ease forwards" }}>
+      <div style={{ marginBottom: 16, fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.35)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+        {mode === "signin" ? "Sign in with email" : "Create account"}
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: 16, backdropFilter: "blur(12px)" }}>
+          {mode === "signup" && (
+            <input
+              type="text" placeholder="Gamer tag (optional)" value={name}
+              onChange={e => setName(e.target.value)} maxLength={32}
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = "rgba(200,255,0,0.4)"}
+              onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
+            />
+          )}
+          <input
+            type="email" placeholder="Email" value={email} required
+            onChange={e => setEmail(e.target.value)}
+            style={inputStyle}
+            onFocus={e => e.target.style.borderColor = "rgba(200,255,0,0.4)"}
+            onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
+          />
+          <input
+            type="password" placeholder="Password" value={password} required
+            onChange={e => setPassword(e.target.value)} minLength={8}
+            style={inputStyle}
+            onFocus={e => e.target.style.borderColor = "rgba(200,255,0,0.4)"}
+            onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
+          />
+          {error && (
+            <div style={{ fontSize: 12, color: "#f87171", padding: "6px 10px", borderRadius: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)" }}>
+              {error}
+            </div>
+          )}
+          <button
+            type="submit" disabled={loading}
+            style={{
+              width: "100%", padding: "13px 20px", borderRadius: 10, border: "none",
+              background: loading ? "rgba(200,255,0,0.4)" : "linear-gradient(135deg,#C8FF00,#AAEE00)",
+              color: "#07080F", fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 800,
+              cursor: loading ? "wait" : "pointer", letterSpacing: "0.05em", transition: "all 0.15s",
+            }}
+          >
+            {loading ? "Please wait…" : mode === "signin" ? "Sign In" : "Create Account"}
+          </button>
+        </div>
+      </form>
+
+      <div style={{ marginTop: 14, fontSize: 12, color: "rgba(255,255,255,0.3)" }}>
+        {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
+        <button onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); }}
+          style={{ background: "none", border: "none", color: "rgba(200,255,0,0.7)", fontFamily: "'Outfit', sans-serif", fontSize: 12, cursor: "pointer", fontWeight: 700, padding: 0 }}>
+          {mode === "signin" ? "Sign up" : "Sign in"}
+        </button>
+      </div>
+
+      <button onClick={onBack}
+        style={{ marginTop: 14, background: "none", border: "none", color: "rgba(255,255,255,0.25)", fontSize: 12, cursor: "pointer", fontFamily: "'Outfit', sans-serif" }}
+        onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.5)"}
+        onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.25)"}>
+        ← Back
+      </button>
+    </div>
+  );
+}
+
 const FRAGMENTS = [
   { text: "+420 L9",       type: "pts",  x: 8,  y: 15, dur: 18, delay: 0  },
   { text: "128,450",       type: "pts",  x: 88, y: 22, dur: 22, delay: 2  },
@@ -183,6 +290,7 @@ export default function LandingPage() {
   }
 
   const isLogin = phase === "login";
+  const isEmail = phase === "email";
 
   return (
     <div style={{
@@ -280,16 +388,16 @@ export default function LandingPage() {
 
         {/* Logo */}
         <div style={{
-          marginBottom: isLogin ? 20 : 32,
+          marginBottom: (isLogin || isEmail) ? 20 : 32,
           opacity: logoVisible ? 1 : 0,
-          transform: isLogin ? "scale(0.75) translateY(-8px)" : "scale(1)",
+          transform: (isLogin || isEmail) ? "scale(0.75) translateY(-8px)" : "scale(1)",
           transition:"opacity 0.8s ease, transform 0.6s ease, margin 0.5s ease",
         }}>
           <img
             src="/logo.png"
             alt="Leet9"
             style={{
-              width: isLogin ? 140 : 220,
+              width: (isLogin || isEmail) ? 140 : 220,
               maxWidth:"80vw",
               height:"auto",
               objectFit:"contain",
@@ -363,6 +471,11 @@ export default function LandingPage() {
           </div>
         )}
 
+        {/* Email form */}
+        {phase === "email" && (
+          <EmailForm onBack={() => setPhase("login")} />
+        )}
+
         {/* Login panel */}
         {isLogin && (
           <div style={{ width:"100%", animation:"slideUp 0.5s ease forwards" }}>
@@ -385,6 +498,12 @@ export default function LandingPage() {
                   : "G"}
                 label="Continue with Google"
                 onClick={() => handleSignIn("google")}
+                disabled={!!loadingProvider}
+              />
+              <ProviderBtn
+                icon="@"
+                label="Continue with Email"
+                onClick={() => setPhase("email")}
                 disabled={!!loadingProvider}
               />
               <ProviderBtn
