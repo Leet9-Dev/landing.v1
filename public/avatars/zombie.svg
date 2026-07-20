@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#0D0F1A"/>
+  <!-- Tattered clothes -->
+  <path d="M28 200 Q30 150 62 140 Q80 133 100 131 Q120 133 138 140 Q170 150 172 200 Z" fill="#1C2B1A"/>
+  <path d="M38 200 Q40 156 68 146 Q84 139 100 137 Q116 139 132 146 Q160 156 162 200 Z" fill="#2D4A28" stroke="#3D6B36" stroke-width="1"/>
+  <!-- Tear marks on clothes -->
+  <line x1="70" y1="155" x2="65" y2="175" stroke="#1C2B1A" stroke-width="3"/>
+  <line x1="130" y1="160" x2="135" y2="180" stroke="#1C2B1A" stroke-width="3"/>
+  <!-- Neck -->
+  <rect x="88" y="118" width="24" height="18" rx="3" fill="#4A7C59"/>
+  <!-- Head - greenish skin -->
+  <ellipse cx="100" cy="96" rx="36" ry="38" fill="#4A7C59"/>
+  <!-- Damage marks -->
+  <path d="M70 80 L76 90 L72 80" stroke="#2D4A28" stroke-width="2" fill="none"/>
+  <path d="M126 75 L120 86 L128 80" stroke="#2D4A28" stroke-width="2" fill="none"/>
+  <!-- Hollow sunken eyes -->
+  <ellipse cx="86" cy="92" rx="11" ry="10" fill="#1C2B1A"/>
+  <ellipse cx="114" cy="92" rx="11" ry="10" fill="#1C2B1A"/>
+  <ellipse cx="86" cy="92" rx="6" ry="5.5" fill="#7FFF00" opacity="0.5"/>
+  <ellipse cx="114" cy="92" rx="6" ry="5.5" fill="#7FFF00" opacity="0.5"/>
+  <!-- Exposed teeth grin -->
+  <path d="M76 112 Q100 122 124 112" fill="none" stroke="#4A7C59" stroke-width="1"/>
+  <rect x="79" y="112" width="42" height="12" rx="2" fill="#1C2B1A" stroke="#3D6B36" stroke-width="1"/>
+  <rect x="82" y="113" width="7" height="9" rx="1" fill="#E5E7EB" opacity="0.9"/>
+  <rect x="92" y="113" width="7" height="9" rx="1" fill="#E5E7EB" opacity="0.9"/>
+  <rect x="102" y="113" width="7" height="9" rx="1" fill="#E5E7EB" opacity="0.9"/>
+  <rect x="112" y="113" width="7" height="9" rx="1" fill="#E5E7EB" opacity="0.7"/>
+  <!-- Scraggly hair -->
+  <path d="M64 85 Q60 62 70 52" stroke="#1C2B1A" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M78 72 Q72 52 82 44" stroke="#1C2B1A" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M100 68 Q98 50 104 42" stroke="#1C2B1A" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M118 72 Q124 52 118 44" stroke="#1C2B1A" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M132 82 Q140 62 132 52" stroke="#1C2B1A" stroke-width="4" fill="none" stroke-linecap="round"/>
+</svg>

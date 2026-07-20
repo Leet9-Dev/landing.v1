@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#0D0F1A"/>
+  <!-- Chest/shoulders -->
+  <path d="M35 200 L35 155 Q35 140 55 138 Q75 133 100 132 Q125 133 145 138 Q165 140 165 155 L165 200 Z" fill="#1E293B"/>
+  <rect x="35" y="148" width="130" height="52" rx="0" fill="#1E293B" stroke="#334155" stroke-width="1.5"/>
+  <!-- Shoulder pads -->
+  <rect x="28" y="140" width="32" height="22" rx="6" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+  <rect x="140" y="140" width="32" height="22" rx="6" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+  <!-- Neck -->
+  <rect x="86" y="120" width="28" height="22" rx="3" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+  <!-- Head -->
+  <rect x="58" y="58" width="84" height="64" rx="10" fill="#1E293B" stroke="#334155" stroke-width="2.5"/>
+  <!-- Antenna -->
+  <line x1="100" y1="58" x2="100" y2="44" stroke="#C8FF00" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="100" cy="42" r="5" fill="#C8FF00"/>
+  <!-- Eye panels -->
+  <rect x="66" y="72" width="28" height="18" rx="4" fill="#0D0F1A" stroke="#06B6D4" stroke-width="1.5"/>
+  <rect x="106" y="72" width="28" height="18" rx="4" fill="#0D0F1A" stroke="#06B6D4" stroke-width="1.5"/>
+  <!-- Eyes glowing -->
+  <rect x="70" y="76" width="20" height="10" rx="2" fill="#06B6D4" opacity="0.9"/>
+  <rect x="110" y="76" width="20" height="10" rx="2" fill="#06B6D4" opacity="0.9"/>
+  <!-- Mouth panel -->
+  <rect x="70" y="98" width="60" height="14" rx="3" fill="#0D0F1A" stroke="#334155" stroke-width="1"/>
+  <rect x="74" y="102" width="8" height="6" rx="1" fill="#C8FF00" opacity="0.7"/>
+  <rect x="86" y="102" width="8" height="6" rx="1" fill="#C8FF00" opacity="0.7"/>
+  <rect x="98" y="102" width="8" height="6" rx="1" fill="#C8FF00" opacity="0.7"/>
+  <rect x="110" y="102" width="8" height="6" rx="1" fill="#C8FF00" opacity="0.7"/>
+  <rect x="122" y="102" width="8" height="6" rx="1" fill="#C8FF00" opacity="0.4"/>
+  <!-- Chest light -->
+  <circle cx="100" cy="168" r="10" fill="#06B6D4" opacity="0.2"/>
+  <circle cx="100" cy="168" r="5" fill="#06B6D4" opacity="0.6"/>
+</svg>

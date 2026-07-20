@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#0D0F1A"/>
+  <!-- Robe shoulders -->
+  <path d="M25 200 Q28 155 60 145 Q78 138 100 136 Q122 138 140 145 Q172 155 175 200 Z" fill="#4C1D95"/>
+  <path d="M35 200 Q38 162 65 152 Q82 145 100 143 Q118 145 135 152 Q162 162 165 200 Z" fill="#5B21B6" stroke="#7C3AED" stroke-width="1"/>
+  <!-- Stars on robe -->
+  <text x="50" y="185" font-size="16" fill="#C8FF00" opacity="0.6">✦</text>
+  <text x="130" y="175" font-size="12" fill="#C8FF00" opacity="0.5">✦</text>
+  <!-- Neck/beard -->
+  <rect x="86" y="118" width="28" height="22" rx="4" fill="#92400E"/>
+  <!-- Head -->
+  <ellipse cx="100" cy="100" rx="34" ry="36" fill="#D97706" stroke="#92400E" stroke-width="1.5"/>
+  <!-- Face -->
+  <ellipse cx="89" cy="97" rx="5" ry="6" fill="#1C1917"/>
+  <ellipse cx="111" cy="97" rx="5" ry="6" fill="#1C1917"/>
+  <circle cx="89" cy="96" r="2" fill="#7C3AED"/>
+  <circle cx="111" cy="96" r="2" fill="#7C3AED"/>
+  <!-- Beard -->
+  <path d="M78 110 Q100 125 122 110 Q115 130 100 135 Q85 130 78 110 Z" fill="#78350F" opacity="0.8"/>
+  <!-- Wizard hat -->
+  <path d="M66 78 Q68 55 100 38 Q132 55 134 78 Z" fill="#4C1D95" stroke="#7C3AED" stroke-width="2"/>
+  <path d="M100 38 L108 18 L112 40 Z" fill="#C8FF00" opacity="0.7"/>
+  <rect x="62" y="75" width="76" height="8" rx="4" fill="#6D28D9" stroke="#7C3AED" stroke-width="1.5"/>
+  <!-- Hat star -->
+  <text x="90" y="66" font-size="14" fill="#C8FF00">✦</text>
+</svg>

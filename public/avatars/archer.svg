@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#0D0F1A"/>
+  <!-- Cloak/shoulders -->
+  <path d="M28 200 Q30 152 62 142 Q80 135 100 133 Q120 135 138 142 Q170 152 172 200 Z" fill="#064E3B"/>
+  <path d="M38 200 Q40 158 68 148 Q84 141 100 139 Q116 141 132 148 Q160 158 162 200 Z" fill="#065F46" stroke="#10B981" stroke-width="1"/>
+  <!-- Hood -->
+  <path d="M62 75 Q58 52 100 46 Q142 52 138 75 L136 95 Q118 82 100 82 Q82 82 64 95 Z" fill="#064E3B" stroke="#10B981" stroke-width="1.5"/>
+  <!-- Shadow inside hood -->
+  <path d="M68 80 Q68 62 100 58 Q132 62 132 80 L130 88 Q112 78 100 78 Q88 78 70 88 Z" fill="#022C22"/>
+  <!-- Face in shadow -->
+  <ellipse cx="100" cy="100" rx="30" ry="32" fill="#92400E"/>
+  <!-- Eyes glowing green -->
+  <ellipse cx="89" cy="97" rx="5" ry="5.5" fill="#0D0F1A"/>
+  <ellipse cx="111" cy="97" rx="5" ry="5.5" fill="#0D0F1A"/>
+  <ellipse cx="89" cy="97" rx="3" ry="3" fill="#10B981"/>
+  <ellipse cx="111" cy="97" rx="3" ry="3" fill="#10B981"/>
+  <!-- Smirk -->
+  <path d="M88 112 Q100 120 112 112" fill="none" stroke="#78350F" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Neck -->
+  <rect x="88" y="118" width="24" height="18" rx="3" fill="#92400E"/>
+</svg>

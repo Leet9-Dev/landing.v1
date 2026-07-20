@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#0D0F1A"/>
+  <!-- Jacket -->
+  <path d="M28 200 Q28 152 60 142 Q78 135 100 133 Q122 135 140 142 Q172 152 172 200 Z" fill="#1A0A2E"/>
+  <path d="M36 200 Q36 156 66 146 Q83 139 100 137 Q117 139 134 146 Q164 156 164 200 Z" fill="#2D1B4E" stroke="#7C3AED" stroke-width="1"/>
+  <!-- Neon collar lines -->
+  <path d="M80 137 L72 160" stroke="#C8FF00" stroke-width="2" opacity="0.7"/>
+  <path d="M120 137 L128 160" stroke="#C8FF00" stroke-width="2" opacity="0.7"/>
+  <!-- Neck -->
+  <rect x="88" y="120" width="24" height="18" rx="3" fill="#D97706"/>
+  <!-- Cybernetic implant on neck -->
+  <rect x="130" y="122" width="14" height="8" rx="2" fill="#7C3AED" opacity="0.8"/>
+  <line x1="130" y1="126" x2="144" y2="126" stroke="#C8FF00" stroke-width="1" opacity="0.6"/>
+  <!-- Head -->
+  <ellipse cx="100" cy="96" rx="36" ry="38" fill="#D97706"/>
+  <!-- Mohawk/styled hair -->
+  <path d="M80 75 Q82 55 88 48 Q94 42 100 40 Q106 42 112 48 Q118 55 120 75" fill="#C8FF00" stroke="#AAEE00" stroke-width="1.5"/>
+  <!-- Cybernetic eye piece over right eye -->
+  <rect x="106" y="86" width="30" height="14" rx="3" fill="#0D0F1A" stroke="#C8FF00" stroke-width="1.5"/>
+  <rect x="109" y="89" width="24" height="8" rx="2" fill="#C8FF00" opacity="0.5"/>
+  <line x1="106" y1="93" x2="64" y2="93" stroke="#C8FF00" stroke-width="1.5" opacity="0.6"/>
+  <!-- Normal left eye -->
+  <ellipse cx="82" cy="93" rx="8" ry="8" fill="#1C1917"/>
+  <ellipse cx="82" cy="93" rx="4" ry="4" fill="#7C3AED"/>
+  <circle cx="80" cy="91" r="1.5" fill="#fff" opacity="0.7"/>
+  <!-- Mouth -->
+  <path d="M86 112 Q100 118 114 112" fill="none" stroke="#92400E" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Circuit tattoo -->
+  <path d="M64 100 L70 100 L70 106 L76 106" stroke="#C8FF00" stroke-width="1" fill="none" opacity="0.4"/>
+</svg>

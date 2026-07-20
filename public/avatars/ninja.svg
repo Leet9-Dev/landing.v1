@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#0D0F1A"/>
+  <!-- Body/uniform -->
+  <path d="M30 200 Q32 150 65 140 Q82 133 100 131 Q118 133 135 140 Q168 150 170 200 Z" fill="#111827"/>
+  <path d="M40 200 Q42 156 70 146 Q86 139 100 137 Q114 139 130 146 Q158 156 160 200 Z" fill="#1F2937" stroke="#374151" stroke-width="1"/>
+  <!-- Neck wrap -->
+  <rect x="82" y="116" width="36" height="22" rx="2" fill="#111827" stroke="#374151" stroke-width="1"/>
+  <!-- Head -->
+  <ellipse cx="100" cy="95" rx="36" ry="38" fill="#1F2937"/>
+  <!-- Head wrap/mask - top -->
+  <path d="M64 80 Q64 55 100 50 Q136 55 136 80" fill="#111827" stroke="#374151" stroke-width="1.5"/>
+  <!-- Eyes exposed -->
+  <rect x="68" y="82" width="64" height="22" rx="2" fill="#92400E"/>
+  <!-- Eyes -->
+  <ellipse cx="86" cy="93" rx="8" ry="8" fill="#111827"/>
+  <ellipse cx="114" cy="93" rx="8" ry="8" fill="#111827"/>
+  <ellipse cx="86" cy="93" rx="4" ry="4" fill="#C8FF00"/>
+  <ellipse cx="114" cy="93" rx="4" ry="4" fill="#C8FF00"/>
+  <circle cx="87" cy="92" r="1.5" fill="#fff" opacity="0.7"/>
+  <circle cx="115" cy="92" r="1.5" fill="#fff" opacity="0.7"/>
+  <!-- Mask bottom -->
+  <rect x="64" y="104" width="72" height="28" rx="3" fill="#111827" stroke="#374151" stroke-width="1.5"/>
+</svg>

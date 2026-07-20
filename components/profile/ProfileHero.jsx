@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AvatarPicker } from "./AvatarPicker";
 
 const PLATFORM_COLORS = {
   steam: "#b9d8f5",
@@ -34,6 +35,9 @@ export function ProfileHero({ user, onUserUpdate }) {
   const [nameInput, setNameInput] = useState(user.gamerTag || "");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [hoverAvatar, setHoverAvatar] = useState(false);
 
   async function saveDisplayName() {
     const trimmed = nameInput.trim();
@@ -70,22 +74,30 @@ export function ProfileHero({ user, onUserUpdate }) {
 
           {/* Avatar + level badge */}
           <div style={{ position: "relative", flexShrink: 0 }}>
-            <div style={{
-              width: 84,
-              height: 84,
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, #C8FF00, #7C3AED)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 26,
-              fontWeight: 800,
-              color: "#07080F",
-              border: "2px solid rgba(200,255,0,0.3)",
-            }}>
-              {user.avatarUrl
-                ? <img src={user.avatarUrl} alt={user.gamerTag} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+            <div
+              onClick={() => setPickerOpen(true)}
+              onMouseEnter={() => setHoverAvatar(true)}
+              onMouseLeave={() => setHoverAvatar(false)}
+              style={{
+                width: 84, height: 84, borderRadius: "50%",
+                background: "linear-gradient(135deg, #C8FF00, #7C3AED)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 26, fontWeight: 800, color: "#07080F",
+                border: hoverAvatar ? "2px solid #C8FF00" : "2px solid rgba(200,255,0,0.3)",
+                cursor: "pointer", overflow: "hidden", position: "relative",
+                transition: "border-color 0.15s",
+              }}>
+              {avatarUrl
+                ? <img src={avatarUrl} alt={user.gamerTag} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
                 : (user.avatarInitials || user.gamerTag?.[0] || "?")}
+              {hoverAvatar && (
+                <div style={{
+                  position: "absolute", inset: 0, borderRadius: "50%",
+                  background: "rgba(7,8,15,0.6)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 20,
+                }}>📷</div>
+              )}
             </div>
             {user.level != null && (
               <div style={{
@@ -303,6 +315,18 @@ export function ProfileHero({ user, onUserUpdate }) {
           .l9-hero-actions button { flex: 1; }
         }
       `}</style>
+
+      {pickerOpen && (
+        <AvatarPicker
+          currentUrl={avatarUrl}
+          onClose={() => setPickerOpen(false)}
+          onSaved={(url) => {
+            setAvatarUrl(url);
+            setPickerOpen(false);
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

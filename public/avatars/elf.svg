@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#0D0F1A"/>
+  <!-- Elvish garb -->
+  <path d="M28 200 Q30 152 62 142 Q80 135 100 133 Q120 135 138 142 Q170 152 172 200 Z" fill="#1A3D1A"/>
+  <path d="M38 200 Q40 158 68 148 Q84 141 100 139 Q116 141 132 148 Q160 158 162 200 Z" fill="#1E5C1E" stroke="#22C55E" stroke-width="1"/>
+  <!-- Leaf/nature emblem -->
+  <path d="M92 160 Q100 150 108 160 Q100 168 92 160 Z" fill="#22C55E" opacity="0.5"/>
+  <!-- Neck -->
+  <rect x="88" y="118" width="24" height="18" rx="3" fill="#FBBF24" opacity="0.8"/>
+  <!-- Head -->
+  <ellipse cx="100" cy="94" rx="34" ry="38" fill="#FBBF24"/>
+  <!-- Long elven ears -->
+  <path d="M66 90 Q50 82 52 70 Q56 62 66 72" fill="#FBBF24" stroke="#D97706" stroke-width="1.5"/>
+  <path d="M134 90 Q150 82 148 70 Q144 62 134 72" fill="#FBBF24" stroke="#D97706" stroke-width="1.5"/>
+  <!-- Silver-blonde hair -->
+  <path d="M66 80 Q64 55 78 48 Q88 42 100 40 Q112 42 122 48 Q136 55 134 80" fill="#E5E7EB"/>
+  <path d="M66 80 L58 120" stroke="#E5E7EB" stroke-width="8" stroke-linecap="round"/>
+  <path d="M134 80 L142 120" stroke="#E5E7EB" stroke-width="8" stroke-linecap="round"/>
+  <!-- Elvish headband -->
+  <path d="M66 76 Q100 68 134 76" fill="none" stroke="#22C55E" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="100" cy="70" r="5" fill="#22C55E"/>
+  <!-- Eyes - almond shaped -->
+  <ellipse cx="86" cy="92" rx="10" ry="7" fill="#1C1917"/>
+  <ellipse cx="114" cy="92" rx="10" ry="7" fill="#1C1917"/>
+  <ellipse cx="86" cy="92" rx="6" ry="4" fill="#22C55E"/>
+  <ellipse cx="114" cy="92" rx="6" ry="4" fill="#22C55E"/>
+  <circle cx="84" cy="90" r="1.5" fill="#fff" opacity="0.7"/>
+  <circle cx="112" cy="90" r="1.5" fill="#fff" opacity="0.7"/>
+  <!-- Elegant nose & lips -->
+  <path d="M98 105 L100 110 L102 105" fill="none" stroke="#D97706" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M88 116 Q100 122 112 116" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"/>
+</svg>
