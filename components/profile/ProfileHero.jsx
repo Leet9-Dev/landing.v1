@@ -1,4 +1,6 @@
 "use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const PLATFORM_COLORS = {
   steam: "#b9d8f5",
@@ -23,9 +25,35 @@ function getRankColor(rankTier) {
   return "#C8FF00";
 }
 
-export function ProfileHero({ user }) {
+export function ProfileHero({ user, onUserUpdate }) {
+  const router = useRouter();
   const rankColor = getRankColor(user.rankTier);
   const platforms = user.platformsConnected || [];
+
+  const [editing, setEditing] = useState(false);
+  const [nameInput, setNameInput] = useState(user.gamerTag || "");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
+  async function saveDisplayName() {
+    const trimmed = nameInput.trim();
+    if (!trimmed || trimmed === user.gamerTag) { setEditing(false); return; }
+    setSaving(true);
+    setSaveError(null);
+    const res = await fetch("/api/me/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: trimmed }),
+    });
+    const json = await res.json();
+    setSaving(false);
+    if (json.ok) {
+      setEditing(false);
+      onUserUpdate?.({ ...user, gamerTag: trimmed, displayName: trimmed });
+    } else {
+      setSaveError(json.error?.message || "Could not save.");
+    }
+  }
 
   return (
     <div style={{
@@ -81,18 +109,58 @@ export function ProfileHero({ user }) {
 
           {/* Identity */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Gamer tag + tribe */}
+            {/* Gamer tag — editable inline */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 7 }}>
-              <h1 style={{
-                fontSize: 22,
-                fontWeight: 900,
-                color: "#F1F3F9",
-                letterSpacing: "-0.02em",
-                margin: 0,
-                lineHeight: 1,
-              }}>
-                {user.gamerTag}
-              </h1>
+              {editing ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <input
+                    autoFocus
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") saveDisplayName(); if (e.key === "Escape") setEditing(false); }}
+                    maxLength={32}
+                    style={{
+                      fontSize: 20,
+                      fontWeight: 900,
+                      color: "#F1F3F9",
+                      letterSpacing: "-0.02em",
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(200,255,0,0.4)",
+                      borderRadius: 8,
+                      padding: "3px 10px",
+                      fontFamily: "'Outfit', sans-serif",
+                      outline: "none",
+                      width: 200,
+                    }}
+                  />
+                  <button onClick={saveDisplayName} disabled={saving} style={{
+                    fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 7,
+                    border: "none", background: "#C8FF00", color: "#07080F",
+                    cursor: saving ? "wait" : "pointer", fontFamily: "'Outfit', sans-serif",
+                  }}>
+                    {saving ? "Saving…" : "Save"}
+                  </button>
+                  <button onClick={() => { setEditing(false); setNameInput(user.gamerTag); }} style={{
+                    fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 7,
+                    border: "1px solid rgba(255,255,255,0.1)", background: "transparent",
+                    color: "rgba(241,243,249,0.45)", cursor: "pointer", fontFamily: "'Outfit', sans-serif",
+                  }}>
+                    Cancel
+                  </button>
+                  {saveError && <span style={{ fontSize: 11, color: "#f87171" }}>{saveError}</span>}
+                </div>
+              ) : (
+                <h1 style={{
+                  fontSize: 22,
+                  fontWeight: 900,
+                  color: "#F1F3F9",
+                  letterSpacing: "-0.02em",
+                  margin: 0,
+                  lineHeight: 1,
+                }}>
+                  {user.gamerTag}
+                </h1>
+              )}
               {user.tribeTag && (
                 <span style={{
                   fontSize: 10, fontWeight: 800, padding: "2px 7px", borderRadius: 5,
@@ -154,13 +222,18 @@ export function ProfileHero({ user }) {
 
           {/* Action buttons */}
           <div className="l9-hero-actions" style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
-            <button disabled style={{
-              fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 9,
-              border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)",
-              color: "rgba(241,243,249,0.3)", cursor: "not-allowed", fontFamily: "'Outfit', sans-serif",
-              whiteSpace: "nowrap",
-            }}>
-              Edit Profile · Soon
+            <button
+              onClick={() => { setEditing(true); setNameInput(user.gamerTag || ""); }}
+              style={{
+                fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 9,
+                border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)",
+                color: "rgba(241,243,249,0.7)", cursor: "pointer", fontFamily: "'Outfit', sans-serif",
+                whiteSpace: "nowrap", transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,255,0,0.35)"; e.currentTarget.style.color = "#C8FF00"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "rgba(241,243,249,0.7)"; }}
+            >
+              ✎ Edit Profile
             </button>
             <button disabled style={{
               fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 9,
