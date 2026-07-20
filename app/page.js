@@ -4,7 +4,7 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 function EmailForm({ onBack }) {
-  const [mode, setMode] = useState("signin"); // "signin" | "signup"
+  const [mode, setMode] = useState("signin"); // "signin" | "signup" | "forgot" | "inbox"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -24,8 +24,15 @@ function EmailForm({ onBack }) {
         });
         const json = await res.json();
         if (!json.ok) { setError(json.error?.message || "Registration failed."); setLoading(false); return; }
+        setMode("inbox");
+        setLoading(false);
+        return;
       }
       const result = await signIn("credentials", { email, password, redirect: false });
+      if (result?.error === "EMAIL_NOT_VERIFIED") {
+        setError("Please verify your email first. Check your inbox.");
+        setLoading(false); return;
+      }
       if (result?.error) { setError("Invalid email or password."); setLoading(false); return; }
       window.location.href = "/app";
     } catch {
@@ -34,13 +41,77 @@ function EmailForm({ onBack }) {
     }
   }
 
+  async function handleForgot(e) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    setMode("inbox");
+    setLoading(false);
+  }
+
   const inputStyle = {
     width: "100%", padding: "11px 14px", borderRadius: 10,
     border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
     color: "#F1F3F9", fontFamily: "'Outfit', sans-serif", fontSize: 14,
-    outline: "none", boxSizing: "border-box",
-    transition: "border-color 0.15s",
+    outline: "none", boxSizing: "border-box", transition: "border-color 0.15s",
   };
+
+  if (mode === "inbox") {
+    return (
+      <div style={{ width: "100%", animation: "slideUp 0.35s ease forwards", textAlign: "center" }}>
+        <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: "32px 20px", backdropFilter: "blur(12px)" }}>
+          <div style={{ fontSize: 32, marginBottom: 14 }}>📬</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#F1F3F9", marginBottom: 8 }}>Check your inbox</div>
+          <div style={{ fontSize: 13, color: "rgba(241,243,249,0.4)", lineHeight: 1.5 }}>
+            We sent an email to <strong style={{ color: "rgba(241,243,249,0.7)" }}>{email}</strong>.<br/>Click the link to continue.
+          </div>
+        </div>
+        <button onClick={onBack}
+          style={{ marginTop: 18, background: "none", border: "none", color: "rgba(255,255,255,0.25)", fontSize: 12, cursor: "pointer", fontFamily: "'Outfit', sans-serif" }}
+          onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.5)"}
+          onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.25)"}>
+          ← Back to login
+        </button>
+      </div>
+    );
+  }
+
+  if (mode === "forgot") {
+    return (
+      <div style={{ width: "100%", animation: "slideUp 0.35s ease forwards" }}>
+        <div style={{ marginBottom: 16, fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.35)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+          Reset password
+        </div>
+        <form onSubmit={handleForgot}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: 16, backdropFilter: "blur(12px)" }}>
+            <input type="email" placeholder="Your email" value={email} required
+              onChange={e => setEmail(e.target.value)} style={inputStyle}
+              onFocus={e => e.target.style.borderColor = "rgba(200,255,0,0.4)"}
+              onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
+            <button type="submit" disabled={loading} style={{
+              width: "100%", padding: "13px 20px", borderRadius: 10, border: "none",
+              background: loading ? "rgba(200,255,0,0.4)" : "linear-gradient(135deg,#C8FF00,#AAEE00)",
+              color: "#07080F", fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 800,
+              cursor: loading ? "wait" : "pointer",
+            }}>
+              {loading ? "Sending…" : "Send Reset Link"}
+            </button>
+          </div>
+        </form>
+        <button onClick={() => { setMode("signin"); setError(null); }}
+          style={{ marginTop: 14, background: "none", border: "none", color: "rgba(255,255,255,0.25)", fontSize: 12, cursor: "pointer", fontFamily: "'Outfit', sans-serif" }}
+          onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.5)"}
+          onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.25)"}>
+          ← Back to sign in
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ width: "100%", animation: "slideUp 0.35s ease forwards" }}>
@@ -51,53 +122,51 @@ function EmailForm({ onBack }) {
       <form onSubmit={handleSubmit}>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: 16, backdropFilter: "blur(12px)" }}>
           {mode === "signup" && (
-            <input
-              type="text" placeholder="Gamer tag (optional)" value={name}
-              onChange={e => setName(e.target.value)} maxLength={32}
-              style={inputStyle}
+            <input type="text" placeholder="Gamer tag (optional)" value={name}
+              onChange={e => setName(e.target.value)} maxLength={32} style={inputStyle}
               onFocus={e => e.target.style.borderColor = "rgba(200,255,0,0.4)"}
-              onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
-            />
+              onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
           )}
-          <input
-            type="email" placeholder="Email" value={email} required
-            onChange={e => setEmail(e.target.value)}
-            style={inputStyle}
+          <input type="email" placeholder="Email" value={email} required
+            onChange={e => setEmail(e.target.value)} style={inputStyle}
             onFocus={e => e.target.style.borderColor = "rgba(200,255,0,0.4)"}
-            onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
-          />
-          <input
-            type="password" placeholder="Password" value={password} required
-            onChange={e => setPassword(e.target.value)} minLength={8}
-            style={inputStyle}
+            onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
+          <input type="password" placeholder="Password" value={password} required
+            onChange={e => setPassword(e.target.value)} minLength={8} style={inputStyle}
             onFocus={e => e.target.style.borderColor = "rgba(200,255,0,0.4)"}
-            onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
-          />
+            onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
           {error && (
             <div style={{ fontSize: 12, color: "#f87171", padding: "6px 10px", borderRadius: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)" }}>
               {error}
             </div>
           )}
-          <button
-            type="submit" disabled={loading}
-            style={{
-              width: "100%", padding: "13px 20px", borderRadius: 10, border: "none",
-              background: loading ? "rgba(200,255,0,0.4)" : "linear-gradient(135deg,#C8FF00,#AAEE00)",
-              color: "#07080F", fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 800,
-              cursor: loading ? "wait" : "pointer", letterSpacing: "0.05em", transition: "all 0.15s",
-            }}
-          >
+          <button type="submit" disabled={loading} style={{
+            width: "100%", padding: "13px 20px", borderRadius: 10, border: "none",
+            background: loading ? "rgba(200,255,0,0.4)" : "linear-gradient(135deg,#C8FF00,#AAEE00)",
+            color: "#07080F", fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 800,
+            cursor: loading ? "wait" : "pointer", letterSpacing: "0.05em", transition: "all 0.15s",
+          }}>
             {loading ? "Please wait…" : mode === "signin" ? "Sign In" : "Create Account"}
           </button>
         </div>
       </form>
 
-      <div style={{ marginTop: 14, fontSize: 12, color: "rgba(255,255,255,0.3)" }}>
-        {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
-        <button onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); }}
-          style={{ background: "none", border: "none", color: "rgba(200,255,0,0.7)", fontFamily: "'Outfit', sans-serif", fontSize: 12, cursor: "pointer", fontWeight: 700, padding: 0 }}>
-          {mode === "signin" ? "Sign up" : "Sign in"}
-        </button>
+      <div style={{ marginTop: 14, fontSize: 12, color: "rgba(255,255,255,0.3)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span>
+          {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
+          <button onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); }}
+            style={{ background: "none", border: "none", color: "rgba(200,255,0,0.7)", fontFamily: "'Outfit', sans-serif", fontSize: 12, cursor: "pointer", fontWeight: 700, padding: 0 }}>
+            {mode === "signin" ? "Sign up" : "Sign in"}
+          </button>
+        </span>
+        {mode === "signin" && (
+          <button onClick={() => { setMode("forgot"); setError(null); }}
+            style={{ background: "none", border: "none", color: "rgba(255,255,255,0.25)", fontFamily: "'Outfit', sans-serif", fontSize: 12, cursor: "pointer", padding: 0 }}
+            onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.5)"}
+            onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.25)"}>
+            Forgot password?
+          </button>
+        )}
       </div>
 
       <button onClick={onBack}
