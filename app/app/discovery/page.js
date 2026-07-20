@@ -59,7 +59,7 @@ export default function DiscoveryPage() {
         </h1>
         {stats && (
           <p style={{ fontSize: 13, color: "rgba(241,243,249,0.38)", fontWeight: 500 }}>
-            {stats.totalGames} games · {stats.totalPlayers.toLocaleString()} players · {(stats.totalHours / 1000).toFixed(0)}K hours logged
+            {stats.totalGames} games in catalogue · community stats from Steam & PSN
           </p>
         )}
       </div>

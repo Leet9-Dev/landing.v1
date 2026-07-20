@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { apiOk } from "@/lib/api/response";
+import { apiOk, apiError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 import { PLATFORM_ACCOUNT_STATUS } from "@/lib/platforms/platforms";
 import { computeL9Points, computeLevel, computeRankInfo } from "@/lib/scoring/l9Points";
@@ -134,4 +134,23 @@ export async function GET() {
     friendsComparison: [],
     recentActivity,
   });
+}
+
+export async function PATCH(request) {
+  const { session, unauthenticated } = await requireSession();
+  if (unauthenticated) return unauthenticated;
+
+  const body = await request.json().catch(() => ({}));
+  const displayName = typeof body.displayName === "string" ? body.displayName.trim() : null;
+
+  if (!displayName || displayName.length < 1 || displayName.length > 32) {
+    return apiError("INVALID_DISPLAY_NAME", "Display name must be 1–32 characters.", 400);
+  }
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { name: displayName },
+  });
+
+  return apiOk({ displayName });
 }
