@@ -151,7 +151,7 @@ function EmailForm({ onBack }) {
         </div>
       </form>
 
-      <div style={{ marginTop: 14, fontSize: 12, color: "rgba(255,255,255,0.3)", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ marginTop: 14, fontSize: 12, color: "rgba(255,255,255,0.3)", display: "flex", flexDirection: "column", gap: 10, background: "rgba(7,8,15,0.7)", borderRadius: 10, padding: "10px 12px" }}>
         <span>
           {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
           <button onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); }}
@@ -478,7 +478,7 @@ export default function LandingPage() {
         </div>
 
         {/* Tagline */}
-        {!isLogin && (
+        {!isLogin && !isEmail && (
           <div style={{
             marginBottom:48,
             opacity: phraseVisible ? 1 : 0,
@@ -500,7 +500,7 @@ export default function LandingPage() {
         )}
 
         {/* ENTER button */}
-        {!isLogin && (
+        {!isLogin && !isEmail && (
           <div style={{
             opacity: btnVisible ? 1 : 0,
             transform: btnVisible ? "translateY(0)" : "translateY(12px)",
