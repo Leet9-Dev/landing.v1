@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#0D0F1A"/>
+  <!-- Suit body -->
+  <path d="M30 200 L30 158 Q30 142 58 136 Q78 130 100 129 Q122 130 142 136 Q170 142 170 158 L170 200 Z" fill="#1E293B"/>
+  <path d="M38 200 L38 160 Q38 146 64 140 Q82 134 100 133 Q118 134 136 140 Q162 146 162 160 L162 200 Z" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+  <!-- Shoulder armor -->
+  <ellipse cx="48" cy="146" rx="26" ry="18" fill="#1E293B" stroke="#475569" stroke-width="2"/>
+  <ellipse cx="152" cy="146" rx="26" ry="18" fill="#1E293B" stroke="#475569" stroke-width="2"/>
+  <!-- Neck ring -->
+  <rect x="82" y="116" width="36" height="18" rx="6" fill="#334155" stroke="#475569" stroke-width="2"/>
+  <!-- Helmet -->
+  <path d="M58 94 Q58 52 100 48 Q142 52 142 94 L140 118 Q120 126 100 126 Q80 126 60 118 Z" fill="#1E293B" stroke="#475569" stroke-width="2.5"/>
+  <!-- Visor - full face shield -->
+  <path d="M64 85 L136 85 L134 106 Q118 116 100 116 Q82 116 66 106 Z" fill="#0D0F1A"/>
+  <!-- Visor glow -->
+  <path d="M68 87 L132 87 L130 104 Q116 112 100 112 Q84 112 70 104 Z" fill="#06B6D4" opacity="0.15"/>
+  <!-- HUD display in visor -->
+  <line x1="72" y1="94" x2="100" y2="94" stroke="#06B6D4" stroke-width="1" opacity="0.5"/>
+  <line x1="100" y1="94" x2="128" y2="94" stroke="#C8FF00" stroke-width="1" opacity="0.5"/>
+  <circle cx="82" cy="100" r="4" fill="#06B6D4" opacity="0.6"/>
+  <circle cx="118" cy="100" r="4" fill="#C8FF00" opacity="0.6"/>
+  <!-- Helmet light strip -->
+  <rect x="62" y="82" width="76" height="5" rx="2" fill="#06B6D4" opacity="0.5"/>
+  <!-- Chest insignia -->
+  <circle cx="100" cy="170" r="8" fill="#C8FF00" opacity="0.3"/>
+  <text x="96" y="174" font-size="10" fill="#C8FF00" opacity="0.8">L9</text>
+</svg>
