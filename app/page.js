@@ -33,6 +33,10 @@ function EmailForm({ onBack }) {
         setError("Please verify your email first. Check your inbox.");
         setLoading(false); return;
       }
+      if (result?.error === "RATE_LIMITED") {
+        setError("Too many attempts. Please try again in 15 minutes.");
+        setLoading(false); return;
+      }
       if (result?.error) { setError("Invalid email or password."); setLoading(false); return; }
       window.location.href = "/app";
     } catch {
