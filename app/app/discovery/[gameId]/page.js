@@ -77,7 +77,24 @@ export default function GameDeepDivePage({ params }) {
         flexDirection: "column",
         justifyContent: "flex-end",
         padding: "20px 16px",
+        overflow: "hidden",
       }}>
+        {game.coverImageUrl && (
+          <img
+            src={game.coverImageUrl}
+            alt={game.canonicalTitle}
+            style={{
+              position: "absolute", inset: 0,
+              width: "100%", height: "100%",
+              objectFit: "cover",
+              opacity: 0.35,
+            }}
+          />
+        )}
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "linear-gradient(to top, rgba(7,8,15,0.92) 0%, rgba(7,8,15,0.3) 60%, rgba(7,8,15,0.1) 100%)",
+        }} />
         <button
           onClick={() => router.push("/app/discovery")}
           style={{
@@ -99,19 +116,20 @@ export default function GameDeepDivePage({ params }) {
           ← Discovery
         </button>
 
-        <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-          {game.trendingRank !== null && <Badge color="lime">#{game.trendingRank} Trending</Badge>}
-          {game.recentlyDetected && <Badge color="indigo">Recently Detected</Badge>}
-          {game.sourcePlatforms.map((p) => (
-            <Badge key={p} color="dark">{p === "steam" ? "Steam" : "PSN"}</Badge>
-          ))}
-        </div>
-
-        <h1 style={{ fontSize: 28, fontWeight: 900, color: "#F1F3F9", letterSpacing: "-0.03em", textShadow: "0 2px 16px rgba(0,0,0,0.6)", marginBottom: 4, lineHeight: 1.1 }}>
-          {game.canonicalTitle}
-        </h1>
-        <div style={{ fontSize: 13, color: "rgba(241,243,249,0.5)", fontWeight: 500 }}>
-          {game.studio} · {game.publisher}
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+            {game.trendingRank !== null && <Badge color="lime">#{game.trendingRank} Trending</Badge>}
+            {game.recentlyDetected && <Badge color="indigo">Recently Detected</Badge>}
+            {game.sourcePlatforms.map((p) => (
+              <Badge key={p} color="dark">{p === "steam" ? "Steam" : "PSN"}</Badge>
+            ))}
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: "#F1F3F9", letterSpacing: "-0.03em", textShadow: "0 2px 16px rgba(0,0,0,0.6)", marginBottom: 4, lineHeight: 1.1 }}>
+            {game.canonicalTitle}
+          </h1>
+          <div style={{ fontSize: 13, color: "rgba(241,243,249,0.5)", fontWeight: 500 }}>
+            {game.studio} · {game.publisher}
+          </div>
         </div>
       </div>
 
