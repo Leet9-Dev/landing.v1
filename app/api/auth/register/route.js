@@ -24,18 +24,30 @@ export async function POST(request) {
 
   const hashed = await bcrypt.hash(password, 12);
   const isPreview = process.env.VERCEL_ENV === "preview";
-  const user = await prisma.user.create({
-    data: {
-      email,
-      name: name || email.split("@")[0],
-      password: hashed,
-      emailVerified: isPreview ? new Date() : null,
-    },
-  });
+
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        email,
+        name: name || email.split("@")[0],
+        password: hashed,
+        emailVerified: isPreview ? new Date() : null,
+      },
+    });
+  } catch (err) {
+    console.error("[register] prisma.user.create failed:", err);
+    return apiError("DB_ERROR", "Could not create account. Please try again.", 500);
+  }
 
   if (!isPreview) {
-    const token = await createVerificationToken(email);
-    await sendVerificationEmail({ to: email, token });
+    try {
+      const token = await createVerificationToken(email);
+      await sendVerificationEmail({ to: email, token });
+    } catch (err) {
+      console.error("[register] email send failed:", err);
+      // Non-fatal: account created, email failed
+    }
   }
 
   return apiOk({ id: user.id, email: user.email, name: user.name, emailPending: !isPreview });
