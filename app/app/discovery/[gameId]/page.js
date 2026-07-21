@@ -66,7 +66,18 @@ export default function GameDeepDivePage({ params }) {
           {toast}
         </div>
       )}
-      <style>{`@keyframes slideUp { from { transform: translateY(20px); opacity:0; } to { transform: none; opacity:1; } }`}</style>
+      <style>{`
+        @keyframes slideUp { from { transform: translateY(20px); opacity:0; } to { transform: none; opacity:1; } }
+        .gdp-body { padding: 20px 16px; max-width: 640px; margin: 0 auto; }
+        .gdp-sidebar { display: none; }
+        @media (min-width: 768px) {
+          .gdp-body { display: grid; grid-template-columns: 1fr 280px; gap: 40px; max-width: 960px; align-items: start; }
+          .gdp-main { min-width: 0; }
+          .gdp-sidebar { display: block; position: sticky; top: 80px; }
+          .gdp-your-stats-mobile { display: none; }
+          .gdp-cta-mobile { display: none; }
+        }
+      `}</style>
 
       {/* Hero */}
       <div style={{
@@ -133,125 +144,163 @@ export default function GameDeepDivePage({ params }) {
         </div>
       </div>
 
-      {/* Content — single column */}
-      <div style={{ padding: "20px 16px", maxWidth: 640, margin: "0 auto" }}>
+      {/* Content */}
+      <div className="gdp-body">
 
-        {/* Description */}
-        <p style={{ fontSize: 14, color: "rgba(241,243,249,0.65)", lineHeight: 1.7, marginBottom: 20 }}>
-          {game.description}
-        </p>
+        {/* Main column */}
+        <div className="gdp-main">
 
-        {/* Store links — prominent, right after description */}
-        {externalSources.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
-            {externalSources.map((s) => {
-              const storeUrl = s.platform === "steam"
-                ? `https://store.steampowered.com/app/${s.externalId}/`
-                : `https://store.playstation.com/product/${s.externalId}`;
-              const isSteam = s.platform === "steam";
-              return (
-                <a
-                  key={s.platform + s.externalId}
-                  href={storeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    padding: "14px 20px",
-                    borderRadius: 12,
-                    border: `1px solid ${isSteam ? "rgba(185,216,245,0.3)" : "rgba(200,170,255,0.3)"}`,
-                    background: isSteam ? "rgba(185,216,245,0.09)" : "rgba(200,170,255,0.09)",
-                    color: isSteam ? "#b9d8f5" : "#c8aaff",
-                    fontSize: 15,
-                    fontWeight: 800,
-                    textDecoration: "none",
-                    fontFamily: "'Outfit', sans-serif",
-                    letterSpacing: "-0.01em",
-                    textAlign: "center",
-                    boxSizing: "border-box",
-                  }}
-                >
-                  {isSteam ? "Play on Steam →" : "Play on PlayStation →"}
-                </a>
-              );
-            })}
+          {/* Description */}
+          <p style={{ fontSize: 14, color: "rgba(241,243,249,0.65)", lineHeight: 1.7, marginBottom: 20 }}>
+            {game.description}
+          </p>
+
+          {/* Store links — prominent, right after description */}
+          {externalSources.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
+              {externalSources.map((s) => {
+                const storeUrl = s.platform === "steam"
+                  ? `https://store.steampowered.com/app/${s.externalId}/`
+                  : `https://store.playstation.com/product/${s.externalId}`;
+                const isSteam = s.platform === "steam";
+                return (
+                  <a
+                    key={s.platform + s.externalId}
+                    href={storeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      padding: "14px 20px",
+                      borderRadius: 12,
+                      border: `1px solid ${isSteam ? "rgba(185,216,245,0.3)" : "rgba(200,170,255,0.3)"}`,
+                      background: isSteam ? "rgba(185,216,245,0.09)" : "rgba(200,170,255,0.09)",
+                      color: isSteam ? "#b9d8f5" : "#c8aaff",
+                      fontSize: 15,
+                      fontWeight: 800,
+                      textDecoration: "none",
+                      fontFamily: "'Outfit', sans-serif",
+                      letterSpacing: "-0.01em",
+                      textAlign: "center",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    {isSteam ? "Play on Steam →" : "Play on PlayStation →"}
+                  </a>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Genres + Tags */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 28 }}>
+            {game.genres.map((g) => (
+              <span key={g} style={{
+                padding: "4px 10px", borderRadius: 6,
+                border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
+                fontSize: 12, color: "rgba(241,243,249,0.55)", fontWeight: 500,
+              }}>{g}</span>
+            ))}
+            {game.tags.map((t) => (
+              <span key={t} style={{
+                padding: "4px 10px", borderRadius: 6,
+                border: "1px solid rgba(200,255,0,0.12)", background: "rgba(200,255,0,0.03)",
+                fontSize: 12, color: "rgba(200,255,0,0.55)", fontWeight: 500,
+              }}>{t}</span>
+            ))}
           </div>
-        )}
 
-        {/* Genres + Tags */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 28 }}>
-          {game.genres.map((g) => (
-            <span key={g} style={{
-              padding: "4px 10px", borderRadius: 6,
-              border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
-              fontSize: 12, color: "rgba(241,243,249,0.55)", fontWeight: 500,
-            }}>{g}</span>
-          ))}
-          {game.tags.map((t) => (
-            <span key={t} style={{
-              padding: "4px 10px", borderRadius: 6,
-              border: "1px solid rgba(200,255,0,0.12)", background: "rgba(200,255,0,0.03)",
-              fontSize: 12, color: "rgba(200,255,0,0.55)", fontWeight: 500,
-            }}>{t}</span>
-          ))}
-        </div>
-
-        {/* Community Stats */}
-        <div style={{ marginBottom: 28 }}>
-          <SectionLabel>Community Stats</SectionLabel>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <StatBox label="Community Rating" value={`★ ${game.communityRating.toFixed(1)}`} accent />
-            <StatBox label="Active Players" value={game.communityPlayerCount.toLocaleString()} />
-            <StatBox label="Total Hours" value={`${(game.communityHours / 1000).toFixed(0)}K`} />
-            <StatBox label="L9 Points Earned" value={(game.communityL9Points / 1000).toFixed(0) + "K"} />
-          </div>
-        </div>
-
-        {/* Your Stats */}
-        {currentUserGame && (
-          <div style={{ marginBottom: 24 }}>
-            <SectionLabel>Your Stats</SectionLabel>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <StatBox label="Hours" value={currentUserGame.hoursPlayed.toFixed(0)} small />
-              <StatBox label="L9 Points" value={currentUserGame.l9Points.toLocaleString()} small accent />
-              <StatBox label="Achievements" value={`${currentUserGame.achievementsUnlocked}/${currentUserGame.achievementsTotal}`} small />
-              <StatBox label="Mastery" value={`${currentUserGame.masteryPct.toFixed(0)}%`} small />
+          {/* Community Stats */}
+          <div style={{ marginBottom: 28 }}>
+            <SectionLabel>Community Stats</SectionLabel>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <StatBox label="Community Rating" value={`★ ${game.communityRating.toFixed(1)}`} accent />
+              <StatBox label="Active Players" value={game.communityPlayerCount.toLocaleString()} />
+              <StatBox label="Total Hours" value={`${(game.communityHours / 1000).toFixed(0)}K`} />
+              <StatBox label="L9 Points Earned" value={(game.communityL9Points / 1000).toFixed(0) + "K"} />
             </div>
           </div>
-        )}
 
-        {/* Add to Profile CTA */}
-        <button
-          onClick={handleAddToProfile}
-          disabled={inProfile || adding}
-          style={{
-            width: "100%",
-            padding: "14px 20px",
-            borderRadius: 12,
-            border: inProfile ? "1px solid rgba(200,255,0,0.25)" : "none",
-            background: inProfile ? "rgba(200,255,0,0.08)" : "linear-gradient(135deg, #C8FF00, #a3e600)",
-            color: inProfile ? "#C8FF00" : "#07080F",
-            fontFamily: "'Outfit', sans-serif",
-            fontSize: 15,
-            fontWeight: 800,
-            cursor: inProfile ? "default" : adding ? "wait" : "pointer",
-            letterSpacing: "-0.01em",
-            transition: "all 0.18s",
-            opacity: adding ? 0.7 : 1,
-          }}
-        >
-          {inProfile ? "✓ In Profile" : adding ? "Adding…" : "+ Add to Profile"}
-        </button>
+          {/* Your Stats — mobile only (shown inline on mobile, in sidebar on desktop) */}
+          {currentUserGame && (
+            <div className="gdp-your-stats-mobile" style={{ marginBottom: 24 }}>
+              <SectionLabel>Your Stats</SectionLabel>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <StatBox label="Hours" value={currentUserGame.hoursPlayed.toFixed(0)} small />
+                <StatBox label="L9 Points" value={currentUserGame.l9Points.toLocaleString()} small accent />
+                <StatBox label="Achievements" value={`${currentUserGame.achievementsUnlocked}/${currentUserGame.achievementsTotal}`} small />
+                <StatBox label="Mastery" value={`${currentUserGame.masteryPct.toFixed(0)}%`} small />
+              </div>
+            </div>
+          )}
 
-        {!inProfile && (
-          <p style={{ fontSize: 11, color: "rgba(241,243,249,0.25)", textAlign: "center", marginTop: 10, lineHeight: 1.5 }}>
-            Adds this game to your public Leet9 profile
-          </p>
-        )}
+          {/* Add to Profile CTA — mobile only */}
+          <div className="gdp-cta-mobile">
+            <AddToProfileButton inProfile={inProfile} adding={adding} onClick={handleAddToProfile} />
+            {!inProfile && (
+              <p style={{ fontSize: 11, color: "rgba(241,243,249,0.25)", textAlign: "center", marginTop: 10, lineHeight: 1.5 }}>
+                Adds this game to your public Leet9 profile
+              </p>
+            )}
+          </div>
+
+        </div>
+
+        {/* Sidebar — desktop only */}
+        <div className="gdp-sidebar">
+
+          {/* Add to Profile CTA */}
+          <AddToProfileButton inProfile={inProfile} adding={adding} onClick={handleAddToProfile} />
+          {!inProfile && (
+            <p style={{ fontSize: 11, color: "rgba(241,243,249,0.25)", textAlign: "center", marginTop: 10, lineHeight: 1.5 }}>
+              Adds this game to your public Leet9 profile
+            </p>
+          )}
+
+          {/* Your Stats */}
+          {currentUserGame && (
+            <div style={{ marginTop: 24 }}>
+              <SectionLabel>Your Stats</SectionLabel>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <StatBox label="Hours" value={currentUserGame.hoursPlayed.toFixed(0)} small />
+                <StatBox label="L9 Points" value={currentUserGame.l9Points.toLocaleString()} small accent />
+                <StatBox label="Achievements" value={`${currentUserGame.achievementsUnlocked}/${currentUserGame.achievementsTotal}`} small />
+                <StatBox label="Mastery" value={`${currentUserGame.masteryPct.toFixed(0)}%`} small />
+              </div>
+            </div>
+          )}
+
+        </div>
 
       </div>
     </div>
+  );
+}
+
+function AddToProfileButton({ inProfile, adding, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={inProfile || adding}
+      style={{
+        width: "100%",
+        padding: "14px 20px",
+        borderRadius: 12,
+        border: inProfile ? "1px solid rgba(200,255,0,0.25)" : "none",
+        background: inProfile ? "rgba(200,255,0,0.08)" : "linear-gradient(135deg, #C8FF00, #a3e600)",
+        color: inProfile ? "#C8FF00" : "#07080F",
+        fontFamily: "'Outfit', sans-serif",
+        fontSize: 15,
+        fontWeight: 800,
+        cursor: inProfile ? "default" : adding ? "wait" : "pointer",
+        letterSpacing: "-0.01em",
+        transition: "all 0.18s",
+        opacity: adding ? 0.7 : 1,
+      }}
+    >
+      {inProfile ? "✓ In Profile" : adding ? "Adding…" : "+ Add to Profile"}
+    </button>
   );
 }
 
