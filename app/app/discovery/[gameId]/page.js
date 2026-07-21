@@ -171,27 +171,52 @@ export default function GameDeepDivePage({ params }) {
             {/* External sources */}
             {externalSources.length > 0 && (
               <div>
-                <SectionLabel>Available On</SectionLabel>
+                <SectionLabel>Where to Play</SectionLabel>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {externalSources.map((s) => (
-                    <div key={s.platform + s.externalId} style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "10px 14px",
-                      borderRadius: 9,
-                      border: "1px solid rgba(255,255,255,0.07)",
-                      background: "rgba(255,255,255,0.02)",
-                    }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: s.platform === "steam" ? "#b9d8f5" : "#c8aaff" }}>
-                        {s.platform === "steam" ? "Steam" : "PSN"}
-                      </span>
-                      <span style={{ fontSize: 12, color: "rgba(241,243,249,0.45)" }}>{s.externalTitle}</span>
-                      <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(241,243,249,0.22)", fontFamily: "monospace" }}>
-                        {s.externalId}
-                      </span>
-                    </div>
-                  ))}
+                  {externalSources.map((s) => {
+                    const storeUrl = s.platform === "steam"
+                      ? `https://store.steampowered.com/app/${s.externalId}/`
+                      : `https://store.playstation.com/product/${s.externalId}`;
+                    const isSteam = s.platform === "steam";
+                    return (
+                      <div key={s.platform + s.externalId} style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "12px 14px",
+                        borderRadius: 9,
+                        border: `1px solid ${isSteam ? "rgba(185,216,245,0.12)" : "rgba(200,170,255,0.12)"}`,
+                        background: isSteam ? "rgba(185,216,245,0.03)" : "rgba(200,170,255,0.03)",
+                      }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: isSteam ? "#b9d8f5" : "#c8aaff" }}>
+                          {isSteam ? "Steam" : "PlayStation"}
+                        </span>
+                        <span style={{ fontSize: 12, color: "rgba(241,243,249,0.4)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {s.externalTitle}
+                        </span>
+                        <a
+                          href={storeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            flexShrink: 0,
+                            padding: "6px 14px",
+                            borderRadius: 7,
+                            border: `1px solid ${isSteam ? "rgba(185,216,245,0.25)" : "rgba(200,170,255,0.25)"}`,
+                            background: isSteam ? "rgba(185,216,245,0.08)" : "rgba(200,170,255,0.08)",
+                            color: isSteam ? "#b9d8f5" : "#c8aaff",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            textDecoration: "none",
+                            fontFamily: "'Outfit', sans-serif",
+                            letterSpacing: "0.02em",
+                          }}
+                        >
+                          {isSteam ? "Play on Steam →" : "Play on PlayStation →"}
+                        </a>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
