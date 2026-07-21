@@ -2,6 +2,11 @@
 const nextConfig = {
   poweredByHeader: false,
   compress: true,
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "cdn.cloudflare.steamstatic.com" },
+    ],
+  },
   experimental: {
     optimizePackageImports: ["@prisma/client"],
   },

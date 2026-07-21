@@ -235,7 +235,7 @@ function GameCard({ game, onClick }) {
         background: "#0A0C14",
       }}
     >
-      {/* Cover gradient */}
+      {/* Cover image */}
       <div style={{
         height: 110,
         background: game.coverGradient,
@@ -243,7 +243,20 @@ function GameCard({ game, onClick }) {
         display: "flex",
         alignItems: "flex-end",
         padding: "10px 12px",
+        overflow: "hidden",
       }}>
+        {game.coverImageUrl && (
+          <img
+            src={game.coverImageUrl}
+            alt={game.canonicalTitle}
+            style={{
+              position: "absolute", inset: 0,
+              width: "100%", height: "100%",
+              objectFit: "cover",
+              opacity: 0.9,
+            }}
+          />
+        )}
         {game.trendingRank !== null && (
           <div style={{
             position: "absolute",
