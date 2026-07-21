@@ -66,7 +66,20 @@ export default function GameDeepDivePage({ params }) {
           {toast}
         </div>
       )}
-      <style>{`@keyframes slideUp { from { transform: translateY(20px); opacity:0; } to { transform: none; opacity:1; } }`}</style>
+      <style>{`
+        @keyframes slideUp { from { transform: translateY(20px); opacity:0; } to { transform: none; opacity:1; } }
+        .game-detail-content { padding: 32px 36px; max-width: 960px; }
+        .game-detail-grid { display: grid; grid-template-columns: 1fr 320px; gap: 32px; }
+        .game-action-card { border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); padding: 22px; position: sticky; top: 80px; }
+        @media (max-width: 640px) {
+          .game-detail-content { padding: 20px 16px; }
+          .game-detail-grid { grid-template-columns: 1fr; gap: 24px; }
+          .game-action-card { position: static; }
+          .game-hero { padding: 20px 16px !important; }
+          .game-back-btn { left: 16px !important; }
+          .game-title { font-size: 26px !important; }
+        }
+      `}</style>
 
       {/* Hero */}
       <div style={{
@@ -122,8 +135,8 @@ export default function GameDeepDivePage({ params }) {
       </div>
 
       {/* Content */}
-      <div style={{ padding: "32px 36px", maxWidth: 960 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 32 }}>
+      <div className="game-detail-content">
+        <div className="game-detail-grid">
           {/* Left */}
           <div>
             {/* Description */}
@@ -179,42 +192,30 @@ export default function GameDeepDivePage({ params }) {
                       : `https://store.playstation.com/product/${s.externalId}`;
                     const isSteam = s.platform === "steam";
                     return (
-                      <div key={s.platform + s.externalId} style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        padding: "12px 14px",
-                        borderRadius: 9,
-                        border: `1px solid ${isSteam ? "rgba(185,216,245,0.12)" : "rgba(200,170,255,0.12)"}`,
-                        background: isSteam ? "rgba(185,216,245,0.03)" : "rgba(200,170,255,0.03)",
-                      }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: isSteam ? "#b9d8f5" : "#c8aaff" }}>
-                          {isSteam ? "Steam" : "PlayStation"}
-                        </span>
-                        <span style={{ fontSize: 12, color: "rgba(241,243,249,0.4)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {s.externalTitle}
-                        </span>
-                        <a
-                          href={storeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            flexShrink: 0,
-                            padding: "6px 14px",
-                            borderRadius: 7,
-                            border: `1px solid ${isSteam ? "rgba(185,216,245,0.25)" : "rgba(200,170,255,0.25)"}`,
-                            background: isSteam ? "rgba(185,216,245,0.08)" : "rgba(200,170,255,0.08)",
-                            color: isSteam ? "#b9d8f5" : "#c8aaff",
-                            fontSize: 11,
-                            fontWeight: 700,
-                            textDecoration: "none",
-                            fontFamily: "'Outfit', sans-serif",
-                            letterSpacing: "0.02em",
-                          }}
-                        >
-                          {isSteam ? "Play on Steam →" : "Play on PlayStation →"}
-                        </a>
-                      </div>
+                      <a
+                        key={s.platform + s.externalId}
+                        href={storeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          padding: "13px 20px",
+                          borderRadius: 11,
+                          border: `1px solid ${isSteam ? "rgba(185,216,245,0.3)" : "rgba(200,170,255,0.3)"}`,
+                          background: isSteam ? "rgba(185,216,245,0.08)" : "rgba(200,170,255,0.08)",
+                          color: isSteam ? "#b9d8f5" : "#c8aaff",
+                          fontSize: 14,
+                          fontWeight: 800,
+                          textDecoration: "none",
+                          fontFamily: "'Outfit', sans-serif",
+                          letterSpacing: "-0.01em",
+                          textAlign: "center",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        {isSteam ? "Play on Steam →" : "Play on PlayStation →"}
+                      </a>
                     );
                   })}
                 </div>
@@ -224,14 +225,7 @@ export default function GameDeepDivePage({ params }) {
 
           {/* Right — action card */}
           <div>
-            <div style={{
-              borderRadius: 16,
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: "rgba(255,255,255,0.02)",
-              padding: 22,
-              position: "sticky",
-              top: 80,
-            }}>
+            <div className="game-action-card">
               {/* User's stats if in library */}
               {currentUserGame && (
                 <div style={{ marginBottom: 20 }}>
