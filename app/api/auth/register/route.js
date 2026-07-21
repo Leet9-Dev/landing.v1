@@ -23,17 +23,20 @@ export async function POST(request) {
   }
 
   const hashed = await bcrypt.hash(password, 12);
+  const isPreview = process.env.VERCEL_ENV === "preview";
   const user = await prisma.user.create({
     data: {
       email,
       name: name || email.split("@")[0],
       password: hashed,
-      emailVerified: null,
+      emailVerified: isPreview ? new Date() : null,
     },
   });
 
-  const token = await createVerificationToken(email);
-  await sendVerificationEmail({ to: email, token });
+  if (!isPreview) {
+    const token = await createVerificationToken(email);
+    await sendVerificationEmail({ to: email, token });
+  }
 
-  return apiOk({ id: user.id, email: user.email, name: user.name, emailPending: true });
+  return apiOk({ id: user.id, email: user.email, name: user.name, emailPending: !isPreview });
 }
