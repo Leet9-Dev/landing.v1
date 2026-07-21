@@ -2,10 +2,17 @@ import { prisma } from "@/lib/prisma";
 import { apiOk, apiError } from "@/lib/api/response";
 import { createVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
+import { checkRateLimit } from "@/lib/ratelimit";
 import bcrypt from "bcryptjs";
 
 export async function POST(request) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const { success } = await checkRateLimit("register", ip);
+    if (!success) {
+      return apiError("RATE_LIMITED", "Too many attempts. Please try again later.", 429);
+    }
+
     const body = await request.json().catch(() => ({}));
     const email = typeof body.email === "string" ? body.email.toLowerCase().trim() : "";
     const password = typeof body.password === "string" ? body.password : "";
