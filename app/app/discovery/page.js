@@ -20,25 +20,48 @@ export default function DiscoveryPage() {
   const [games, setGames] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
   const [source, setSource] = useState("");
   const [sort, setSort] = useState("trending");
   const [recentOnly, setRecentOnly] = useState(false);
 
-  const fetchGames = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams({ sort });
+  const buildParams = useCallback((pageNum) => {
+    const params = new URLSearchParams({ sort, page: String(pageNum) });
     if (q) params.set("q", q);
     if (source) params.set("source", source);
     if (recentOnly) params.set("recentOnly", "true");
-    const res = await fetch(`/api/discovery/games?${params}`);
+    return params;
+  }, [q, source, sort, recentOnly]);
+
+  const fetchGames = useCallback(async () => {
+    setLoading(true);
+    setPage(1);
+    const res = await fetch(`/api/discovery/games?${buildParams(1)}`);
     const json = await res.json();
     if (json.ok) {
       setGames(json.data.games);
       setStats(json.data.stats);
+      setHasMore(json.data.hasMore);
     }
     setLoading(false);
-  }, [q, source, sort, recentOnly]);
+  }, [buildParams]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    const res = await fetch(`/api/discovery/games?${buildParams(nextPage)}`);
+    const json = await res.json();
+    if (json.ok) {
+      setGames((prev) => [...prev, ...json.data.games]);
+      setHasMore(json.data.hasMore);
+      setPage(nextPage);
+    }
+    setLoadingMore(false);
+  }, [buildParams, hasMore, loadingMore, page]);
 
   useEffect(() => {
     const t = setTimeout(fetchGames, q ? 300 : 0);
@@ -117,7 +140,10 @@ export default function DiscoveryPage() {
       ) : games.length === 0 ? (
         <EmptyState query={q} />
       ) : isFiltered ? (
-        <GameGrid games={games} onSelect={(g) => router.push(`/app/discovery/${g.id}`)} />
+        <>
+          <GameGrid games={games} onSelect={(g) => router.push(`/app/discovery/${g.id}`)} />
+          <LoadMoreButton hasMore={hasMore} loading={loadingMore} onClick={loadMore} />
+        </>
       ) : (
         <>
           {trending.length > 0 && (
@@ -135,6 +161,7 @@ export default function DiscoveryPage() {
               <GameGrid games={rest} onSelect={(g) => router.push(`/app/discovery/${g.id}`)} />
             </Section>
           )}
+          <LoadMoreButton hasMore={hasMore} loading={loadingMore} onClick={loadMore} />
         </>
       )}
     </div>
@@ -334,6 +361,33 @@ function PlatformBadge({ platform }) {
     }}>
       {platform === "steam" ? "STEAM" : "PSN"}
     </span>
+  );
+}
+
+function LoadMoreButton({ hasMore, loading, onClick }) {
+  if (!hasMore && !loading) return null;
+  return (
+    <div style={{ display: "flex", justifyContent: "center", marginTop: 32 }}>
+      <button
+        onClick={onClick}
+        disabled={loading}
+        style={{
+          padding: "10px 32px",
+          borderRadius: 99,
+          border: "1px solid rgba(255,255,255,0.12)",
+          background: loading ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.05)",
+          color: loading ? "rgba(241,243,249,0.3)" : "rgba(241,243,249,0.6)",
+          fontFamily: "'Outfit', sans-serif",
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: loading ? "default" : "pointer",
+          transition: "all 0.15s",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        {loading ? "Loading…" : "Load More"}
+      </button>
+    </div>
   );
 }
 

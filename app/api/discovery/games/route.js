@@ -10,6 +10,8 @@ export async function GET(request) {
   const sort = searchParams.get("sort") || "trending";
   const recentOnly = searchParams.get("recentOnly") === "true";
   const trendingOnly = searchParams.get("trendingOnly") === "true";
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "6", 10)));
 
   // Discovery is platform-agnostic. Each canonical game appears once; its source
   // badges are derived from the normalized GameExternalSource records (not raw
@@ -65,5 +67,10 @@ export async function GET(request) {
     totalHours: MOCK_GAMES.reduce((s, g) => s + g.communityHours, 0),
   };
 
-  return apiOk({ games, stats, total: games.length }, { _cacheSeconds: 60 });
+  const total = games.length;
+  const offset = (page - 1) * limit;
+  const pagedGames = games.slice(offset, offset + limit);
+  const hasMore = offset + limit < total;
+
+  return apiOk({ games: pagedGames, stats, total, page, limit, hasMore }, { _cacheSeconds: 60 });
 }
