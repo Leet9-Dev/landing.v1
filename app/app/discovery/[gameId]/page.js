@@ -229,8 +229,12 @@ export default function GameDeepDivePage({ params }) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <StatBox label="Hours" value={currentUserGame.hoursPlayed.toFixed(0)} small />
                 <StatBox label="L9 Points" value={currentUserGame.l9Points.toLocaleString()} small accent />
-                <StatBox label="Achievements" value={`${currentUserGame.achievementsUnlocked}/${currentUserGame.achievementsTotal}`} small />
-                <StatBox label="Mastery" value={`${currentUserGame.masteryPct.toFixed(0)}%`} small />
+                {currentUserGame.achievementsUnlocked != null && currentUserGame.achievementsTotal != null && (
+                  <StatBox label="Achievements" value={`${currentUserGame.achievementsUnlocked}/${currentUserGame.achievementsTotal}`} small />
+                )}
+                {currentUserGame.masteryPct != null && (
+                  <StatBox label="Mastery" value={`${currentUserGame.masteryPct.toFixed(0)}%`} small />
+                )}
               </div>
             </div>
           )}
@@ -265,8 +269,12 @@ export default function GameDeepDivePage({ params }) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <StatBox label="Hours" value={currentUserGame.hoursPlayed.toFixed(0)} small />
                 <StatBox label="L9 Points" value={currentUserGame.l9Points.toLocaleString()} small accent />
-                <StatBox label="Achievements" value={`${currentUserGame.achievementsUnlocked}/${currentUserGame.achievementsTotal}`} small />
-                <StatBox label="Mastery" value={`${currentUserGame.masteryPct.toFixed(0)}%`} small />
+                {currentUserGame.achievementsUnlocked != null && currentUserGame.achievementsTotal != null && (
+                  <StatBox label="Achievements" value={`${currentUserGame.achievementsUnlocked}/${currentUserGame.achievementsTotal}`} small />
+                )}
+                {currentUserGame.masteryPct != null && (
+                  <StatBox label="Mastery" value={`${currentUserGame.masteryPct.toFixed(0)}%`} small />
+                )}
               </div>
             </div>
           )}

@@ -9,7 +9,8 @@ export default function RankingsPage() {
   const [activeTab, setActiveTab] = useState("players");
 
   return (
-    <div style={{ padding: "36px 32px", fontFamily: "'Outfit', sans-serif" }}>
+    <div className="l9-rankings-page" style={{ padding: "36px 32px", fontFamily: "'Outfit', sans-serif" }}>
+      <style>{`@media (max-width: 639px) { .l9-rankings-page { padding: 20px 16px !important; } }`}</style>
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, color: "#F1F3F9", letterSpacing: "-0.02em", marginBottom: 6 }}>
           Rankings

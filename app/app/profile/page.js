@@ -53,6 +53,51 @@ function NoPlatformsBanner({ onConnect }) {
   );
 }
 
+function NoGamesBanner({ onSync }) {
+  return (
+    <div style={{
+      borderRadius: 14,
+      border: "1px solid rgba(185,216,245,0.2)",
+      background: "linear-gradient(135deg, rgba(185,216,245,0.05) 0%, rgba(200,170,255,0.05) 100%)",
+      padding: "20px 24px",
+      marginBottom: 24,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 16,
+      flexWrap: "wrap",
+    }}>
+      <div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "#F1F3F9", marginBottom: 4, letterSpacing: "-0.01em" }}>
+          Platform connected — sync your library to get started.
+        </div>
+        <div style={{ fontSize: 13, color: "rgba(241,243,249,0.5)", lineHeight: 1.5 }}>
+          Hit Sync Now in Platform Hub to import your games, hours, and trophies.
+        </div>
+      </div>
+      <button
+        onClick={onSync}
+        style={{
+          padding: "10px 22px",
+          borderRadius: 10,
+          border: "1px solid rgba(185,216,245,0.3)",
+          background: "rgba(185,216,245,0.08)",
+          color: "#b9d8f5",
+          fontFamily: "'Outfit', sans-serif",
+          fontSize: 13,
+          fontWeight: 800,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+          flexShrink: 0,
+          letterSpacing: "-0.01em",
+        }}
+      >
+        Go to Platform Hub →
+      </button>
+    </div>
+  );
+}
+
 function ProfileHeroSection({ onUserUpdate }) {
   const [user, setUser] = useState(null);
 
@@ -87,6 +132,7 @@ export default function ProfilePage() {
   const [user, setUser] = useState(null);
 
   const noPlatforms = user && user.platformsConnected?.length === 0;
+  const noGames = user && user.platformsConnected?.length > 0 && user.gamesCount === 0;
 
   return (
     <div className="l9-profile-page" style={{ padding: "36px 32px", fontFamily: "'Outfit', sans-serif" }}>
@@ -100,6 +146,9 @@ export default function ProfilePage() {
 
       {noPlatforms && (
         <NoPlatformsBanner onConnect={() => router.push("/app/settings/platforms")} />
+      )}
+      {noGames && (
+        <NoGamesBanner onSync={() => router.push("/app/settings/platforms")} />
       )}
 
       <ProfileTabs active={activeTab} onChange={setActiveTab} />
