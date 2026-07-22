@@ -8,8 +8,21 @@ const IDENTITY_HINT = {
     help: "Find it at steamid.io or in your Steam profile URL.",
   },
   psn: {
-    placeholder: "PSN Online ID",
-    help: "Your public PlayStation Network username.",
+    placeholder: "NPSSO token",
+    help: (
+      <span>
+        Log into PlayStation on a browser, then visit{" "}
+        <a
+          href="https://ca.account.sony.com/api/v1/ssocookie"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "#c8aaff", textDecoration: "underline" }}
+        >
+          ca.account.sony.com/api/v1/ssocookie
+        </a>
+        {" "}and copy the <code style={{ fontSize: 10, background: "rgba(255,255,255,0.06)", padding: "1px 4px", borderRadius: 3 }}>npsso</code> value.
+      </span>
+    ),
   },
 };
 
@@ -56,11 +69,15 @@ export function PlatformHub() {
     if (!identifier) { setNotice({ tone: "error", text: "Enter your account identifier first." }); return; }
     setBusy(provider);
     setNotice(null);
+    // For PSN, the identifier field collects the NPSSO token, not the Online ID.
+    const body = provider === "psn"
+      ? { provider, npsso: identifier }
+      : { provider, identifier };
     try {
       const res = await fetch("/api/me/platform-accounts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, identifier }),
+        body: JSON.stringify(body),
       });
       const json = await res.json();
       if (json.ok) {
@@ -332,7 +349,7 @@ function ConnectForm({ hint, value, onChange, onConnect, busy, wasConnected, lab
           color: "#F1F3F9", fontSize: 12, fontFamily: "'Outfit', sans-serif", outline: "none",
         }}
       />
-      <div style={{ fontSize: 11, color: "rgba(241,243,249,0.3)", lineHeight: 1.5, marginBottom: 12 }}>
+      <div style={{ fontSize: 11, color: "rgba(241,243,249,0.3)", lineHeight: 1.5, marginBottom: 12, fontFamily: "'Outfit', sans-serif" }}>
         {hint.help}
       </div>
       <button

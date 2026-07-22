@@ -1,7 +1,7 @@
 import { requireSession } from "@/lib/api/auth";
 import { apiOk, apiError } from "@/lib/api/response";
 import { prisma } from "@/lib/prisma";
-import { fetchPsnTrophyTitles, hasPsnCredentials } from "@/lib/integrations/psn/psnClient";
+import { fetchPsnTrophyTitles } from "@/lib/integrations/psn/psnClient";
 import { normalizePsnTitles } from "@/lib/integrations/psn/psnNormalizer";
 import { matchDetectedGameToCanonical } from "@/lib/platforms/canonicalMatching";
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
@@ -12,10 +12,8 @@ import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
 // then persists PlatformDetectedGame and UserGame rows. All upserts are
 // idempotent. A PlatformSyncRun row tracks each attempt.
 //
-// Requirements:
-//   - Authenticated session
-//   - A connected PlatformAccount for PSN
-//   - PSN_NPSSO set (otherwise 503 — fixture-only mode cannot execute writes)
+// Live sync: uses the encrypted NPSSO stored in PlatformAccount.metadata.npsso.
+// Fixture fallback: when no NPSSO is stored, mock data is used (with a warning).
 
 const syncCooldowns = new Map();
 const COOLDOWN_MS = 5 * 60 * 1000;
@@ -61,7 +59,9 @@ export async function POST() {
   });
 
   try {
-    const rawTitles = await fetchPsnTrophyTitles(psnId);
+    // Use the encrypted NPSSO from metadata for live sync, or fall back to fixtures.
+    const encryptedNpsso = platformAccount.metadata?.npsso ?? null;
+    const rawTitles = await fetchPsnTrophyTitles(encryptedNpsso);
 
     if (rawTitles.length === 0) {
       await prisma.platformSyncRun.update({
@@ -181,9 +181,9 @@ export async function POST() {
 
     syncCooldowns.set(session.user.id, Date.now());
 
-    const warnings = hasPsnCredentials()
+    const warnings = encryptedNpsso
       ? []
-      : ["PSN credentials not configured — fixture data was used. Connect real credentials for live sync."];
+      : ["No NPSSO token stored — fixture data was used. Reconnect your PSN account with your NPSSO token for live sync."];
 
     return apiOk({
       mode: "execute",

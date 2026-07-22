@@ -20,6 +20,7 @@
     "next-auth": "^4.24.14",
     "next-auth-steam": "^0.4.0",
     "prisma": "^5.22.0",
+    "psn-api": "^2.18.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "resend": "^6.17.2"

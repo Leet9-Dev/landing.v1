@@ -1,7 +1,7 @@
 import { requireSession } from "@/lib/api/auth";
 import { apiOk, apiError } from "@/lib/api/response";
 import { prisma } from "@/lib/prisma";
-import { fetchPsnTrophyTitles, hasPsnCredentials } from "@/lib/integrations/psn/psnClient";
+import { fetchPsnTrophyTitles } from "@/lib/integrations/psn/psnClient";
 import { planPsnSync } from "@/lib/integrations/psn/psnSyncPlanner";
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
 
@@ -10,22 +10,17 @@ export async function GET() {
   if (unauthenticated) return unauthenticated;
 
   const userId = session.user.id;
-  let psnId = null;
-  let live = false;
 
-  if (hasPsnCredentials()) {
-    const account = await prisma.platformAccount.findUnique({
-      where: { userId_provider: { userId, provider: "psn" } },
-    });
-    if (account?.status === "connected" && account.externalUserId) {
-      psnId = account.externalUserId;
-      live = true;
-    }
-  }
+  const account = await prisma.platformAccount.findUnique({
+    where: { userId_provider: { userId, provider: "psn" } },
+  });
+
+  const encryptedNpsso = account?.metadata?.npsso ?? null;
+  const live = Boolean(encryptedNpsso && account?.status === "connected");
 
   let rawPsnTitles;
   try {
-    rawPsnTitles = await fetchPsnTrophyTitles(psnId ?? "fixture");
+    rawPsnTitles = await fetchPsnTrophyTitles(encryptedNpsso);
   } catch {
     return apiError("PSN_API_ERROR", "Could not fetch PSN trophy library. Try again shortly.", 502);
   }
@@ -46,7 +41,7 @@ export async function GET() {
 
   const dryRunNote = live
     ? "No data was persisted. Real PSN library used."
-    : "No data was persisted. Fixture data used (no PSN credentials configured).";
+    : "No data was persisted. Fixture data used (no NPSSO stored for this account).";
 
   return apiOk({ ...plan, dryRunNote }, { live, provider: "psn" });
 }
