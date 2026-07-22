@@ -5,7 +5,11 @@
 //
 // Connect validates the identifier format. When STEAM_API_KEY is set, Steam
 // steamid64 is also validated against GetPlayerSummaries (real account check +
-// persona name fetch). PSN onlineId format is validated locally only.
+// persona name fetch). For PSN, if an `npsso` field is provided in the body,
+// it is validated by exchanging for a PSN access token, the Online ID is
+// fetched from the PSN profile, and the NPSSO is stored AES-256-GCM encrypted
+// in metadata (requires PSN_CREDENTIAL_KEY). Without an NPSSO, the Online ID
+// is accepted directly (legacy/preview mode).
 // Disconnect soft-disconnects (status → disconnected, row preserved).
 
 import { prisma } from "@/lib/prisma";
@@ -14,6 +18,9 @@ import { apiOk, apiError } from "@/lib/api/response";
 import { SUPPORTED_PLATFORMS, getPlatform, PLATFORM_ACCOUNT_STATUS, PLATFORM_SYNC_STATUS } from "@/lib/platforms/platforms";
 import { validateConnectInput, validateProvider, toSafeAccountDto } from "@/lib/platforms/accountIdentity";
 import { hasSteamApiKey, fetchSteamPlayerSummaries } from "@/lib/integrations/steam/steamClient";
+import { exchangeNpssoForAuth } from "@/lib/integrations/psn/psnClient";
+import { encryptNpsso, hasCredentialKey } from "@/lib/integrations/psn/credentialStore";
+import { getProfileFromAccountId } from "psn-api";
 
 const DB_META = { source: "database" };
 
@@ -54,8 +61,11 @@ export async function GET() {
   return apiOk({ providers, connectedCount }, DB_META);
 }
 
-// POST — connect or reconnect a platform account from a safe public identifier.
-// Upserts by (userId, provider); marks CONNECTED. No platform API is called.
+// POST — connect or reconnect a platform account.
+// Upserts by (userId, provider); marks CONNECTED.
+// For PSN with an npsso field: validates the token, fetches the PSN Online ID,
+// and stores the NPSSO encrypted in metadata. For all other cases, the public
+// identifier is accepted directly.
 export async function POST(request) {
   const { session, unauthenticated } = await requireSession();
   if (unauthenticated) return unauthenticated;
@@ -64,6 +74,75 @@ export async function POST(request) {
   const body = await parseJson(request);
   if (!body) return apiError("VALIDATION_ERROR", "Invalid or missing JSON body.", 400);
 
+  // PSN NPSSO flow: user provides their NPSSO token instead of an Online ID.
+  // We exchange it, fetch their PSN profile, and derive the Online ID from it.
+  const rawNpsso = typeof body.npsso === "string" ? body.npsso.trim() : null;
+  if (body.provider === "psn" && rawNpsso) {
+    if (!hasCredentialKey()) {
+      return apiError(
+        "PSN_CREDENTIAL_KEY_MISSING",
+        "PSN live sync is not configured on this server. Contact support.",
+        503
+      );
+    }
+    if (rawNpsso.length < 16 || rawNpsso.length > 512) {
+      return apiError("VALIDATION_ERROR", "Invalid NPSSO token format.", 400);
+    }
+
+    let auth;
+    try {
+      auth = await exchangeNpssoForAuth(rawNpsso);
+    } catch {
+      return apiError("PSN_AUTH_FAILED", "Could not validate NPSSO token. Make sure it is current and try again.", 401);
+    }
+
+    // Fetch the PSN profile for the authenticated account to get the Online ID.
+    let onlineId = null;
+    try {
+      const res = await getProfileFromAccountId({ accessToken: auth.accessToken }, "me");
+      onlineId = res?.onlineId ?? null;
+    } catch {
+      // Non-fatal — handled below.
+    }
+    if (!onlineId) {
+      return apiError("PSN_PROFILE_NOT_FOUND", "Could not fetch your PSN profile. Try again shortly.", 502);
+    }
+
+    const platform = getPlatform("psn");
+    const encryptedNpsso = encryptNpsso(rawNpsso);
+
+    const connectedFields = {
+      externalUserId: onlineId,
+      username: onlineId,
+      displayName: onlineId,
+      status: PLATFORM_ACCOUNT_STATUS.CONNECTED,
+      syncStatus: PLATFORM_SYNC_STATUS.IDLE,
+      connectedAt: new Date(),
+      disconnectedAt: null,
+      needsReauthAt: null,
+      capabilities: platform?.capabilities ?? undefined,
+      metadata: {
+        connectedVia: "npsso",
+        npsso: encryptedNpsso,
+      },
+    };
+
+    const row = await prisma.platformAccount.upsert({
+      where: { userId_provider: { userId, provider: "psn" } },
+      create: { userId, provider: "psn", ...connectedFields },
+      update: connectedFields,
+    });
+
+    return apiOk(
+      {
+        account: toSafeAccountDto(row),
+        message: `PSN account ${onlineId} connected with live sync enabled.`,
+      },
+      DB_META,
+    );
+  }
+
+  // Default flow: public identifier (Steam steamid64 or PSN Online ID).
   const parsed = validateConnectInput(body);
   if (!parsed.ok) return apiError("VALIDATION_ERROR", parsed.error, 400);
 
