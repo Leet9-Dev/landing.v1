@@ -93,6 +93,7 @@ export async function GET() {
     archetype: null,
     profileCompletenessPct: null,
     platformsConnected,
+    gamesCount: userGames.length,
   };
 
   // Build recentActivity events for the profile overview.

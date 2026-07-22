@@ -64,6 +64,10 @@ export default function DiscoveryPage() {
   }, [buildParams, hasMore, loadingMore, page]);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     const t = setTimeout(fetchGames, q ? 300 : 0);
     return () => clearTimeout(t);
   }, [fetchGames, q]);
@@ -82,7 +86,7 @@ export default function DiscoveryPage() {
         </h1>
         {stats && (
           <p style={{ fontSize: 13, color: "rgba(241,243,249,0.38)", fontWeight: 500 }}>
-            {stats.totalGames} games in catalogue · &gt;12k active players · 600k+ hrs logged
+            {stats.totalGames} games in catalogue · {stats.totalPlayers.toLocaleString()} active players · {Math.round(stats.totalHours / 1000)}k hrs logged
           </p>
         )}
       </div>

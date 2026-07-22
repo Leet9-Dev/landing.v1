@@ -39,14 +39,14 @@ export async function GET(request, { params }) {
         inProfile: true,
         hoursPlayed: Math.round(hoursPlayed * 10) / 10,
         l9Points: computeL9Points({ playtimeHours: hoursPlayed, achievementsUnlocked }),
-        achievementsUnlocked,
-        achievementsTotal: 0,
-        masteryPct: 0,
+        achievementsUnlocked: achievementsUnlocked || null,
+        achievementsTotal: null,
+        masteryPct: null,
         lastPlayedAt: ug.lastDetectedAt?.toISOString() ?? null,
         sourceProvider: ug.sourceProvider,
       };
     }
   }
 
-  return apiOk({ game, externalSources, currentUserGame });
+  return apiOk({ game, externalSources, currentUserGame }, { _cacheSeconds: 300 });
 }
