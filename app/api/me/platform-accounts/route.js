@@ -21,6 +21,7 @@ import { hasSteamApiKey, fetchSteamPlayerSummaries } from "@/lib/integrations/st
 import { exchangeNpssoForAuth } from "@/lib/integrations/psn/psnClient";
 import { encryptNpsso, hasCredentialKey } from "@/lib/integrations/psn/credentialStore";
 import { getProfileFromAccountId } from "psn-api";
+import { emitGamingAccountConnectedEvent } from "@/lib/gamification/engine";
 
 const DB_META = { source: "database" };
 
@@ -133,6 +134,12 @@ export async function POST(request) {
       update: connectedFields,
     });
 
+    // Fire gamification event: count all connected game platform accounts.
+    const totalAccounts = await prisma.platformAccount.count({
+      where: { userId, status: PLATFORM_ACCOUNT_STATUS.CONNECTED },
+    });
+    emitGamingAccountConnectedEvent(prisma, userId, "psn", totalAccounts).catch(() => {});
+
     return apiOk(
       {
         account: toSafeAccountDto(row),
@@ -188,6 +195,12 @@ export async function POST(request) {
     create: { userId, provider, ...connectedFields },
     update: connectedFields,
   });
+
+  // Fire gamification event: count all connected game platform accounts.
+  const totalAccounts = await prisma.platformAccount.count({
+    where: { userId, status: PLATFORM_ACCOUNT_STATUS.CONNECTED },
+  });
+  emitGamingAccountConnectedEvent(prisma, userId, provider, totalAccounts).catch(() => {});
 
   return apiOk(
     {

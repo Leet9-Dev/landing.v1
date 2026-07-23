@@ -50,6 +50,14 @@ model User {
   // does not affect NextAuth's Account/Session relations above.
   platformAccounts PlatformAccount[]
   userGames        UserGame[]
+
+  // Phase 11 gamification engine
+  gamificationEvents GamificationEvent[]
+  pointsLedger       PointsLedger[]
+  userRuleStates     UserRuleState[]
+  userBrandPoints    UserBrandPoints[]
+  userBadges         UserBadge[]
+  userStreaks        UserStreak[]
 }
 
 model VerificationToken {
@@ -220,4 +228,160 @@ model UserGame {
   @@unique([userId, canonicalGameId])
   @@index([canonicalGameId])
   @@index([sourceProvider])
+}
+
+// ===========================================================================
+// Gamification Engine (Phase 11)
+//
+// Tables:
+//   GamificationRule    — config-driven rule definitions (mirrors spec)
+//   GamificationEvent   — raw immutable event log
+//   PointsLedger        — immutable points audit trail
+//   UserRuleState       — per-user per-rule engine state (idempotency, caps)
+//   UserBrandPoints     — running brand-family totals (drives badge unlocks)
+//   UserBadge           — permanently unlocked badges
+//   UserStreak          — login/play streak counters
+//
+// Event types (GamificationEvent.eventType / GamificationRule.eventType):
+//   user_login | game_hours_daily | game_hours_weekly | social_connected |
+//   achievement_unlocked | achievement_shared | game_added |
+//   gaming_account_connected | web3_wallet_connected
+// ===========================================================================
+
+// Config-driven rule definitions — every row in the gamification spec maps
+// to one row here. Changing point values, thresholds, or caps = DB update only.
+model GamificationRule {
+  id                    String   @id              // slug: "login_daily", "login_streak_7", …
+  family                String                    // "user_retention" | "prerequisite" | "sharing" | "video_game"
+  objective             String                    // "login_bonus" | "gamer_bonus_daily" | …
+  type                  String                    // "activity" | "milestone"
+  active                Boolean  @default(false)
+  description           String
+  brandedName           String?                   // "Overachiever" | "Relentless" | …
+  looped                Boolean  @default(false)  // true = can fire more than once
+  loopFrequency         String?                   // "daily" | "weekly" | null
+  points                Int?                      // null = NA / not yet defined
+  eventType             String                    // which event triggers this rule
+  thresholdCount        Int?                      // milestone: cumulative count to reach
+  badgeActive           Boolean  @default(false)
+  badgeTier             String?                   // "bronze" | "silver" | "gold" | "tbd"
+  badgeCollectionPoints Int?                      // brand-family points to unlock this tier
+  badgeVisible          Boolean  @default(true)   // false = track but don't show yet
+  yearlyMaxPoints       Int?                      // hard annual cap for this rule
+  etaNote               String?                   // informational only, engine ignores
+  metadata              Json?                     // rule-specific params (requiredHours, provider, …)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  ledgerEntries  PointsLedger[]
+  userRuleStates UserRuleState[]
+
+  @@index([eventType])
+  @@index([active])
+  @@index([brandedName])
+}
+
+// Raw event log — immutable, append-only. Every user action that could
+// trigger a rule is written here first, then evaluated by the engine.
+model GamificationEvent {
+  id             String   @id @default(cuid())
+  userId         String
+  eventType      String
+  occurredAt     DateTime @default(now())
+  payload        Json                         // { hoursToday, provider, totalGames, … }
+  idempotencyKey String   @unique             // prevents double-firing on retries
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ledgerEntries PointsLedger[]
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([occurredAt])
+}
+
+// Immutable points audit trail — one row per award. Never update, never delete.
+// Sum of points per userId = user's current balance.
+model PointsLedger {
+  id        String   @id @default(cuid())
+  userId    String
+  ruleId    String
+  eventId   String?                           // null = manual / admin adjustment
+  points    Int                               // always positive
+  awardedAt DateTime @default(now())
+  note      String?
+
+  user  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rule  GamificationRule   @relation(fields: [ruleId], references: [id])
+  event GamificationEvent? @relation(fields: [eventId], references: [id])
+
+  @@index([userId])
+  @@index([ruleId])
+  @@index([awardedAt])
+}
+
+// Per-user per-rule engine state. Tracks idempotency, yearly cap progress,
+// and last-fired timestamps for looped rules.
+model UserRuleState {
+  id               String    @id @default(cuid())
+  userId           String
+  ruleId           String
+  firedCount       Int       @default(0)     // total times this rule fired for this user
+  pointsThisYear   Int       @default(0)     // toward yearlyMaxPoints
+  yearResetAt      DateTime?                 // when the yearly counter was last reset
+  lastFiredAt      DateTime?                 // for looped rules: last fire time
+  milestoneReached Boolean   @default(false) // for one-time milestones: already fired?
+  updatedAt        DateTime  @updatedAt
+
+  user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rule GamificationRule @relation(fields: [ruleId], references: [id])
+
+  @@unique([userId, ruleId])
+  @@index([userId])
+}
+
+// Running total of points earned per branded-name family per user.
+// Updated atomically alongside PointsLedger; drives badge tier checks.
+model UserBrandPoints {
+  id          String   @id @default(cuid())
+  userId      String
+  brandedName String
+  totalPoints Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, brandedName])
+  @@index([userId])
+}
+
+// Permanently unlocked badges — never revoked. One row per tier per brand.
+model UserBadge {
+  id             String   @id @default(cuid())
+  userId         String
+  brandedName    String
+  tier           String                       // "bronze" | "silver" | "gold"
+  unlockedAt     DateTime @default(now())
+  pointsSnapshot Int                          // brand points at unlock time (audit)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, brandedName, tier])
+  @@index([userId])
+}
+
+// Login and play streak counters. Streak breaks when a day/week is missed.
+model UserStreak {
+  id               String    @id @default(cuid())
+  userId           String
+  streakType       String                     // "login_daily" | "play_weekly"
+  currentStreak    Int       @default(0)
+  longestStreak    Int       @default(0)
+  lastActivityDate DateTime?                  // date-only; used to detect streak continuity
+  streakStartedAt  DateTime?
+  updatedAt        DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, streakType])
+  @@index([userId])
 }
