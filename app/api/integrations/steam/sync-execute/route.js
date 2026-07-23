@@ -5,6 +5,7 @@ import { fetchSteamOwnedGames, hasSteamApiKey } from "@/lib/integrations/steam/s
 import { normalizeSteamGames } from "@/lib/integrations/steam/steamNormalizer";
 import { matchDetectedGameToCanonical } from "@/lib/platforms/canonicalMatching";
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
+import { emitGameAddedEvent } from "@/lib/gamification/engine";
 
 // Steam library execute sync (Phase 17).
 //
@@ -103,6 +104,7 @@ export async function POST() {
     let userGamesCreated = 0;
     let userGamesUpdated = 0;
     let unmatchedCount = 0;
+    const newGameIds = [];
 
     // 4. Upsert PlatformDetectedGame for every raw game (matched + unmatched).
     //    The unique constraint (platformAccountId, provider, externalGameId)
@@ -174,11 +176,24 @@ export async function POST() {
         },
       });
 
-      if (existing) userGamesUpdated++;
-      else userGamesCreated++;
+      if (existing) {
+        userGamesUpdated++;
+      } else {
+        userGamesCreated++;
+        newGameIds.push(g.canonicalGameId);
+      }
     }
 
     const matchedCount = resolved.filter((g) => g.canonicalGameId).length;
+
+    // 5b. Fire gamification events for each newly detected game (non-blocking).
+    if (newGameIds.length > 0) {
+      const totalGamesRow = await prisma.userGame.count({ where: { userId } });
+      for (let i = 0; i < newGameIds.length; i++) {
+        const runningTotal = totalGamesRow - newGameIds.length + i + 1;
+        emitGameAddedEvent(prisma, userId, newGameIds[i], runningTotal).catch(() => {});
+      }
+    }
 
     // 6. Stamp the sync run as complete.
     await prisma.platformSyncRun.update({

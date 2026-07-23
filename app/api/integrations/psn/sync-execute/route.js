@@ -5,6 +5,7 @@ import { fetchPsnTrophyTitles } from "@/lib/integrations/psn/psnClient";
 import { normalizePsnTitles } from "@/lib/integrations/psn/psnNormalizer";
 import { matchDetectedGameToCanonical } from "@/lib/platforms/canonicalMatching";
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
+import { emitGameAddedEvent } from "@/lib/gamification/engine";
 
 // PSN library execute sync.
 //
@@ -91,6 +92,7 @@ export async function POST() {
     let userGamesCreated = 0;
     let userGamesUpdated = 0;
     let unmatchedCount = 0;
+    const newGameIds = [];
 
     for (const g of resolved) {
       await prisma.platformDetectedGame.upsert({
@@ -155,11 +157,24 @@ export async function POST() {
         },
       });
 
-      if (existing) userGamesUpdated++;
-      else userGamesCreated++;
+      if (existing) {
+        userGamesUpdated++;
+      } else {
+        userGamesCreated++;
+        newGameIds.push(g.canonicalGameId);
+      }
     }
 
     const matchedCount = resolved.filter((g) => g.canonicalGameId).length;
+
+    // Fire gamification events for each newly detected game (non-blocking).
+    if (newGameIds.length > 0) {
+      const totalGamesRow = await prisma.userGame.count({ where: { userId } });
+      for (let i = 0; i < newGameIds.length; i++) {
+        const runningTotal = totalGamesRow - newGameIds.length + i + 1;
+        emitGameAddedEvent(prisma, userId, newGameIds[i], runningTotal).catch(() => {});
+      }
+    }
 
     await prisma.platformSyncRun.update({
       where: { id: syncRun.id },
