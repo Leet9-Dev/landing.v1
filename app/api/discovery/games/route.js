@@ -11,7 +11,7 @@ export async function GET(request) {
   const recentOnly = searchParams.get("recentOnly") === "true";
   const trendingOnly = searchParams.get("trendingOnly") === "true";
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "6", 10)));
+  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20", 10)));
 
   // Discovery is platform-agnostic. Each canonical game appears once; its source
   // badges are derived from the normalized GameExternalSource records (not raw
@@ -28,6 +28,7 @@ export async function GET(request) {
       (g) =>
         g.canonicalTitle.toLowerCase().includes(q) ||
         g.studio.toLowerCase().includes(q) ||
+        g.publisher.toLowerCase().includes(q) ||
         g.genres.some((genre) => genre.toLowerCase().includes(q)) ||
         g.tags.some((tag) => tag.toLowerCase().includes(q))
     );
