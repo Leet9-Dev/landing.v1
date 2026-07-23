@@ -1,5 +1,6 @@
 /**
- * ONE-TIME seed route — populates GamificationRule with the full spec config.
+ * ONE-TIME seed route — Phase 12 update.
+ * Updates all existing rules with label/description, adds 17 new rules.
  * DELETE THIS FILE after running once in production.
  *
  * Usage: GET /api/internal/seed-gamification?secret=gami-seed-7xK9mP2qR4vL

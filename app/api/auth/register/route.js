@@ -3,6 +3,7 @@ import { apiOk, apiError } from "@/lib/api/response";
 import { createVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
 import { checkRateLimit } from "@/lib/ratelimit";
+import { emitFriendActivatedEvent } from "@/lib/gamification/engine";
 import bcrypt from "bcryptjs";
 
 export async function POST(request) {
@@ -17,6 +18,7 @@ export async function POST(request) {
     const email = typeof body.email === "string" ? body.email.toLowerCase().trim() : "";
     const password = typeof body.password === "string" ? body.password : "";
     const name = typeof body.name === "string" ? body.name.trim().slice(0, 32) : "";
+    const inviteCode = typeof body.inviteCode === "string" ? body.inviteCode.trim() : null;
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return apiError("INVALID_EMAIL", "Enter a valid email address.", 400);
@@ -61,6 +63,25 @@ export async function POST(request) {
         await sendVerificationEmail({ to: email, token });
       } catch (err) {
         console.error("[register] email send failed:", err);
+      }
+    }
+
+    // Referral: validate and consume invite code, then credit the inviter.
+    if (inviteCode) {
+      try {
+        const invite = await prisma.inviteCode.findUnique({ where: { code: inviteCode } });
+        if (invite && !invite.usedAt) {
+          await prisma.inviteCode.update({
+            where: { id: invite.id },
+            data: { inviteeId: user.id, usedAt: new Date() },
+          });
+          const totalActivated = await prisma.inviteCode.count({
+            where: { inviterId: invite.inviterId, usedAt: { not: null } },
+          });
+          emitFriendActivatedEvent(prisma, invite.inviterId, user.id, totalActivated).catch(() => {});
+        }
+      } catch (err) {
+        console.error("[register] invite code processing failed:", err);
       }
     }
 
