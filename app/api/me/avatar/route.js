@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { emitProfileUpdatedEvent } from "@/lib/gamification/engine";
 
 const ALLOWED_PRESET_PATHS = new Set([
   "/avatars/controller.svg", "/avatars/sword.svg", "/avatars/skull.svg",
@@ -28,6 +29,7 @@ export async function POST(req) {
       return Response.json({ ok: false, error: { message: "Invalid avatar" } }, { status: 400 });
     }
     await prisma.user.update({ where: { id: session.user.id }, data: { image: url } });
+    emitProfileUpdatedEvent(prisma, session.user.id, "avatar").catch(() => {});
     return Response.json({ ok: true, url });
   }
 
@@ -51,6 +53,7 @@ export async function POST(req) {
       addRandomSuffix: false,
     });
     await prisma.user.update({ where: { id: session.user.id }, data: { image: blob.url } });
+    emitProfileUpdatedEvent(prisma, session.user.id, "avatar").catch(() => {});
     return Response.json({ ok: true, url: blob.url });
   }
 

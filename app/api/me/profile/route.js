@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { apiOk, apiError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 import { PLATFORM_ACCOUNT_STATUS } from "@/lib/platforms/platforms";
+import { emitProfileUpdatedEvent } from "@/lib/gamification/engine";
 import { computeL9Points, computeLevel, computeRankInfo } from "@/lib/scoring/l9Points";
 import { MOCK_GAMES } from "@/lib/mock/games";
 
@@ -141,17 +142,41 @@ export async function PATCH(request) {
   const { session, unauthenticated } = await requireSession();
   if (unauthenticated) return unauthenticated;
 
+  const userId = session.user.id;
   const body = await request.json().catch(() => ({}));
-  const displayName = typeof body.displayName === "string" ? body.displayName.trim() : null;
 
-  if (!displayName || displayName.length < 1 || displayName.length > 32) {
-    return apiError("INVALID_DISPLAY_NAME", "Display name must be 1–32 characters.", 400);
+  const updateData = {};
+  const gamificationTriggers = [];
+
+  if (typeof body.displayName === "string") {
+    const displayName = body.displayName.trim();
+    if (!displayName || displayName.length < 1 || displayName.length > 32) {
+      return apiError("INVALID_DISPLAY_NAME", "Display name must be 1–32 characters.", 400);
+    }
+    updateData.name = displayName;
   }
 
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { name: displayName },
-  });
+  if (typeof body.bio === "string") {
+    const bio = body.bio.trim().slice(0, 300);
+    updateData.bio = bio;
+    if (bio.length > 0) gamificationTriggers.push("bio");
+  }
 
-  return apiOk({ displayName });
+  if (typeof body.location === "string") {
+    const location = body.location.trim().slice(0, 100);
+    updateData.location = location;
+    if (location.length > 0) gamificationTriggers.push("location");
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return apiError("NO_CHANGES", "No valid fields to update.", 400);
+  }
+
+  await prisma.user.update({ where: { id: userId }, data: updateData });
+
+  for (const field of gamificationTriggers) {
+    emitProfileUpdatedEvent(prisma, userId, field).catch(() => {});
+  }
+
+  return apiOk({ ...updateData });
 }

@@ -42,6 +42,8 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?
+  bio           String?
+  location      String?
   createdAt     DateTime  @default(now())
   accounts      Account[]
   sessions      Session[]
@@ -58,6 +60,14 @@ model User {
   userBrandPoints    UserBrandPoints[]
   userBadges         UserBadge[]
   userStreaks        UserStreak[]
+
+  // Phase 12 social graph + referrals
+  inviteCodesIssued InviteCode[] @relation("InviterCodes")
+  inviteCodeUsed    InviteCode?  @relation("InviteeCodes")
+  following         UserFollow[] @relation("Following")
+  followers         UserFollow[] @relation("Followers")
+  reviews           GameReview[]
+  gameLists         GameList[]
 }
 
 model VerificationToken {
@@ -251,27 +261,30 @@ model UserGame {
 // Config-driven rule definitions — every row in the gamification spec maps
 // to one row here. Changing point values, thresholds, or caps = DB update only.
 model GamificationRule {
-  id                    String   @id              // slug: "login_daily", "login_streak_7", …
-  family                String                    // "user_retention" | "prerequisite" | "sharing" | "video_game"
+  id                    String    @id             // slug: "login_daily", "login_streak_7", …
+  family                String                    // "user_retention" | "prerequisite" | "sharing" | "video_game" | …
   objective             String                    // "login_bonus" | "gamer_bonus_daily" | …
   type                  String                    // "activity" | "milestone"
-  active                Boolean  @default(false)
-  description           String
+  active                Boolean   @default(false)
+  label                 String?                   // short UI display name e.g. "Daily Login"
+  description           String                    // user-facing "why you earned this" explanation
   brandedName           String?                   // "Overachiever" | "Relentless" | …
-  looped                Boolean  @default(false)  // true = can fire more than once
+  looped                Boolean   @default(false) // true = can fire more than once
   loopFrequency         String?                   // "daily" | "weekly" | null
   points                Int?                      // null = NA / not yet defined
   eventType             String                    // which event triggers this rule
   thresholdCount        Int?                      // milestone: cumulative count to reach
-  badgeActive           Boolean  @default(false)
+  badgeActive           Boolean   @default(false)
   badgeTier             String?                   // "bronze" | "silver" | "gold" | "tbd"
   badgeCollectionPoints Int?                      // brand-family points to unlock this tier
-  badgeVisible          Boolean  @default(true)   // false = track but don't show yet
+  badgeVisible          Boolean   @default(true)  // false = track but don't show yet
   yearlyMaxPoints       Int?                      // hard annual cap for this rule
+  startsAt              DateTime?                 // seasonal events: rule inactive before this date
+  endsAt                DateTime?                 // seasonal events: rule inactive after this date
   etaNote               String?                   // informational only, engine ignores
-  metadata              Json?                     // rule-specific params (requiredHours, provider, …)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  metadata              Json?                     // rule-specific params (requiredHours, provider, field, …)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   ledgerEntries  PointsLedger[]
   userRuleStates UserRuleState[]
@@ -384,4 +397,82 @@ model UserStreak {
 
   @@unique([userId, streakType])
   @@index([userId])
+}
+
+// ===========================================================================
+// Phase 12 — Social graph, referrals, content creation
+// ===========================================================================
+
+// Referral invite codes. One code per use; inviter earns points when invitee activates.
+model InviteCode {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  inviterId String
+  inviteeId String?   @unique               // null until someone uses the code
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  inviter User  @relation("InviterCodes", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee User? @relation("InviteeCodes", fields: [inviteeId], references: [id], onDelete: SetNull)
+
+  @@index([inviterId])
+  @@index([code])
+}
+
+// Directed follow graph — follower follows following.
+model UserFollow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Following", fields: [followerId],  references: [id], onDelete: Cascade)
+  following User @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+// User-written game reviews. One review per user per game.
+model GameReview {
+  id        String   @id @default(cuid())
+  userId    String
+  gameId    String                          // canonical game id
+  rating    Int                             // 1–10
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameId])
+  @@index([gameId])
+}
+
+// User-curated game lists (e.g. "My Top 10 RPGs").
+model GameList {
+  id        String         @id @default(cuid())
+  userId    String
+  title     String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items GameListItem[]
+
+  @@index([userId])
+}
+
+model GameListItem {
+  id        String   @id @default(cuid())
+  listId    String
+  gameId    String
+  rank      Int
+  createdAt DateTime @default(now())
+
+  list GameList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, gameId])
+  @@unique([listId, rank])
+  @@index([listId])
 }

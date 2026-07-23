@@ -1,6 +1,7 @@
 /**
  * GET /api/me/gamification
- * Returns the authenticated user's points balance, brand points, badges, and streaks.
+ * Returns the authenticated user's points balance, brand points, badges,
+ * streaks, and a recent-awards feed with per-award explanations.
  */
 
 import { prisma } from "@/lib/prisma";
@@ -13,23 +14,39 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  const [ledgerAgg, brandPoints, badges, streaks] = await Promise.all([
-    // Total points balance (sum of all ledger entries).
+  const [ledgerAgg, recentLedger, brandPoints, badges, streaks] = await Promise.all([
     prisma.pointsLedger.aggregate({
       where: { userId },
       _sum: { points: true },
     }),
-    // Points per branded family.
+    // Last 20 awards — each includes the "why" explanation in the note field.
+    prisma.pointsLedger.findMany({
+      where: { userId },
+      orderBy: { awardedAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        points: true,
+        note: true,
+        awardedAt: true,
+        rule: { select: { label: true, objective: true } },
+      },
+    }),
     prisma.userBrandPoints.findMany({ where: { userId } }),
-    // Unlocked badges.
     prisma.userBadge.findMany({ where: { userId }, orderBy: { unlockedAt: "asc" } }),
-    // Streaks.
     prisma.userStreak.findMany({ where: { userId } }),
   ]);
 
   const totalPoints = ledgerAgg._sum.points ?? 0;
 
-  // Group badges by branded name.
+  const recentAwards = recentLedger.map((entry) => ({
+    id: entry.id,
+    points: entry.points,
+    label: entry.rule?.label ?? entry.rule?.objective ?? null,
+    reason: entry.note,
+    awardedAt: entry.awardedAt,
+  }));
+
   const badgesByBrand = {};
   for (const b of badges) {
     if (!badgesByBrand[b.brandedName]) badgesByBrand[b.brandedName] = [];
@@ -43,6 +60,7 @@ export async function GET() {
 
   return apiOk({
     totalPoints,
+    recentAwards,
     brandPoints: brandPoints.map((b) => ({ brandedName: b.brandedName, totalPoints: b.totalPoints })),
     badges: badgesByBrand,
     streaks: streakMap,
