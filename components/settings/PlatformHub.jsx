@@ -40,6 +40,18 @@ const IDENTITY_HINT = {
     placeholder: "Epic username (e.g. ShadowViper99)",
     help: "Your public Epic Games display name — find it at epicgames.com/account.",
   },
+  gog: {
+    placeholder: "GOG username (e.g. ShadowViper99)",
+    help: "Your public GOG username — find it at gog.com/u/{username}. Profile must be set to public.",
+  },
+  itch: {
+    placeholder: "itch.io username (e.g. shadowviper)",
+    help: "Your public itch.io username — find it at itch.io/profile.",
+  },
+  ea: {
+    placeholder: "EA username / Origin ID (e.g. ShadowViper99)",
+    help: "Your EA display name — find it in the EA App under your profile.",
+  },
 };
 
 const SYNC_STATUS_LABEL = {
@@ -191,7 +203,7 @@ export function PlatformHub() {
       </div>
 
       <div style={{ marginTop: 24, fontSize: 11, color: "rgba(241,243,249,0.25)", lineHeight: 1.7 }}>
-        Leet9 is platform-agnostic — Steam, PSN, Xbox and all future platforms feed the same unified game catalogue.
+        Leet9 is platform-agnostic — Steam, PSN, Xbox, GOG, itch.io, EA and all future platforms feed the same unified game catalogue.
         Connecting your accounts never stores passwords or session tokens.
       </div>
     </div>
