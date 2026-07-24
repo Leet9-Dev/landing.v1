@@ -24,6 +24,22 @@ const IDENTITY_HINT = {
       </span>
     ),
   },
+  xbox: {
+    placeholder: "Xbox Gamertag (e.g. ShadowViper99)",
+    help: "Your public Xbox Gamertag — find it in your Xbox profile or Xbox app.",
+  },
+  riot: {
+    placeholder: "Riot ID (e.g. Player#EUW)",
+    help: "Your Riot ID in GameName#TAG format — find it at account.riotgames.com.",
+  },
+  battlenet: {
+    placeholder: "BattleTag (e.g. Player#1234)",
+    help: "Your Battle.net BattleTag — find it in your Battle.net account settings.",
+  },
+  epic: {
+    placeholder: "Epic username (e.g. ShadowViper99)",
+    help: "Your public Epic Games display name — find it at epicgames.com/account.",
+  },
 };
 
 const SYNC_STATUS_LABEL = {
