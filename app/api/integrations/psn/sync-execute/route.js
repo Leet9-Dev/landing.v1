@@ -60,14 +60,38 @@ export async function POST() {
   });
 
   try {
-    // Use the encrypted NPSSO from metadata for live sync, or fall back to fixtures.
     const encryptedNpsso = platformAccount.metadata?.npsso ?? null;
-    const rawTitles = await fetchPsnTrophyTitles(encryptedNpsso);
+
+    // P1: wrap auth+fetch so an expired/invalid NPSSO sets needs_reauth instead of crashing.
+    let rawTitles;
+    try {
+      rawTitles = await fetchPsnTrophyTitles(encryptedNpsso);
+    } catch (authErr) {
+      if (encryptedNpsso) {
+        await prisma.platformSyncRun.update({
+          where: { id: syncRun.id },
+          data: { status: "failed", finishedAt: new Date(), errorMessage: "PSN session expired or invalid." },
+        }).catch(() => {});
+        await prisma.platformAccount.update({
+          where: { id: platformAccount.id },
+          data: { syncStatus: "failed", status: "needs_reauth" },
+        }).catch(() => {});
+        return apiError("PSN_SESSION_EXPIRED", "Your PSN session has expired. Reconnect with a fresh NPSSO token.", 401);
+      }
+      throw authErr;
+    }
 
     if (rawTitles.length === 0) {
+      // P3: distinguish private profile (live NPSSO returned 0) from fixture/genuinely empty.
+      const warnings = encryptedNpsso
+        ? [
+            "PSN returned 0 trophy titles.",
+            "Your PSN profile may be set to private. On your PS5 go to Settings → PSN → Privacy Settings → Games → Trophies and set visibility to Anyone.",
+          ]
+        : ["PSN returned 0 titles."];
       await prisma.platformSyncRun.update({
         where: { id: syncRun.id },
-        data: { status: "success", finishedAt: new Date(), rawGamesDetected: 0, warnings: ["PSN returned 0 titles."] },
+        data: { status: "success", finishedAt: new Date(), rawGamesDetected: 0, warnings },
       });
       await prisma.platformAccount.update({
         where: { id: platformAccount.id },
@@ -76,8 +100,8 @@ export async function POST() {
       return apiOk({
         mode: "execute",
         provider: "psn",
-        summary: { rawGamesDetected: 0, matchedCanonicalGames: 0, unmatchedGames: 0, userGamesCreated: 0, userGamesUpdated: 0 },
-        warnings: ["PSN returned 0 titles."],
+        summary: { rawGamesDetected: 0, matchedCanonicalGames: 0, unmatchedGames: 0, userGamesCreated: 0, userGamesUpdated: 0, trophiesDetected: 0 },
+        warnings,
       });
     }
 
@@ -166,6 +190,8 @@ export async function POST() {
     }
 
     const matchedCount = resolved.filter((g) => g.canonicalGameId).length;
+    // P2: sum trophies across all resolved games for the sync summary.
+    const totalTrophies = resolved.reduce((sum, g) => sum + (g.trophiesUnlocked ?? 0), 0);
 
     // Fire gamification events for each newly detected game (non-blocking).
     if (newGameIds.length > 0) {
@@ -209,6 +235,7 @@ export async function POST() {
         unmatchedGames: unmatchedCount,
         userGamesCreated,
         userGamesUpdated,
+        trophiesDetected: totalTrophies,
       },
       warnings,
     });

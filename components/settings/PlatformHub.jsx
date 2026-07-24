@@ -78,6 +78,7 @@ export function PlatformHub() {
   const [busy, setBusy] = useState(null);
   const [syncing, setSyncing] = useState(null);
   const [notice, setNotice] = useState(null);
+  const [syncSummaries, setSyncSummaries] = useState({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -143,10 +144,17 @@ export function PlatformHub() {
       const json = await res.json();
       if (json.ok) {
         const s = json.data.summary;
-        setNotice({ tone: "success", text: `Sync complete — ${s.rawGamesDetected} games detected, ${s.matchedCanonicalGames} matched.` });
+        setSyncSummaries((prev) => ({ ...prev, [provider]: s }));
+        const trophyPart = provider === "psn" && s.trophiesDetected != null ? `, ${s.trophiesDetected} trophies` : "";
+        setNotice({ tone: "success", text: `Sync complete — ${s.rawGamesDetected} games detected, ${s.matchedCanonicalGames} matched${trophyPart}.` });
         await load();
       } else {
-        setNotice({ tone: "error", text: json.error?.message || "Sync failed. Try again." });
+        if (json.error?.code === "PSN_SESSION_EXPIRED") {
+          setNotice({ tone: "error", text: "Your PSN session has expired. Reconnect with a fresh NPSSO token." });
+          await load();
+        } else {
+          setNotice({ tone: "error", text: json.error?.message || "Sync failed. Try again." });
+        }
       }
     } catch { setNotice({ tone: "error", text: "Network error during sync." }); }
     setSyncing(null);
@@ -194,6 +202,7 @@ export function PlatformHub() {
             onSync={() => syncNow(p.id)}
             busy={busy === p.id}
             syncing={syncing === p.id}
+            syncSummary={syncSummaries[p.id] ?? null}
           />
         ))}
 
@@ -204,31 +213,37 @@ export function PlatformHub() {
 
       <div style={{ marginTop: 24, fontSize: 11, color: "rgba(241,243,249,0.25)", lineHeight: 1.7 }}>
         Leet9 is platform-agnostic — Steam, PSN, Xbox, GOG, itch.io, EA and all future platforms feed the same unified game catalogue.
-        Connecting your accounts never stores passwords or session tokens.
+        Connecting your accounts never stores passwords. Session tokens (e.g. PSN NPSSO) are encrypted at rest and never shared.
       </div>
     </div>
   );
 }
 
-function ActivePlatformCard({ provider, value, onChange, onConnect, onDisconnect, onSync, busy, syncing }) {
+function ActivePlatformCard({ provider, value, onChange, onConnect, onDisconnect, onSync, busy, syncing, syncSummary }) {
   const account = provider.account;
   const isConnected = account?.status === "connected";
-  const wasConnected = account && !isConnected;
+  const isNeedsReauth = account?.status === "needs_reauth";
+  const wasConnected = account && !isConnected && !isNeedsReauth;
   const syncStatus = account?.syncStatus || "idle";
   const hasSyncSupport = provider.capabilities?.gameLibrary;
   const hint = IDENTITY_HINT[provider.id] || { placeholder: "Account identifier", help: "" };
+  const isPsn = provider.id === "psn";
+
+  const dotColor = isConnected ? "#C8FF00" : isNeedsReauth ? "#fb923c" : "rgba(241,243,249,0.2)";
+  const statusLabel = isConnected ? "Connected" : isNeedsReauth ? "Session expired" : "Not connected";
+  const statusLabelColor = isConnected ? "#C8FF00" : isNeedsReauth ? "#fb923c" : "rgba(241,243,249,0.35)";
 
   return (
     <div style={{
       borderRadius: 14,
-      border: `1px solid ${isConnected ? `${provider.accentColor}22` : "rgba(255,255,255,0.07)"}`,
+      border: `1px solid ${isConnected ? `${provider.accentColor}22` : isNeedsReauth ? "rgba(251,146,60,0.25)" : "rgba(255,255,255,0.07)"}`,
       background: "#0A0C14",
       overflow: "hidden",
     }}>
       {/* Header bar */}
       <div style={{
         padding: "14px 18px",
-        background: isConnected ? `linear-gradient(135deg, ${provider.accentColor}12 0%, transparent 100%)` : "rgba(255,255,255,0.02)",
+        background: isConnected ? `linear-gradient(135deg, ${provider.accentColor}12 0%, transparent 100%)` : isNeedsReauth ? "rgba(251,146,60,0.06)" : "rgba(255,255,255,0.02)",
         borderBottom: "1px solid rgba(255,255,255,0.06)",
         display: "flex",
         alignItems: "center",
@@ -252,11 +267,11 @@ function ActivePlatformCard({ provider, value, onChange, onConnect, onDisconnect
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{
             width: 7, height: 7, borderRadius: "50%",
-            background: isConnected ? "#C8FF00" : "rgba(241,243,249,0.2)",
+            background: dotColor,
             display: "inline-block",
           }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: isConnected ? "#C8FF00" : "rgba(241,243,249,0.35)" }}>
-            {isConnected ? "Connected" : "Not connected"}
+          <span style={{ fontSize: 11, fontWeight: 700, color: statusLabelColor }}>
+            {statusLabel}
           </span>
         </div>
       </div>
@@ -272,6 +287,18 @@ function ActivePlatformCard({ provider, value, onChange, onConnect, onDisconnect
             onDisconnect={onDisconnect}
             busy={busy}
             syncing={syncing}
+            isPsn={isPsn}
+            syncSummary={syncSummary}
+          />
+        ) : isPsn ? (
+          <PsnConnectWizard
+            value={value}
+            onChange={onChange}
+            onConnect={onConnect}
+            busy={busy}
+            isReauth={isNeedsReauth}
+            wasConnected={wasConnected}
+            accentColor={provider.accentColor}
           />
         ) : (
           <ConnectForm
@@ -290,9 +317,26 @@ function ActivePlatformCard({ provider, value, onChange, onConnect, onDisconnect
   );
 }
 
-function ConnectedState({ account, syncStatus, hasSyncSupport, onSync, onDisconnect, busy, syncing }) {
+const NPSSO_EXPIRY_WARN_DAYS = 50;
+
+function ConnectedState({ account, syncStatus, hasSyncSupport, onSync, onDisconnect, busy, syncing, isPsn, syncSummary }) {
+  const daysSinceConnect = account.connectedAt
+    ? Math.floor((Date.now() - new Date(account.connectedAt).getTime()) / 86400000)
+    : 0;
+  const npssoExpiring = isPsn && daysSinceConnect >= NPSSO_EXPIRY_WARN_DAYS;
+
   return (
     <div>
+      {npssoExpiring && (
+        <div style={{
+          fontSize: 11, lineHeight: 1.5, padding: "8px 12px", borderRadius: 8, marginBottom: 12,
+          background: "rgba(251,146,60,0.08)", border: "1px solid rgba(251,146,60,0.3)", color: "#fb923c",
+        }}>
+          Your NPSSO token is {daysSinceConnect} days old and may expire soon (tokens last ~60 days).
+          Disconnect and reconnect with a fresh token to avoid losing sync.
+        </div>
+      )}
+
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "#F1F3F9", marginBottom: 3 }}>
           {account.displayName || account.username || account.externalUserId}
@@ -301,6 +345,37 @@ function ConnectedState({ account, syncStatus, hasSyncSupport, onSync, onDisconn
           Connected {account.connectedAt ? new Date(account.connectedAt).toLocaleDateString() : ""}
         </div>
       </div>
+
+      {isPsn && syncSummary && (
+        <div style={{
+          display: "flex", gap: 10, marginBottom: 12,
+        }}>
+          <div style={{
+            flex: 1, padding: "8px 10px", borderRadius: 8,
+            background: "rgba(200,170,255,0.06)", border: "1px solid rgba(200,170,255,0.15)",
+            textAlign: "center",
+          }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#c8aaff" }}>
+              {syncSummary.trophiesDetected ?? "—"}
+            </div>
+            <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(241,243,249,0.4)", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 2 }}>
+              Trophies
+            </div>
+          </div>
+          <div style={{
+            flex: 1, padding: "8px 10px", borderRadius: 8,
+            background: "rgba(200,170,255,0.06)", border: "1px solid rgba(200,170,255,0.15)",
+            textAlign: "center",
+          }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#c8aaff" }}>
+              {syncSummary.matchedCanonicalGames ?? "—"}
+            </div>
+            <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(241,243,249,0.4)", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 2 }}>
+              Games
+            </div>
+          </div>
+        </div>
+      )}
 
       {hasSyncSupport && (
         <div style={{
@@ -392,6 +467,183 @@ function ConnectForm({ hint, value, onChange, onConnect, busy, wasConnected, lab
       >
         {busy ? "Connecting…" : `Connect ${label}`}
       </button>
+    </div>
+  );
+}
+
+const NPSSO_URL = "https://ca.account.sony.com/api/v1/ssocookie";
+
+function PsnConnectWizard({ value, onChange, onConnect, busy, isReauth, wasConnected, accentColor }) {
+  const [step, setStep] = useState(1);
+  const [copied, setCopied] = useState(false);
+
+  function copyUrl() {
+    navigator.clipboard.writeText(NPSSO_URL).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div>
+      {isReauth && (
+        <div style={{
+          fontSize: 11, lineHeight: 1.5, padding: "8px 12px", borderRadius: 8, marginBottom: 12,
+          background: "rgba(251,146,60,0.08)", border: "1px solid rgba(251,146,60,0.3)", color: "#fb923c",
+        }}>
+          Your PSN session has expired. Get a fresh NPSSO token to restore sync.
+        </div>
+      )}
+      {wasConnected && !isReauth && (
+        <div style={{ fontSize: 11, color: "rgba(241,243,249,0.35)", marginBottom: 10 }}>
+          Previously connected — reconnect below.
+        </div>
+      )}
+
+      {/* Step progress */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
+        {[1, 2, 3].map((s) => (
+          <div key={s} style={{
+            flex: 1, height: 3, borderRadius: 2,
+            background: s <= step ? accentColor : "rgba(255,255,255,0.1)",
+            transition: "background 0.2s",
+          }} />
+        ))}
+      </div>
+
+      {step === 1 && (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#F1F3F9", marginBottom: 6 }}>
+            Step 1 — Sign in to PlayStation
+          </div>
+          <div style={{ fontSize: 11, color: "rgba(241,243,249,0.5)", lineHeight: 1.6, marginBottom: 12 }}>
+            Open the link below in your browser while signed into your PlayStation account.
+            It returns a short JSON response with your NPSSO token.
+          </div>
+          <div style={{
+            display: "flex", gap: 6, alignItems: "center", padding: "8px 10px", borderRadius: 8,
+            background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.08)", marginBottom: 14,
+          }}>
+            <span style={{ flex: 1, fontSize: 10, color: "rgba(241,243,249,0.45)", wordBreak: "break-all", fontFamily: "monospace" }}>
+              {NPSSO_URL}
+            </span>
+            <button
+              onClick={copyUrl}
+              style={{
+                flexShrink: 0, fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 6,
+                border: `1px solid ${accentColor}50`, background: `${accentColor}15`,
+                color: accentColor, cursor: "pointer", fontFamily: "'Outfit', sans-serif",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {copied ? "Copied!" : "Copy URL"}
+            </button>
+          </div>
+          <button
+            onClick={() => setStep(2)}
+            style={{
+              fontSize: 12, fontWeight: 700, padding: "8px 18px", borderRadius: 8, border: "none",
+              background: accentColor, color: "#07080F", cursor: "pointer", fontFamily: "'Outfit', sans-serif",
+            }}
+          >
+            Next →
+          </button>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#F1F3F9", marginBottom: 6 }}>
+            Step 2 — Copy your NPSSO value
+          </div>
+          <div style={{ fontSize: 11, color: "rgba(241,243,249,0.5)", lineHeight: 1.6, marginBottom: 10 }}>
+            The page shows a JSON response. Copy the value next to{" "}
+            <code style={{ fontSize: 10, background: "rgba(255,255,255,0.06)", padding: "1px 4px", borderRadius: 3 }}>
+              "npsso"
+            </code>:
+          </div>
+          <div style={{
+            padding: "10px 12px", borderRadius: 8, marginBottom: 14,
+            background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.08)",
+            fontFamily: "monospace", fontSize: 11, lineHeight: 1.6,
+          }}>
+            <span style={{ color: "rgba(241,243,249,0.35)" }}>{`{`}</span>
+            <br />
+            <span style={{ paddingLeft: 14, color: "rgba(241,243,249,0.35)" }}>{`"npsso": `}</span>
+            <span style={{ color: accentColor }}>{`"xxxxxxxxxxxxxxxx..."`}</span>
+            <br />
+            <span style={{ color: "rgba(241,243,249,0.35)" }}>{`}`}</span>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => setStep(1)}
+              style={{
+                fontSize: 12, fontWeight: 700, padding: "8px 14px", borderRadius: 8,
+                border: "1px solid rgba(255,255,255,0.12)", background: "transparent",
+                color: "rgba(241,243,249,0.5)", cursor: "pointer", fontFamily: "'Outfit', sans-serif",
+              }}
+            >
+              ← Back
+            </button>
+            <button
+              onClick={() => setStep(3)}
+              style={{
+                fontSize: 12, fontWeight: 700, padding: "8px 18px", borderRadius: 8, border: "none",
+                background: accentColor, color: "#07080F", cursor: "pointer", fontFamily: "'Outfit', sans-serif",
+              }}
+            >
+              Next →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#F1F3F9", marginBottom: 6 }}>
+            Step 3 — Paste your NPSSO token
+          </div>
+          <input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Paste your NPSSO token here"
+            onKeyDown={(e) => e.key === "Enter" && !busy && onConnect()}
+            style={{
+              width: "100%", boxSizing: "border-box",
+              padding: "9px 12px", borderRadius: 8, marginBottom: 8,
+              border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.3)",
+              color: "#F1F3F9", fontSize: 12, fontFamily: "'Outfit', sans-serif", outline: "none",
+            }}
+          />
+          <div style={{ fontSize: 10, color: "rgba(241,243,249,0.3)", lineHeight: 1.5, marginBottom: 12 }}>
+            Tokens last ~60 days. Stored encrypted — never shared or logged.
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => setStep(2)}
+              disabled={busy}
+              style={{
+                fontSize: 12, fontWeight: 700, padding: "8px 14px", borderRadius: 8,
+                border: "1px solid rgba(255,255,255,0.12)", background: "transparent",
+                color: "rgba(241,243,249,0.5)", cursor: busy ? "wait" : "pointer", fontFamily: "'Outfit', sans-serif",
+              }}
+            >
+              ← Back
+            </button>
+            <button
+              onClick={onConnect}
+              disabled={busy}
+              style={{
+                fontSize: 12, fontWeight: 700, padding: "8px 18px", borderRadius: 8, border: "none",
+                background: busy ? `${accentColor}60` : accentColor,
+                color: "#07080F", cursor: busy ? "wait" : "pointer", fontFamily: "'Outfit', sans-serif",
+              }}
+            >
+              {busy ? "Connecting…" : "Connect PSN"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
