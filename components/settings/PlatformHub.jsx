@@ -52,6 +52,18 @@ const IDENTITY_HINT = {
     placeholder: "EA username / Origin ID (e.g. ShadowViper99)",
     help: "Your EA display name — find it in the EA App under your profile.",
   },
+  ubisoft: {
+    placeholder: "Ubisoft Connect username (e.g. ShadowViper99)",
+    help: "Your public Ubisoft Connect display name — find it at account.ubisoft.com.",
+  },
+  twitch: {
+    placeholder: "Twitch username (e.g. shadowviper)",
+    help: "Your public Twitch username — find it at twitch.tv. Connects your streaming activity.",
+  },
+  discord: {
+    placeholder: "Discord username (e.g. shadowviper)",
+    help: "Your Discord username (new format, lowercase) — find it in Discord under your profile.",
+  },
 };
 
 const SYNC_STATUS_LABEL = {
@@ -212,7 +224,7 @@ export function PlatformHub() {
       </div>
 
       <div style={{ marginTop: 24, fontSize: 11, color: "rgba(241,243,249,0.25)", lineHeight: 1.7 }}>
-        Leet9 is platform-agnostic — Steam, PSN, Xbox, GOG, itch.io, EA and all future platforms feed the same unified game catalogue.
+        Leet9 is platform-agnostic — Steam, PSN, Xbox, GOG, itch.io, EA, Ubisoft Connect, Twitch, Discord and all future platforms feed the same unified game catalogue.
         Connecting your accounts never stores passwords. Session tokens (e.g. PSN NPSSO) are encrypted at rest and never shared.
       </div>
     </div>
