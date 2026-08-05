@@ -5,6 +5,7 @@ import { fetchEpicGames } from "@/lib/integrations/epic/epicClient";
 import { normalizeEpicGames } from "@/lib/integrations/epic/epicNormalizer";
 import { matchDetectedGameToCanonical } from "@/lib/platforms/canonicalMatching";
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
+import { matchToIgdb } from "@/lib/integrations/igdb/igdbMatcher";
 import { emitGameAddedEvent } from "@/lib/gamification/engine";
 
 const syncCooldowns = new Map();
@@ -41,11 +42,13 @@ export async function POST() {
   try {
     const rawGames = await fetchEpicGames(username ?? "fixture");
     const normalized = normalizeEpicGames(rawGames);
-
-    const resolved = normalized.map((g) => ({
-      ...g,
-      canonicalGameId: matchDetectedGameToCanonical("epic", g.externalId, MOCK_EXTERNAL_SOURCES),
-    }));
+    const resolved = await Promise.all(
+      normalized.map(async (g) => {
+        const mockMatch = matchDetectedGameToCanonical("epic", g.externalId, MOCK_EXTERNAL_SOURCES);
+        const canonicalGameId = mockMatch ?? (await matchToIgdb("epic", g.externalId));
+        return { ...g, canonicalGameId };
+      })
+    );
 
     const now = new Date();
     let userGamesCreated = 0;

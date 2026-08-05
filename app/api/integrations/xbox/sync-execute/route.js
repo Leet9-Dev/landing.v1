@@ -5,6 +5,7 @@ import { fetchXboxOwnedGames } from "@/lib/integrations/xbox/xboxClient";
 import { normalizeXboxGames } from "@/lib/integrations/xbox/xboxNormalizer";
 import { matchDetectedGameToCanonical } from "@/lib/platforms/canonicalMatching";
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
+import { matchToIgdb } from "@/lib/integrations/igdb/igdbMatcher";
 import { emitGameAddedEvent } from "@/lib/gamification/engine";
 
 const syncCooldowns = new Map();
@@ -45,11 +46,13 @@ export async function POST() {
     // Falls back to fixture data when XBOX_API_KEY is not set.
     const rawGames = await fetchXboxOwnedGames(gamertag ?? "fixture");
     const normalized = normalizeXboxGames(rawGames);
-
-    const resolved = normalized.map((g) => ({
-      ...g,
-      canonicalGameId: matchDetectedGameToCanonical("xbox", g.externalId, MOCK_EXTERNAL_SOURCES),
-    }));
+    const resolved = await Promise.all(
+      normalized.map(async (g) => {
+        const mockMatch = matchDetectedGameToCanonical("xbox", g.externalId, MOCK_EXTERNAL_SOURCES);
+        const canonicalGameId = mockMatch ?? (await matchToIgdb("xbox", g.externalId));
+        return { ...g, canonicalGameId };
+      })
+    );
 
     const now = new Date();
     let userGamesCreated = 0;
