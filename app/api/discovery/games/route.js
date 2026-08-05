@@ -1,6 +1,8 @@
 import { MOCK_GAMES } from "@/lib/mock/games";
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
 import { buildSourcePlatformMap } from "@/lib/platforms/canonicalMatching";
+import { fetchIgdbGamesBatch } from "@/lib/integrations/igdb/igdbMatcher";
+import { prisma } from "@/lib/prisma";
 import { apiOk } from "@/lib/api/response";
 
 export async function GET(request) {
@@ -14,14 +16,38 @@ export async function GET(request) {
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20", 10)));
 
   // Discovery is platform-agnostic. Each canonical game appears once; its source
-  // badges are derived from the normalized GameExternalSource records (not raw
-  // platform data), so Steam-only, PSN-only, and Steam+PSN games are all handled
-  // explicitly. Falls back to the game's own value if no source records exist.
+  // badges are derived from normalized GameExternalSource records.
+  // Sources: MOCK_GAMES (legacy catalogue) + IGDB-matched games from DB.
   const sourceMap = buildSourcePlatformMap(MOCK_EXTERNAL_SOURCES);
-  let games = MOCK_GAMES.map((g) => ({
+
+  // Pull IGDB-matched external sources from DB (cached matches from real syncs).
+  const igdbSources = await prisma.gameExternalSource.findMany({
+    where: { status: "matched", canonicalGameId: { startsWith: "igdb:" } },
+    select: { provider: true, externalGameId: true, canonicalGameId: true },
+  }).catch(() => []);
+
+  // Build platform badges for IGDB canonical games from DB sources.
+  const igdbPlatformMap = new Map();
+  for (const s of igdbSources) {
+    const rawPlatform = s.provider.replace("igdb_", "");
+    if (!igdbPlatformMap.has(s.canonicalGameId)) igdbPlatformMap.set(s.canonicalGameId, new Set());
+    igdbPlatformMap.get(s.canonicalGameId).add(rawPlatform);
+  }
+
+  // Deduplicated IGDB canonical IDs not already covered by MOCK_GAMES.
+  const mockIds = new Set(MOCK_GAMES.map((g) => g.id));
+  const newIgdbIds = [...new Set(igdbSources.map((s) => s.canonicalGameId))].filter((id) => !mockIds.has(id));
+  const igdbGameMap = await fetchIgdbGamesBatch(newIgdbIds);
+
+  const igdbGames = [...igdbGameMap.values()].map((g) => ({
     ...g,
-    sourcePlatforms: sourceMap.get(g.id) ?? g.sourcePlatforms,
+    sourcePlatforms: [...(igdbPlatformMap.get(g.id) ?? [])],
   }));
+
+  let games = [
+    ...MOCK_GAMES.map((g) => ({ ...g, sourcePlatforms: sourceMap.get(g.id) ?? g.sourcePlatforms })),
+    ...igdbGames,
+  ];
 
   if (q) {
     games = games.filter(
@@ -61,11 +87,15 @@ export async function GET(request) {
     games = games.sort((a, b) => new Date(b.lastDetectedAt) - new Date(a.lastDetectedAt));
   }
 
+  const allGames = [
+    ...MOCK_GAMES,
+    ...igdbGames,
+  ];
   const stats = {
-    totalGames: MOCK_GAMES.length,
-    totalPlayers: MOCK_GAMES.reduce((s, g) => s + g.communityPlayerCount, 0),
-    totalL9Points: MOCK_GAMES.reduce((s, g) => s + g.communityL9Points, 0),
-    totalHours: MOCK_GAMES.reduce((s, g) => s + g.communityHours, 0),
+    totalGames: allGames.length,
+    totalPlayers: allGames.reduce((s, g) => s + (g.communityPlayerCount ?? 0), 0),
+    totalL9Points: allGames.reduce((s, g) => s + (g.communityL9Points ?? 0), 0),
+    totalHours: allGames.reduce((s, g) => s + (g.communityHours ?? 0), 0),
   };
 
   const total = games.length;
