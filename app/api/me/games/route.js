@@ -3,6 +3,7 @@ import { apiOk } from "@/lib/api/response";
 import { prisma } from "@/lib/prisma";
 import { MOCK_GAMES } from "@/lib/mock/games";
 import { computeL9Points } from "@/lib/scoring/l9Points";
+import { fetchIgdbGamesBatch } from "@/lib/integrations/igdb/igdbMatcher";
 
 const GAME_BY_ID = new Map(MOCK_GAMES.map((g) => [g.id, g]));
 
@@ -53,11 +54,14 @@ export async function GET(request) {
     }
   }
 
-  // 3. Shape results — join to MOCK_GAMES for title/cover until a real Game catalogue exists.
+  // 3. Resolve game metadata: MOCK_GAMES for legacy IDs, IGDB for igdb:* IDs.
+  const igdbIds = canonicalIds.filter((id) => id?.startsWith("igdb:"));
+  const igdbGameMap = await fetchIgdbGamesBatch(igdbIds);
+
   let games = userGames
     .map((ug) => {
-      const game = GAME_BY_ID.get(ug.canonicalGameId);
-      if (!game) return null; // unmatched game has no catalogue entry yet
+      const game = GAME_BY_ID.get(ug.canonicalGameId) ?? igdbGameMap.get(ug.canonicalGameId) ?? null;
+      if (!game) return null;
       return {
         gameId: ug.canonicalGameId,
         inLibrary: true,
