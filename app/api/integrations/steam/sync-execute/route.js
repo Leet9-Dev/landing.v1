@@ -5,7 +5,7 @@ import { fetchSteamOwnedGames, hasSteamApiKey } from "@/lib/integrations/steam/s
 import { normalizeSteamGames } from "@/lib/integrations/steam/steamNormalizer";
 import { matchDetectedGameToCanonical } from "@/lib/platforms/canonicalMatching";
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
-import { matchToIgdb } from "@/lib/integrations/igdb/igdbMatcher";
+import { batchMatchToIgdb } from "@/lib/integrations/igdb/igdbMatcher";
 import { emitGameAddedEvent } from "@/lib/gamification/engine";
 
 // Steam library execute sync (Phase 17).
@@ -95,99 +95,54 @@ export async function POST() {
     // 2. Normalize.
     const normalized = normalizeSteamGames(rawGames);
 
-    // 3. Match to canonical: IGDB first (real data), fall back to MOCK_EXTERNAL_SOURCES.
-    const resolved = await Promise.all(
-      normalized.map(async (g) => {
-        const mockMatch = matchDetectedGameToCanonical("steam", g.externalId, MOCK_EXTERNAL_SOURCES);
-        const canonicalGameId = mockMatch ?? (await matchToIgdb("steam", g.externalId));
-        return { ...g, canonicalGameId };
-      })
-    );
+    // 3. Match to canonical: mock first (sync, free), then batch IGDB for unmatched.
+    const mockResolved = normalized.map((g) => ({
+      ...g,
+      canonicalGameId: matchDetectedGameToCanonical("steam", g.externalId, MOCK_EXTERNAL_SOURCES),
+    }));
+    const unmatchedForIgdb = mockResolved.filter((g) => !g.canonicalGameId).map((g) => g.externalId);
+    const igdbMap = await batchMatchToIgdb("steam", unmatchedForIgdb);
+    const resolved = mockResolved.map((g) => ({
+      ...g,
+      canonicalGameId: g.canonicalGameId ?? igdbMap.get(g.externalId) ?? null,
+    }));
 
     const now = new Date();
-    let userGamesCreated = 0;
-    let userGamesUpdated = 0;
     let unmatchedCount = 0;
-    const newGameIds = [];
 
-    // 4. Upsert PlatformDetectedGame for every raw game (matched + unmatched).
-    //    The unique constraint (platformAccountId, provider, externalGameId)
-    //    guarantees idempotency — re-running updates playtime without duplication.
-    for (const g of resolved) {
-      await prisma.platformDetectedGame.upsert({
-        where: {
-          platformAccountId_provider_externalGameId: {
-            platformAccountId: platformAccount.id,
-            provider: "steam",
-            externalGameId: g.externalId,
-          },
-        },
-        create: {
-          platformAccountId: platformAccount.id,
-          syncRunId: syncRun.id,
-          provider: "steam",
-          externalGameId: g.externalId,
-          externalTitle: g.externalTitle,
-          playtimeHours: g.playtimeHours,
-          lastPlayedAt: g.lastPlayedAt ? new Date(g.lastPlayedAt) : null,
-          canonicalGameId: g.canonicalGameId,
-          matchStatus: g.canonicalGameId ? "matched" : "unmatched",
-          normalized: g,
-        },
-        update: {
-          syncRunId: syncRun.id,
-          playtimeHours: g.playtimeHours,
-          lastPlayedAt: g.lastPlayedAt ? new Date(g.lastPlayedAt) : null,
-          canonicalGameId: g.canonicalGameId,
-          matchStatus: g.canonicalGameId ? "matched" : "unmatched",
-          lastDetectedAt: now,
-          normalized: g,
-        },
-      });
-    }
+    // 4. Upsert PlatformDetectedGame — parallel, idempotent.
+    await Promise.all(
+      resolved.map((g) =>
+        prisma.platformDetectedGame.upsert({
+          where: { platformAccountId_provider_externalGameId: { platformAccountId: platformAccount.id, provider: "steam", externalGameId: g.externalId } },
+          create: { platformAccountId: platformAccount.id, syncRunId: syncRun.id, provider: "steam", externalGameId: g.externalId, externalTitle: g.externalTitle, playtimeHours: g.playtimeHours, lastPlayedAt: g.lastPlayedAt ? new Date(g.lastPlayedAt) : null, canonicalGameId: g.canonicalGameId, matchStatus: g.canonicalGameId ? "matched" : "unmatched", normalized: g },
+          update: { syncRunId: syncRun.id, playtimeHours: g.playtimeHours, lastPlayedAt: g.lastPlayedAt ? new Date(g.lastPlayedAt) : null, canonicalGameId: g.canonicalGameId, matchStatus: g.canonicalGameId ? "matched" : "unmatched", lastDetectedAt: now, normalized: g },
+        })
+      )
+    );
 
-    // 5. Upsert UserGame for matched games only.
-    //    The unique constraint (userId, canonicalGameId) guarantees idempotency.
-    for (const g of resolved) {
-      if (!g.canonicalGameId) {
-        unmatchedCount++;
-        continue;
-      }
+    // 5. Upsert UserGame for matched games only — parallel.
+    const userGameResults = await Promise.all(
+      resolved
+        .filter((g) => g.canonicalGameId)
+        .map(async (g) => {
+          const existing = await prisma.userGame.findUnique({
+            where: { userId_canonicalGameId: { userId, canonicalGameId: g.canonicalGameId } },
+            select: { id: true },
+          });
+          await prisma.userGame.upsert({
+            where: { userId_canonicalGameId: { userId, canonicalGameId: g.canonicalGameId } },
+            create: { userId, canonicalGameId: g.canonicalGameId, sourceProvider: "steam", sourcePlatformAccountId: platformAccount.id, firstDetectedAt: now, lastDetectedAt: now, playtimeHours: g.playtimeHours, sourceConfidence: "high" },
+            update: { playtimeHours: g.playtimeHours, lastDetectedAt: now, sourceProvider: "steam", sourcePlatformAccountId: platformAccount.id, sourceConfidence: "high" },
+          });
+          return { canonicalGameId: g.canonicalGameId, isNew: !existing };
+        })
+    );
 
-      const existing = await prisma.userGame.findUnique({
-        where: { userId_canonicalGameId: { userId, canonicalGameId: g.canonicalGameId } },
-        select: { id: true },
-      });
-
-      await prisma.userGame.upsert({
-        where: { userId_canonicalGameId: { userId, canonicalGameId: g.canonicalGameId } },
-        create: {
-          userId,
-          canonicalGameId: g.canonicalGameId,
-          sourceProvider: "steam",
-          sourcePlatformAccountId: platformAccount.id,
-          firstDetectedAt: now,
-          lastDetectedAt: now,
-          playtimeHours: g.playtimeHours,
-          sourceConfidence: "high",
-        },
-        update: {
-          playtimeHours: g.playtimeHours,
-          lastDetectedAt: now,
-          sourceProvider: "steam",
-          sourcePlatformAccountId: platformAccount.id,
-          sourceConfidence: "high",
-        },
-      });
-
-      if (existing) {
-        userGamesUpdated++;
-      } else {
-        userGamesCreated++;
-        newGameIds.push(g.canonicalGameId);
-      }
-    }
-
+    unmatchedCount = resolved.filter((g) => !g.canonicalGameId).length;
+    const userGamesCreated = userGameResults.filter((r) => r.isNew).length;
+    const userGamesUpdated = userGameResults.filter((r) => !r.isNew).length;
+    const newGameIds = userGameResults.filter((r) => r.isNew).map((r) => r.canonicalGameId);
     const matchedCount = resolved.filter((g) => g.canonicalGameId).length;
 
     // 5b. Fire gamification events for each newly detected game (non-blocking).

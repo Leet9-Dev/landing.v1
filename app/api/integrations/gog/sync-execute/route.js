@@ -5,7 +5,7 @@ import { fetchGogOwnedGames } from "@/lib/integrations/gog/gogClient";
 import { normalizeGogGames } from "@/lib/integrations/gog/gogNormalizer";
 import { matchDetectedGameToCanonical } from "@/lib/platforms/canonicalMatching";
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
-import { matchToIgdb } from "@/lib/integrations/igdb/igdbMatcher";
+import { batchMatchToIgdb } from "@/lib/integrations/igdb/igdbMatcher";
 import { emitGameAddedEvent } from "@/lib/gamification/engine";
 
 const syncCooldowns = new Map();
@@ -37,37 +37,41 @@ export async function POST() {
   try {
     const rawGames = await fetchGogOwnedGames(platformAccount.externalUserId ?? "fixture");
     const normalized = normalizeGogGames(rawGames);
-    const resolved = await Promise.all(
-      normalized.map(async (g) => {
-        const mockMatch = matchDetectedGameToCanonical("gog", g.externalId, MOCK_EXTERNAL_SOURCES);
-        const canonicalGameId = mockMatch ?? (await matchToIgdb("gog", g.externalId));
-        return { ...g, canonicalGameId };
-      })
-    );
+    const mockResolved = normalized.map((g) => ({ ...g, canonicalGameId: matchDetectedGameToCanonical("gog", g.externalId, MOCK_EXTERNAL_SOURCES) }));
+    const unmatchedForIgdb = mockResolved.filter((g) => !g.canonicalGameId).map((g) => g.externalId);
+    const igdbMap = await batchMatchToIgdb("gog", unmatchedForIgdb);
+    const resolved = mockResolved.map((g) => ({ ...g, canonicalGameId: g.canonicalGameId ?? igdbMap.get(g.externalId) ?? null }));
 
     const now = new Date();
-    let userGamesCreated = 0, userGamesUpdated = 0, unmatchedCount = 0;
-    const newGameIds = [];
 
-    for (const g of resolved) {
-      await prisma.platformDetectedGame.upsert({
-        where: { platformAccountId_provider_externalGameId: { platformAccountId: platformAccount.id, provider: "gog", externalGameId: g.externalId } },
-        create: { platformAccountId: platformAccount.id, syncRunId: syncRun.id, provider: "gog", externalGameId: g.externalId, externalTitle: g.externalTitle, playtimeHours: null, lastPlayedAt: null, canonicalGameId: g.canonicalGameId, matchStatus: g.canonicalGameId ? "matched" : "unmatched", normalized: g },
-        update: { syncRunId: syncRun.id, canonicalGameId: g.canonicalGameId, matchStatus: g.canonicalGameId ? "matched" : "unmatched", lastDetectedAt: now, normalized: g },
-      });
-    }
+    await Promise.all(
+      resolved.map((g) =>
+        prisma.platformDetectedGame.upsert({
+          where: { platformAccountId_provider_externalGameId: { platformAccountId: platformAccount.id, provider: "gog", externalGameId: g.externalId } },
+          create: { platformAccountId: platformAccount.id, syncRunId: syncRun.id, provider: "gog", externalGameId: g.externalId, externalTitle: g.externalTitle, playtimeHours: null, lastPlayedAt: null, canonicalGameId: g.canonicalGameId, matchStatus: g.canonicalGameId ? "matched" : "unmatched", normalized: g },
+          update: { syncRunId: syncRun.id, canonicalGameId: g.canonicalGameId, matchStatus: g.canonicalGameId ? "matched" : "unmatched", lastDetectedAt: now, normalized: g },
+        })
+      )
+    );
 
-    for (const g of resolved) {
-      if (!g.canonicalGameId) { unmatchedCount++; continue; }
-      const existing = await prisma.userGame.findUnique({ where: { userId_canonicalGameId: { userId, canonicalGameId: g.canonicalGameId } }, select: { id: true } });
-      await prisma.userGame.upsert({
-        where: { userId_canonicalGameId: { userId, canonicalGameId: g.canonicalGameId } },
-        create: { userId, canonicalGameId: g.canonicalGameId, sourceProvider: "gog", sourcePlatformAccountId: platformAccount.id, firstDetectedAt: now, lastDetectedAt: now, playtimeHours: null, sourceConfidence: "high" },
-        update: { lastDetectedAt: now, sourceProvider: "gog", sourcePlatformAccountId: platformAccount.id, sourceConfidence: "high" },
-      });
-      if (existing) { userGamesUpdated++; } else { userGamesCreated++; newGameIds.push(g.canonicalGameId); }
-    }
+    const userGameResults = await Promise.all(
+      resolved
+        .filter((g) => g.canonicalGameId)
+        .map(async (g) => {
+          const existing = await prisma.userGame.findUnique({ where: { userId_canonicalGameId: { userId, canonicalGameId: g.canonicalGameId } }, select: { id: true } });
+          await prisma.userGame.upsert({
+            where: { userId_canonicalGameId: { userId, canonicalGameId: g.canonicalGameId } },
+            create: { userId, canonicalGameId: g.canonicalGameId, sourceProvider: "gog", sourcePlatformAccountId: platformAccount.id, firstDetectedAt: now, lastDetectedAt: now, playtimeHours: null, sourceConfidence: "high" },
+            update: { lastDetectedAt: now, sourceProvider: "gog", sourcePlatformAccountId: platformAccount.id, sourceConfidence: "high" },
+          });
+          return { canonicalGameId: g.canonicalGameId, isNew: !existing };
+        })
+    );
 
+    const unmatchedCount = resolved.filter((g) => !g.canonicalGameId).length;
+    const userGamesCreated = userGameResults.filter((r) => r.isNew).length;
+    const userGamesUpdated = userGameResults.filter((r) => !r.isNew).length;
+    const newGameIds = userGameResults.filter((r) => r.isNew).map((r) => r.canonicalGameId);
     const matchedCount = resolved.filter((g) => g.canonicalGameId).length;
 
     if (newGameIds.length > 0) {

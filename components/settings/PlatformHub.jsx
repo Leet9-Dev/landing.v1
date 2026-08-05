@@ -151,8 +151,10 @@ export function PlatformHub() {
   async function syncNow(provider) {
     setSyncing(provider);
     setNotice(null);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 58_000);
     try {
-      const res = await fetch(`/api/integrations/${provider}/sync-execute`, { method: "POST" });
+      const res = await fetch(`/api/integrations/${provider}/sync-execute`, { method: "POST", signal: controller.signal });
       const json = await res.json();
       if (json.ok) {
         const s = json.data.summary;
@@ -168,7 +170,15 @@ export function PlatformHub() {
           setNotice({ tone: "error", text: json.error?.message || "Sync failed. Try again." });
         }
       }
-    } catch { setNotice({ tone: "error", text: "Network error during sync." }); }
+    } catch (e) {
+      if (e.name === "AbortError") {
+        setNotice({ tone: "error", text: "Sync timed out — your library may be very large. Wait a minute, then try again. The first sync is always the slowest." });
+      } else {
+        setNotice({ tone: "error", text: "Network error during sync." });
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
     setSyncing(null);
   }
 
