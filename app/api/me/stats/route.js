@@ -3,6 +3,7 @@ import { apiOk } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 import { computeL9Points } from "@/lib/scoring/l9Points";
 import { MOCK_GAMES } from "@/lib/mock/games";
+import { fetchIgdbGamesBatch } from "@/lib/integrations/igdb/igdbMatcher";
 
 const GAME_BY_ID = new Map(MOCK_GAMES.map((g) => [g.id, g]));
 
@@ -53,24 +54,29 @@ export async function GET() {
     pct: Math.round((count / totalGames) * 100),
   }));
 
-  // Top 5 games by hours, joined with catalogue
-  const topGamesByHours = userGames
+  // Top 5 games by hours, joined with catalogue (MOCK_GAMES + IGDB).
+  const top5 = userGames
     .slice()
     .sort((a, b) => (b.playtimeHours ?? 0) - (a.playtimeHours ?? 0))
-    .slice(0, 5)
-    .map((ug) => {
-      const meta = GAME_BY_ID.get(ug.canonicalGameId);
-      const hours = Math.round((ug.playtimeHours ?? 0) * 10) / 10;
-      const pts = computeL9Points({ playtimeHours: ug.playtimeHours, achievementsUnlocked: ug.achievementsUnlocked });
-      return {
-        canonicalGameId: ug.canonicalGameId,
-        title: meta?.canonicalTitle ?? ug.canonicalGameId,
-        coverGradient: meta?.coverGradient ?? null,
-        hoursPlayed: hours,
-        l9Points: pts,
-        sourceProvider: ug.sourceProvider,
-      };
-    });
+    .slice(0, 5);
+
+  const igdbIds = top5.map((ug) => ug.canonicalGameId).filter((id) => id?.startsWith("igdb:"));
+  const igdbMetaMap = await fetchIgdbGamesBatch(igdbIds);
+
+  const topGamesByHours = top5.map((ug) => {
+    const meta = GAME_BY_ID.get(ug.canonicalGameId) ?? igdbMetaMap.get(ug.canonicalGameId) ?? null;
+    const hours = Math.round((ug.playtimeHours ?? 0) * 10) / 10;
+    const pts = computeL9Points({ playtimeHours: ug.playtimeHours, achievementsUnlocked: ug.achievementsUnlocked });
+    return {
+      canonicalGameId: ug.canonicalGameId,
+      title: meta?.canonicalTitle ?? ug.canonicalGameId,
+      coverImageUrl: meta?.coverImageUrl ?? null,
+      coverGradient: meta?.coverGradient ?? null,
+      hoursPlayed: hours,
+      l9Points: pts,
+      sourceProvider: ug.sourceProvider,
+    };
+  });
 
   return apiOk({
     totalL9Points,

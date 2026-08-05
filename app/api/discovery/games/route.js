@@ -39,10 +39,30 @@ export async function GET(request) {
   const newIgdbIds = [...new Set(igdbSources.map((s) => s.canonicalGameId))].filter((id) => !mockIds.has(id));
   const igdbGameMap = await fetchIgdbGamesBatch(newIgdbIds);
 
-  const igdbGames = [...igdbGameMap.values()].map((g) => ({
-    ...g,
-    sourcePlatforms: [...(igdbPlatformMap.get(g.id) ?? [])],
-  }));
+  // Real community stats aggregated from UserGame rows for IGDB games.
+  const communityStats = await prisma.userGame.groupBy({
+    by: ["canonicalGameId"],
+    where: { canonicalGameId: { in: newIgdbIds } },
+    _count: { userId: true },
+    _sum: { playtimeHours: true },
+  }).catch(() => []);
+
+  const communityStatsMap = new Map(
+    communityStats.map((row) => [
+      row.canonicalGameId,
+      { playerCount: row._count.userId, totalHours: Math.round((row._sum.playtimeHours ?? 0) * 10) / 10 },
+    ])
+  );
+
+  const igdbGames = [...igdbGameMap.values()].map((g) => {
+    const stats = communityStatsMap.get(g.id) ?? { playerCount: 0, totalHours: 0 };
+    return {
+      ...g,
+      sourcePlatforms: [...(igdbPlatformMap.get(g.id) ?? [])],
+      communityPlayerCount: stats.playerCount,
+      communityHours: stats.totalHours,
+    };
+  });
 
   let games = [
     ...MOCK_GAMES.map((g) => ({ ...g, sourcePlatforms: sourceMap.get(g.id) ?? g.sourcePlatforms })),

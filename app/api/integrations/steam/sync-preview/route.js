@@ -5,6 +5,24 @@ import { fetchSteamOwnedGames, hasSteamApiKey } from "@/lib/integrations/steam/s
 import { planSteamSync } from "@/lib/integrations/steam/steamSyncPlanner";
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
 
+// Build a combined external-source list: MOCK_EXTERNAL_SOURCES + IGDB-cached matches from DB.
+// This makes the preview consistent with what sync-execute will actually produce.
+async function buildCombinedSources() {
+  const igdbCached = await prisma.gameExternalSource.findMany({
+    where: { provider: "igdb_steam", status: "matched" },
+    select: { externalGameId: true, canonicalGameId: true, externalTitle: true },
+  }).catch(() => []);
+
+  const igdbSources = igdbCached.map((r) => ({
+    gameId: r.canonicalGameId,
+    platform: "steam",
+    externalId: r.externalGameId,
+    externalTitle: r.externalTitle ?? undefined,
+  }));
+
+  return [...MOCK_EXTERNAL_SOURCES, ...igdbSources];
+}
+
 export async function GET() {
   const { session, unauthenticated } = await requireSession();
   if (unauthenticated) return unauthenticated;
@@ -56,9 +74,10 @@ export async function GET() {
     existingRows.map((r) => [r.canonicalGameId, { hoursPlayed: r.playtimeHours ?? 0 }])
   );
 
+  const combinedSources = await buildCombinedSources();
   const plan = planSteamSync({
     rawSteamGames,
-    externalSources: MOCK_EXTERNAL_SOURCES,
+    externalSources: combinedSources,
     existingUserGames,
   });
 
