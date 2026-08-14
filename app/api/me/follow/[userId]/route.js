@@ -14,7 +14,7 @@ export async function POST(request, { params }) {
   if (unauthenticated) return unauthenticated;
 
   const followerId = session.user.id;
-  const followingId = params.userId;
+  const { userId: followingId } = await params;
 
   if (followerId === followingId) {
     return apiError("SELF_FOLLOW", "You cannot follow yourself.", 400);
@@ -56,7 +56,7 @@ export async function DELETE(request, { params }) {
   if (unauthenticated) return unauthenticated;
 
   const followerId = session.user.id;
-  const followingId = params.userId;
+  const { userId: followingId } = await params;
 
   await prisma.userFollow.deleteMany({ where: { followerId, followingId } });
 
