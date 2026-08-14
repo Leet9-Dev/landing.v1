@@ -1,11 +1,9 @@
 export function StatsSummaryCards({ stats }) {
   const cards = [
-    { label: "Total L9 Points", value: stats.totalL9Points.toLocaleString(), accent: true },
-    { label: "Hours Played", value: stats.totalHours.toLocaleString() },
-    { label: "Games Tracked", value: stats.gamesTracked },
-    { label: "Active Games", value: stats.activeGames },
-    { label: "Achievements", value: stats.achievementsUnlocked },
-    { label: "Profile Complete", value: `${stats.profileCompletenessPct}%` },
+    { label: "Total L9 Points", value: stats.totalL9Points?.toLocaleString() ?? "—", accent: true },
+    { label: "Hours Played", value: stats.totalHoursPlayed?.toLocaleString() ?? "—" },
+    { label: "Games Tracked", value: stats.totalGames ?? "—" },
+    { label: "Achievements", value: stats.totalAchievements ?? "—" },
   ];
 
   return (
