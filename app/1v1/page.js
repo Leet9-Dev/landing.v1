@@ -99,7 +99,7 @@ function OneVsOnePage() {
           <img
             src="/logo.png"
             alt="Leet9"
-            style={{ height: 28, width: "auto", display: "block" }}
+            style={{ height: 28, width: "auto", display: "block", filter: "brightness(0) invert(1)" }}
           />
         </a>
         <span
@@ -491,7 +491,7 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
             <img
               src="/logo.png"
               alt="Leet9"
-              style={{ height: 22, width: "auto", display: "block", opacity: 0.7 }}
+              style={{ height: 22, width: "auto", display: "block", filter: "brightness(0) invert(1)", opacity: 0.5 }}
             />
             <span
               style={{
