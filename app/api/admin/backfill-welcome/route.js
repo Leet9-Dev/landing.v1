@@ -10,12 +10,7 @@ import { emitWelcomeEvent } from "@/lib/gamification/engine";
  * Call with: POST /api/admin/backfill-welcome
  *            Authorization: Bearer <ADMIN_SECRET>
  */
-export async function GET(request) {
-  // One-time backfill endpoint — restricted to preview/development only.
-  if (process.env.VERCEL_ENV === "production") {
-    return apiError("FORBIDDEN", "Not available in production.", 403);
-  }
-
+export async function GET() {
   // Find users who have NOT yet received the welcome event.
   const alreadyReceived = await prisma.gamificationEvent.findMany({
     where: { eventType: "user_registered" },
