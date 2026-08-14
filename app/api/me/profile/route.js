@@ -3,7 +3,7 @@ import { apiOk, apiError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 import { PLATFORM_ACCOUNT_STATUS } from "@/lib/platforms/platforms";
 import { emitProfileUpdatedEvent } from "@/lib/gamification/engine";
-import { computeLevel, computeRankInfo } from "@/lib/scoring/l9Points";
+import { computeL9Points, computeLevel, computeRankInfo } from "@/lib/scoring/l9Points";
 import { MOCK_GAMES } from "@/lib/mock/games";
 
 const GAME_BY_ID = new Map(MOCK_GAMES.map((g) => [g.id, g]));

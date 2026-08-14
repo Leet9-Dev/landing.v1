@@ -2,6 +2,7 @@ import { apiOk } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 import { prisma } from "@/lib/prisma";
 import { MOCK_GAMES } from "@/lib/mock/games";
+import { fetchIgdbGamesBatch } from "@/lib/integrations/igdb/igdbMatcher";
 
 const GAME_BY_ID = new Map(MOCK_GAMES.map((g) => [g.id, g]));
 
@@ -44,6 +45,12 @@ export async function GET() {
     take: 20,
   });
 
+  // Resolve IGDB game metadata for titles.
+  const igdbIds = recentGames
+    .map((ug) => ug.canonicalGameId)
+    .filter((id) => id?.startsWith("igdb:"));
+  const igdbMetaMap = await fetchIgdbGamesBatch(igdbIds);
+
   // Build activity events from sync runs.
   const syncEvents = syncRuns
     .filter((r) => r.finishedAt)
@@ -63,7 +70,7 @@ export async function GET() {
   const gameEvents = recentGames
     .filter((ug) => ug.firstDetectedAt)
     .map((ug) => {
-      const meta = GAME_BY_ID.get(ug.canonicalGameId);
+      const meta = GAME_BY_ID.get(ug.canonicalGameId) ?? igdbMetaMap.get(ug.canonicalGameId) ?? null;
       return {
         type: "game_added",
         provider: ug.sourceProvider ?? "unknown",
