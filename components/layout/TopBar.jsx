@@ -1,6 +1,7 @@
 "use client";
 import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import { NAV_ITEMS } from "@/lib/navigation";
 
 export function TopBar({ user }) {
@@ -8,6 +9,14 @@ export function TopBar({ user }) {
   const section = NAV_ITEMS.find(
     (n) => pathname === n.href || pathname.startsWith(n.href + "/")
   );
+  const [totalPoints, setTotalPoints] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/me/gamification")
+      .then((r) => r.json())
+      .then((json) => { if (json.ok) setTotalPoints(json.data.totalPoints); })
+      .catch(() => {});
+  }, []);
 
   return (
     <header className="l9-topbar" style={{
@@ -55,7 +64,7 @@ export function TopBar({ user }) {
           letterSpacing: 0.3,
           whiteSpace: "nowrap",
         }}>
-          0 L9
+          {totalPoints !== null ? `${totalPoints.toLocaleString()} L9` : "— L9"}
         </div>
 
         {user?.image
