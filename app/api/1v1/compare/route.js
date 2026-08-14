@@ -25,13 +25,24 @@ async function resolveSteamId(input) {
 }
 
 async function buildPlayerData(input) {
-  const steamId = await resolveSteamId(input);
+  let steamId;
+  try {
+    steamId = await resolveSteamId(input);
+  } catch {
+    return { error: "steam_offline", input };
+  }
+
   if (!steamId) return { error: "not_found", input };
 
-  const [summary, games] = await Promise.all([
-    fetchSteamPlayerSummaries(steamId),
-    fetchSteamOwnedGames(steamId).catch(() => []),
-  ]);
+  let summary, games;
+  try {
+    [summary, games] = await Promise.all([
+      fetchSteamPlayerSummaries(steamId),
+      fetchSteamOwnedGames(steamId).catch(() => []),
+    ]);
+  } catch {
+    return { error: "steam_offline", input };
+  }
 
   if (!summary) return { error: "not_found", input };
 

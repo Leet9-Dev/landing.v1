@@ -563,6 +563,7 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
 
 function PlayerCard({ player, winner, side }) {
   if (!player || player.error) {
+    const isSteamDown = player?.error === "steam_offline";
     return (
       <div
         style={{
@@ -573,10 +574,12 @@ function PlayerCard({ player, winner, side }) {
         }}
       >
         <div style={{ fontSize: 14, color: "rgba(239,68,68,0.6)", fontWeight: 600 }}>
-          Profile not found
+          {isSteamDown ? "Steam is unreachable" : "Profile not found"}
         </div>
         <div style={{ fontSize: 12, color: "rgba(241,243,249,0.25)", marginTop: 4 }}>
-          Check the Steam ID or URL and try again.
+          {isSteamDown
+            ? "Steam API is currently offline. Try again in a few minutes."
+            : "Check the Steam ID or URL and try again."}
         </div>
       </div>
     );
@@ -665,13 +668,27 @@ function PlayerCard({ player, winner, side }) {
       {player.isPrivate ? (
         <div
           style={{
-            fontSize: 13,
-            color: "rgba(241,243,249,0.25)",
             padding: "12px 0",
             borderTop: "1px solid rgba(255,255,255,0.05)",
           }}
         >
-          This profile is private. Stats hidden.
+          <div style={{ fontSize: 13, color: "rgba(241,243,249,0.35)", marginBottom: 6 }}>
+            This profile is private — stats are hidden.
+          </div>
+          <a
+            href="https://steamcommunity.com/my/privacy/settings"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: 11,
+              color: "rgba(99,102,241,0.7)",
+              textDecoration: "none",
+              borderBottom: "1px solid rgba(99,102,241,0.3)",
+              paddingBottom: 1,
+            }}
+          >
+            Make profile public on Steam ↗
+          </a>
         </div>
       ) : (
         <>
