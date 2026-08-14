@@ -92,5 +92,5 @@ export async function POST(request) {
 
   const [player1, player2] = await Promise.all([buildPlayerData(p1), buildPlayerData(p2)]);
 
-  return apiOk({ player1, player2 });
+  return apiOk({ player1, player2, cacheKey: Date.now().toString(36) });
 }

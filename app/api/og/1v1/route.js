@@ -169,6 +169,12 @@ export async function GET(request) {
         <span style={{ fontSize: 13, color: "rgba(241,243,249,0.25)", fontWeight: 500 }}>Powered by Steam</span>
       </div>
     </div>,
-    { width: 1200, height: 630 }
+    {
+      width: 1200,
+      height: 630,
+      headers: {
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+      },
+    }
   );
 }
