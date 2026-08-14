@@ -115,38 +115,37 @@ function FollowButton({ userId, isFollowing, onToggle }) {
   }
 
   const showUnfollow = isFollowing && hovered;
-  const icon = showUnfollow ? "×" : isFollowing ? "✓" : "+";
-  const borderColor = isFollowing ? "rgba(200,255,0,0.4)" : "rgba(255,255,255,0.18)";
-  const color = showUnfollow ? "#f87171" : isFollowing ? "#C8FF00" : "rgba(241,243,249,0.7)";
-  const opacity = isFollowing ? (hovered ? 1 : 0.7) : (hovered ? 1 : 0.45);
+  const label = showUnfollow ? "Unfollow" : isFollowing ? "Following" : "Follow";
+  const color = showUnfollow ? "#f87171" : isFollowing ? "#C8FF00" : "#F1F3F9";
+  const borderColor = showUnfollow
+    ? "rgba(248,113,113,0.4)"
+    : isFollowing
+    ? "rgba(200,255,0,0.35)"
+    : "rgba(241,243,249,0.25)";
+  const bg = isFollowing ? "rgba(200,255,0,0.06)" : "transparent";
 
   return (
     <button
       onClick={handleClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      title={isFollowing ? "Unfollow" : "Follow"}
       style={{
-        width: 24,
-        height: 24,
-        borderRadius: "50%",
+        padding: "3px 11px",
+        borderRadius: 99,
         border: `1px solid ${borderColor}`,
-        background: "transparent",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: isFollowing ? 12 : 15,
-        fontWeight: 700,
+        background: bg,
         color,
-        opacity,
+        fontFamily: "'Outfit', sans-serif",
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: "0.02em",
         cursor: pending ? "wait" : "pointer",
-        transition: "opacity 0.15s, color 0.15s",
+        transition: "all 0.15s",
         flexShrink: 0,
-        padding: 0,
-        lineHeight: 1,
+        whiteSpace: "nowrap",
       }}
     >
-      {icon}
+      {label}
     </button>
   );
 }
