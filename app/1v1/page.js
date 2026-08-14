@@ -96,11 +96,7 @@ function OneVsOnePage() {
         }}
       >
         <a href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
-          <img
-            src="/logo.png"
-            alt="Leet9"
-            style={{ height: 28, width: "auto", display: "block", filter: "brightness(0) invert(1)" }}
-          />
+          <Leet9Logo height={26} />
         </a>
         <span
           style={{
@@ -264,6 +260,36 @@ function OneVsOnePage() {
         )}
       </div>
     </div>
+  );
+}
+
+function Leet9Logo({ height = 28, opacity = 1 }) {
+  const fontSize = height;
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "baseline",
+        fontFamily: "'Outfit', system-ui, sans-serif",
+        fontSize,
+        fontWeight: 900,
+        letterSpacing: "-0.04em",
+        lineHeight: 1,
+        opacity,
+      }}
+    >
+      <span style={{ color: "#F1F3F9" }}>LEET</span>
+      <span
+        style={{
+          background: "linear-gradient(135deg, #6EB4F7 0%, #7C3AED 100%)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+        }}
+      >
+        9
+      </span>
+    </span>
   );
 }
 
@@ -488,11 +514,7 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
               marginBottom: 16,
             }}
           >
-            <img
-              src="/logo.png"
-              alt="Leet9"
-              style={{ height: 22, width: "auto", display: "block", filter: "brightness(0) invert(1)", opacity: 0.5 }}
-            />
+            <Leet9Logo height={20} opacity={0.55} />
             <span
               style={{
                 fontSize: 13,
