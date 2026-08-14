@@ -13,15 +13,66 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  const [userGames, ledgerAgg] = await Promise.all([
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  sixMonthsAgo.setDate(1);
+  sixMonthsAgo.setHours(0, 0, 0, 0);
+
+  const [userGames, ledgerAgg, recentLedger] = await Promise.all([
     prisma.userGame.findMany({ where: { userId } }),
     prisma.pointsLedger.aggregate({ where: { userId }, _sum: { points: true } }),
+    prisma.pointsLedger.findMany({
+      where: { userId, awardedAt: { gte: sixMonthsAgo } },
+      select: { points: true, awardedAt: true },
+    }),
   ]);
 
   // Total L9 Points always from PointsLedger (includes welcome bonus, streaks, etc.)
   const totalL9Points = ledgerAgg._sum.points ?? 0;
 
+  // Monthly points breakdown (last 6 months).
+  const byMonth = {};
+  for (const row of recentLedger) {
+    const month = row.awardedAt.toISOString().slice(0, 7);
+    byMonth[month] = (byMonth[month] || 0) + row.points;
+  }
+
+  const monthly = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    monthly.push({ month, l9Points: byMonth[month] || 0 });
+  }
+
+  const now = new Date();
+  const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthKey = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, "0")}`;
+
+  const pointsThisMonth = byMonth[thisMonthKey] || 0;
+  const pointsLastMonth = byMonth[lastMonthKey] || 0;
+  const momChangePct = pointsLastMonth === 0
+    ? (pointsThisMonth > 0 ? 100 : 0)
+    : Math.round(((pointsThisMonth - pointsLastMonth) / pointsLastMonth) * 1000) / 10;
+
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const thisMonthRows = recentLedger.filter((r) => r.awardedAt >= thisMonthStart);
+  const activeWeeks = new Set(
+    thisMonthRows.map((r) => `${r.awardedAt.getFullYear()}-W${Math.ceil(r.awardedAt.getDate() / 7)}`)
+  );
+
   if (userGames.length === 0) {
+    const momentum = totalL9Points > 0 ? {
+      pointsThisMonth,
+      pointsLastMonth,
+      momChangePct,
+      mostActiveGameTitle: null,
+      hoursThisMonth: 0,
+      achievementsThisMonth: 0,
+      activeWeeksStreak: activeWeeks.size,
+    } : null;
+
     return apiOk({
       totalL9Points,
       totalHoursPlayed: null,
@@ -30,7 +81,8 @@ export async function GET() {
       platformSplit: [],
       topGamesByHours: [],
       mastery: null,
-      momentum: null,
+      momentum,
+      monthly,
       rarityBreakdown: [],
       pointsBreakdown: [],
       gamerDna: null,
@@ -83,6 +135,16 @@ export async function GET() {
     };
   });
 
+  const momentum = totalL9Points > 0 ? {
+    pointsThisMonth,
+    pointsLastMonth,
+    momChangePct,
+    mostActiveGameTitle: topGamesByHours[0]?.title ?? null,
+    hoursThisMonth: totalHoursPlayed,
+    achievementsThisMonth: totalAchievements,
+    activeWeeksStreak: activeWeeks.size,
+  } : null;
+
   return apiOk({
     totalL9Points,
     totalHoursPlayed,
@@ -91,7 +153,8 @@ export async function GET() {
     platformSplit,
     topGamesByHours,
     mastery: null,
-    momentum: null,
+    momentum,
+    monthly,
     rarityBreakdown: [],
     pointsBreakdown: [],
     gamerDna: null,
