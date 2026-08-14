@@ -38,8 +38,8 @@ export async function POST(request, { params }) {
   emitUserFollowedEvent(prisma, followerId, totalFollowing).catch(() => {});
   emitFollowerGainedEvent(prisma, followingId, totalFollowers).catch(() => {});
 
-  const followerName = session.user.name || "Un utente";
-  const followedName = target.name || "questo utente";
+  const followerName = session.user.name || "A user";
+  const followedName = target.name || "this user";
 
   if (target.email) {
     sendNewFollowerEmail({ to: target.email, followerName }).catch(() => {});
