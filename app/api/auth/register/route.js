@@ -3,7 +3,7 @@ import { apiOk, apiError } from "@/lib/api/response";
 import { createVerificationToken } from "@/lib/tokens";
 import { sendVerificationEmail } from "@/lib/email";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { emitFriendActivatedEvent } from "@/lib/gamification/engine";
+import { emitFriendActivatedEvent, emitWelcomeEvent } from "@/lib/gamification/engine";
 import bcrypt from "bcryptjs";
 
 export async function POST(request) {
@@ -56,6 +56,11 @@ export async function POST(request) {
       console.error("[register] prisma.user.create failed:", err);
       return apiError("DB_ERROR", "Could not create account. Please try again.", 500);
     }
+
+    // Welcome bonus — 500 L9 Points on registration. Non-blocking, idempotent.
+    emitWelcomeEvent(prisma, user.id).catch((err) =>
+      console.error("[register] welcome event failed:", err)
+    );
 
     if (!isPreview) {
       try {

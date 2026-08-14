@@ -6,13 +6,16 @@ const SORTS = [
   { id: "trending", label: "Trending" },
   { id: "rating", label: "Top Rated" },
   { id: "players", label: "Most Played" },
-  { id: "recent", label: "Recently Detected" },
+  { id: "recent", label: "Just Added" },
 ];
 
 const SOURCES = [
   { id: "", label: "All Platforms" },
   { id: "steam", label: "Steam" },
   { id: "psn", label: "PSN" },
+  { id: "gog", label: "GOG" },
+  { id: "epic", label: "Epic" },
+  { id: "xbox", label: "Xbox" },
 ];
 
 export default function DiscoveryPage() {
@@ -133,9 +136,9 @@ export default function DiscoveryPage() {
 
         <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.08)" }} />
 
-        {/* Recently detected toggle */}
+        {/* Just Added toggle */}
         <FilterChip active={recentOnly} onClick={() => setRecentOnly((v) => !v)} accent={false} dot>
-          New Detections
+          Just Added
         </FilterChip>
       </div>
 
@@ -156,7 +159,7 @@ export default function DiscoveryPage() {
             </Section>
           )}
           {recent.length > 0 && (
-            <Section title="Recently Detected" badge="New">
+            <Section title="Just Added" badge="New">
               <GameGrid games={recent} onSelect={(g) => router.push(`/app/discovery/${g.id}`)} />
             </Section>
           )}
@@ -340,7 +343,7 @@ function GameCard({ game, onClick }) {
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ fontSize: 11, color: "rgba(200,255,0,0.7)", fontWeight: 600 }}>
-            ★ {game.communityRating.toFixed(1)}
+            {game.communityRating != null ? `★ ${game.communityRating.toFixed(1)}` : "—"}
           </div>
           <div style={{ fontSize: 11, color: "rgba(241,243,249,0.28)", fontWeight: 500 }}>
             {game.communityPlayerCount.toLocaleString()} players
@@ -351,6 +354,9 @@ function GameCard({ game, onClick }) {
   );
 }
 
+const PLATFORM_LABEL = { steam: "STEAM", psn: "PSN", gog: "GOG", epic: "EPIC", xbox: "XBOX" };
+const PLATFORM_COLOR = { steam: "#b9d8f5", psn: "#c8aaff", gog: "#9fc8f5", epic: "#d4d4d4", xbox: "#90d890" };
+
 function PlatformBadge({ platform }) {
   return (
     <span style={{
@@ -359,11 +365,11 @@ function PlatformBadge({ platform }) {
       padding: "2px 6px",
       borderRadius: 4,
       background: "rgba(0,0,0,0.45)",
-      color: platform === "steam" ? "#b9d8f5" : "#c8aaff",
+      color: PLATFORM_COLOR[platform] ?? "rgba(241,243,249,0.6)",
       letterSpacing: "0.06em",
       backdropFilter: "blur(4px)",
     }}>
-      {platform === "steam" ? "STEAM" : "PSN"}
+      {PLATFORM_LABEL[platform] ?? platform.toUpperCase()}
     </span>
   );
 }

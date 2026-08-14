@@ -13,6 +13,9 @@ const SOURCES = [
   { id: "", label: "All Platforms" },
   { id: "steam", label: "Steam" },
   { id: "psn", label: "PSN" },
+  { id: "gog", label: "GOG" },
+  { id: "epic", label: "Epic" },
+  { id: "xbox", label: "Xbox" },
 ];
 
 export function ProfileGames() {
@@ -112,26 +115,27 @@ function ProfileGameCard({ userGame, onClick }) {
     >
       <div style={{
         height: 64,
-        background: game.coverGradient,
+        background: game.coverGradient || "#12141E",
+        position: "relative",
+        overflow: "hidden",
         display: "flex",
         alignItems: "flex-end",
         justifyContent: "flex-end",
         padding: "8px 10px",
         gap: 4,
       }}>
-        {userGame.sourcePlatforms.map((p) => (
-          <span key={p} style={{
-            fontSize: 9,
-            fontWeight: 700,
-            padding: "2px 6px",
-            borderRadius: 4,
-            background: "rgba(0,0,0,0.45)",
-            color: p === "steam" ? "#b9d8f5" : "#c8aaff",
-            letterSpacing: "0.06em",
-          }}>
-            {p === "steam" ? "STEAM" : "PSN"}
-          </span>
-        ))}
+        {game.coverImageUrl && (
+          <img
+            src={game.coverImageUrl}
+            alt={game.canonicalTitle}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.6 }}
+          />
+        )}
+        <div style={{ position: "relative", zIndex: 1, display: "flex", gap: 4 }}>
+          {userGame.sourcePlatforms.map((p) => (
+            <PlatformBadge key={p} platform={p} />
+          ))}
+        </div>
       </div>
 
       <div style={{ padding: "12px 14px 14px" }}>
@@ -162,6 +166,25 @@ function ProfileGameCard({ userGame, onClick }) {
         </div>
       </div>
     </div>
+  );
+}
+
+const PLATFORM_LABEL = { steam: "STEAM", psn: "PSN", gog: "GOG", epic: "EPIC", xbox: "XBOX" };
+const PLATFORM_COLOR = { steam: "#b9d8f5", psn: "#c8aaff", gog: "#9fc8f5", epic: "#d4d4d4", xbox: "#90d890" };
+
+function PlatformBadge({ platform }) {
+  return (
+    <span style={{
+      fontSize: 9,
+      fontWeight: 700,
+      padding: "2px 6px",
+      borderRadius: 4,
+      background: "rgba(0,0,0,0.55)",
+      color: PLATFORM_COLOR[platform] ?? "rgba(241,243,249,0.6)",
+      letterSpacing: "0.06em",
+    }}>
+      {PLATFORM_LABEL[platform] ?? platform.toUpperCase()}
+    </span>
   );
 }
 
@@ -231,7 +254,7 @@ function EmptyState({ query }) {
         No games in your profile yet
       </div>
       <div style={{ fontSize: 13, color: "rgba(241,243,249,0.25)" }}>
-        {query ? `No results for "${query}"` : "Connect Steam and run a sync to see your library here."}
+        {query ? `No results for "${query}"` : "Connect a platform (Steam, GOG, Epic, Xbox) and run a sync to see your library here."}
       </div>
     </div>
   );
