@@ -83,14 +83,15 @@ export function PlayerRankings() {
             <div className="l9-rank-col-hide" style={{ width: 22, textAlign: "right", flexShrink: 0, fontSize: 11, fontWeight: 700, color: TREND_COLOR[p.trend] }}>
               {TREND_ICON[p.trend]}
             </div>
-            {!p.isCurrentUser && (
-              <FollowButton
-                userId={p.userId}
-                isFollowing={followingIds.has(p.userId)}
-                onToggle={handleFollowToggle}
-              />
-            )}
-            {p.isCurrentUser && <div style={{ width: 24, flexShrink: 0 }} />}
+            <div style={{ width: 72, flexShrink: 0 }}>
+              {!p.isCurrentUser && (
+                <FollowButton
+                  userId={p.userId}
+                  isFollowing={followingIds.has(p.userId)}
+                  onToggle={handleFollowToggle}
+                />
+              )}
+            </div>
           </RankingRow>
         ))}
       </RankingPanel>

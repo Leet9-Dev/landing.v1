@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { apiOk, apiError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 import { emitUserFollowedEvent, emitFollowerGainedEvent } from "@/lib/gamification/engine";
+import { sendNewFollowerEmail } from "@/lib/email";
 
 export async function POST(request, { params }) {
   const { session, unauthenticated } = await requireSession();
@@ -19,7 +20,7 @@ export async function POST(request, { params }) {
     return apiError("SELF_FOLLOW", "You cannot follow yourself.", 400);
   }
 
-  const target = await prisma.user.findUnique({ where: { id: followingId }, select: { id: true } });
+  const target = await prisma.user.findUnique({ where: { id: followingId }, select: { id: true, email: true, name: true } });
   if (!target) return apiError("USER_NOT_FOUND", "User not found.", 404);
 
   try {
@@ -36,6 +37,11 @@ export async function POST(request, { params }) {
 
   emitUserFollowedEvent(prisma, followerId, totalFollowing).catch(() => {});
   emitFollowerGainedEvent(prisma, followingId, totalFollowers).catch(() => {});
+
+  if (target.email) {
+    const followerName = session.user.name || "Un utente";
+    sendNewFollowerEmail({ to: target.email, followerName }).catch(() => {});
+  }
 
   return apiOk({ following: true });
 }
