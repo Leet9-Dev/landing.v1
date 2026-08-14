@@ -11,14 +11,9 @@ import { emitWelcomeEvent } from "@/lib/gamification/engine";
  *            Authorization: Bearer <ADMIN_SECRET>
  */
 export async function GET(request) {
-  const secret = process.env.ADMIN_SECRET;
-  if (!secret) {
-    return apiError("NOT_CONFIGURED", "ADMIN_SECRET env var not set.", 500);
-  }
-
-  const { searchParams } = new URL(request.url);
-  if (searchParams.get("secret") !== secret) {
-    return apiError("UNAUTHORIZED", "Invalid or missing secret.", 401);
+  // One-time backfill endpoint — restricted to preview/development only.
+  if (process.env.VERCEL_ENV === "production") {
+    return apiError("FORBIDDEN", "Not available in production.", 403);
   }
 
   // Find users who have NOT yet received the welcome event.
