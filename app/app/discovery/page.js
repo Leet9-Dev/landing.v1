@@ -6,7 +6,7 @@ const SORTS = [
   { id: "trending", label: "Trending" },
   { id: "rating", label: "Top Rated" },
   { id: "players", label: "Most Played" },
-  { id: "recent", label: "Recently Detected" },
+  { id: "recent", label: "Just Added" },
 ];
 
 const SOURCES = [
@@ -136,9 +136,9 @@ export default function DiscoveryPage() {
 
         <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.08)" }} />
 
-        {/* Recently detected toggle */}
+        {/* Just Added toggle */}
         <FilterChip active={recentOnly} onClick={() => setRecentOnly((v) => !v)} accent={false} dot>
-          New Detections
+          Just Added
         </FilterChip>
       </div>
 
@@ -159,7 +159,7 @@ export default function DiscoveryPage() {
             </Section>
           )}
           {recent.length > 0 && (
-            <Section title="Recently Detected" badge="New">
+            <Section title="Just Added" badge="New">
               <GameGrid games={recent} onSelect={(g) => router.push(`/app/discovery/${g.id}`)} />
             </Section>
           )}
