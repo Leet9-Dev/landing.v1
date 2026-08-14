@@ -92,20 +92,20 @@ function OneVsOnePage() {
           padding: "18px 32px",
           display: "flex",
           alignItems: "center",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
         }}
       >
-        <a href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
+        <a href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
           <div
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 6,
+              width: 32,
+              height: 32,
+              borderRadius: 8,
               background: "linear-gradient(135deg, #C8FF00, #7C3AED)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: 900,
               color: "#07080F",
               flexShrink: 0,
@@ -115,15 +115,25 @@ function OneVsOnePage() {
           </div>
           <span
             style={{
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: 800,
-              color: "rgba(241,243,249,0.7)",
+              color: "rgba(241,243,249,0.85)",
               letterSpacing: "-0.01em",
             }}
           >
             Leet9
           </span>
         </a>
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 500,
+            color: "rgba(241,243,249,0.25)",
+            letterSpacing: "0.04em",
+          }}
+        >
+          Your gaming identity, finally visible.
+        </span>
       </div>
 
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "64px 32px 96px" }}>
@@ -475,67 +485,118 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
         </div>
       )}
 
-      {/* CTA */}
+      {/* What is Leet9 + CTA */}
       <div
         style={{
           marginTop: 44,
-          padding: "32px 36px",
           borderRadius: 16,
           border: "1px solid rgba(255,255,255,0.07)",
           background: "#0D0F1A",
-          textAlign: "center",
+          overflow: "hidden",
         }}
       >
+        {/* What is Leet9 */}
         <div
           style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: "rgba(241,243,249,0.25)",
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            marginBottom: 12,
+            padding: "32px 36px 28px",
+            borderBottom: "1px solid rgba(255,255,255,0.05)",
           }}
         >
-          Your hours are on record. Are you?
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 16,
+            }}
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 6,
+                background: "linear-gradient(135deg, #C8FF00, #7C3AED)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 11,
+                fontWeight: 900,
+                color: "#07080F",
+                flexShrink: 0,
+              }}
+            >
+              L9
+            </div>
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: 800,
+                color: "rgba(241,243,249,0.6)",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              What is Leet9?
+            </span>
+          </div>
+          <p
+            style={{
+              fontSize: 15,
+              color: "rgba(241,243,249,0.5)",
+              lineHeight: 1.7,
+              margin: 0,
+              maxWidth: 540,
+            }}
+          >
+            Leet9 is the gaming identity platform that turns your Steam library
+            into a real profile. Connect your accounts, earn L9 Points for every
+            hour played and achievement unlocked, and rank against players worldwide —
+            not just your friends list.
+          </p>
         </div>
-        <div
-          style={{
-            fontSize: 22,
-            fontWeight: 900,
-            color: "#F1F3F9",
-            letterSpacing: "-0.02em",
-            marginBottom: 10,
-            lineHeight: 1.3,
-          }}
-        >
-          Build the profile that backs up the talk.
+
+        {/* CTA */}
+        <div style={{ padding: "28px 36px 32px", textAlign: "center" }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "rgba(241,243,249,0.2)",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              marginBottom: 12,
+            }}
+          >
+            Your hours are on record. Are you?
+          </div>
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 900,
+              color: "#F1F3F9",
+              letterSpacing: "-0.02em",
+              marginBottom: 22,
+              lineHeight: 1.3,
+            }}
+          >
+            Build the profile that backs up the talk.
+          </div>
+          <a
+            href="/signup"
+            style={{
+              display: "inline-block",
+              padding: "13px 32px",
+              borderRadius: 10,
+              background: "#C8FF00",
+              color: "#07080F",
+              fontSize: 14,
+              fontWeight: 800,
+              textDecoration: "none",
+              letterSpacing: "0.01em",
+            }}
+          >
+            Join Leet9 — it&apos;s free
+          </a>
         </div>
-        <p
-          style={{
-            fontSize: 14,
-            color: "rgba(241,243,249,0.35)",
-            marginBottom: 24,
-            lineHeight: 1.6,
-          }}
-        >
-          Earn L9 Points. Climb the global ranking. Make your Steam library mean something.
-        </p>
-        <a
-          href="/signup"
-          style={{
-            display: "inline-block",
-            padding: "13px 32px",
-            borderRadius: 10,
-            background: "#C8FF00",
-            color: "#07080F",
-            fontSize: 14,
-            fontWeight: 800,
-            textDecoration: "none",
-            letterSpacing: "0.01em",
-          }}
-        >
-          Join Leet9 — it&apos;s free
-        </a>
       </div>
     </div>
   );
