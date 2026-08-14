@@ -95,34 +95,12 @@ function OneVsOnePage() {
           justifyContent: "space-between",
         }}
       >
-        <a href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: "linear-gradient(135deg, #C8FF00, #7C3AED)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 13,
-              fontWeight: 900,
-              color: "#07080F",
-              flexShrink: 0,
-            }}
-          >
-            L9
-          </div>
-          <span
-            style={{
-              fontSize: 15,
-              fontWeight: 800,
-              color: "rgba(241,243,249,0.85)",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            Leet9
-          </span>
+        <a href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
+          <img
+            src="/logo.png"
+            alt="Leet9"
+            style={{ height: 28, width: "auto", display: "block" }}
+          />
         </a>
         <span
           style={{
@@ -506,33 +484,21 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 10,
+              gap: 12,
               marginBottom: 16,
             }}
           >
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 6,
-                background: "linear-gradient(135deg, #C8FF00, #7C3AED)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 11,
-                fontWeight: 900,
-                color: "#07080F",
-                flexShrink: 0,
-              }}
-            >
-              L9
-            </div>
+            <img
+              src="/logo.png"
+              alt="Leet9"
+              style={{ height: 22, width: "auto", display: "block", opacity: 0.7 }}
+            />
             <span
               style={{
-                fontSize: 14,
-                fontWeight: 800,
-                color: "rgba(241,243,249,0.6)",
-                letterSpacing: "-0.01em",
+                fontSize: 13,
+                fontWeight: 600,
+                color: "rgba(241,243,249,0.35)",
+                letterSpacing: "0.04em",
               }}
             >
               What is Leet9?
