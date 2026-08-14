@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { apiOk, apiError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 import { emitUserFollowedEvent, emitFollowerGainedEvent } from "@/lib/gamification/engine";
-import { sendNewFollowerEmail } from "@/lib/email";
+import { sendNewFollowerEmail, sendYouFollowedEmail } from "@/lib/email";
 
 export async function POST(request, { params }) {
   const { session, unauthenticated } = await requireSession();
@@ -38,9 +38,14 @@ export async function POST(request, { params }) {
   emitUserFollowedEvent(prisma, followerId, totalFollowing).catch(() => {});
   emitFollowerGainedEvent(prisma, followingId, totalFollowers).catch(() => {});
 
+  const followerName = session.user.name || "Un utente";
+  const followedName = target.name || "questo utente";
+
   if (target.email) {
-    const followerName = session.user.name || "Un utente";
     sendNewFollowerEmail({ to: target.email, followerName }).catch(() => {});
+  }
+  if (session.user.email) {
+    sendYouFollowedEmail({ to: session.user.email, followedName }).catch(() => {});
   }
 
   return apiOk({ following: true });
