@@ -29,7 +29,7 @@ export async function GET() {
   const userId = session.user.id;
   const realName = session.user.name || "Gamer";
 
-  const [platformRows, userGames, ledgerAgg, syncRuns, recentGameRows] = await Promise.all([
+  const [platformRows, userGames, ledgerAgg, syncRuns, recentGameRows, allLedger] = await Promise.all([
     prisma.platformAccount.findMany({
       where: { userId, status: PLATFORM_ACCOUNT_STATUS.CONNECTED },
     }),
@@ -49,6 +49,10 @@ export async function GET() {
       select: { canonicalGameId: true, firstDetectedAt: true, sourceProvider: true, playtimeHours: true, achievementsUnlocked: true },
       orderBy: { firstDetectedAt: "desc" },
       take: 10,
+    }),
+    prisma.pointsLedger.groupBy({
+      by: ["userId"],
+      _sum: { points: true },
     }),
   ]);
 
@@ -119,11 +123,57 @@ export async function GET() {
     .slice(0, 10)
     .map(({ _ts, ...rest }) => rest);
 
+  // Nearby players in global ranking (2 above, current user, 2 below).
+  const ranked = allLedger
+    .map((r) => ({ userId: r.userId, total: r._sum.points ?? 0 }))
+    .sort((a, b) => b.total - a.total);
+
+  const myIdx = ranked.findIndex((r) => r.userId === userId);
+  const nearbySlice = myIdx !== -1
+    ? ranked.slice(Math.max(0, myIdx - 2), myIdx + 3)
+    : [];
+
+  let friendsComparison = [];
+  if (nearbySlice.length > 0) {
+    const nearbyIds = nearbySlice.map((r) => r.userId).filter((id) => id !== userId);
+    const [nearbyUsers, nearbyAchievements] = await Promise.all([
+      prisma.user.findMany({
+        where: { id: { in: nearbyIds } },
+        select: { id: true, name: true, image: true },
+      }),
+      prisma.userGame.groupBy({
+        by: ["userId"],
+        where: { userId: { in: nearbySlice.map((r) => r.userId) } },
+        _sum: { achievementsUnlocked: true },
+      }),
+    ]);
+
+    const nearbyUserMap = Object.fromEntries(nearbyUsers.map((u) => [u.id, u]));
+    const achieveMap = Object.fromEntries(nearbyAchievements.map((r) => [r.userId, r._sum.achievementsUnlocked ?? 0]));
+    const baseRank = Math.max(0, myIdx - 2);
+
+    friendsComparison = nearbySlice.map((r, i) => {
+      const isMe = r.userId === userId;
+      const u = nearbyUserMap[r.userId] ?? {};
+      const name = isMe ? realName : (u.name || "Gamer");
+      return {
+        userId: r.userId,
+        rank: baseRank + i + 1,
+        isCurrentUser: isMe,
+        gamerTag: name,
+        avatarUrl: isMe ? (session.user.image ?? null) : (u.image ?? null),
+        l9Points: r.total,
+        achievementsEarned: achieveMap[r.userId] ?? 0,
+        trend: "flat",
+      };
+    });
+  }
+
   return apiOk({
     user,
     signatureGames: [],
     trophyCase: [],
-    friendsComparison: [],
+    friendsComparison,
     recentActivity,
   });
 }

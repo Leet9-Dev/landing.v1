@@ -18,6 +18,17 @@ export function PlayerRankings() {
   const [scope, setScope] = useState("global");
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [followingIds, setFollowingIds] = useState(new Set());
+
+  // Load who the current user follows.
+  useEffect(() => {
+    fetch("/api/me/followers?type=following")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.ok) setFollowingIds(new Set(json.data.users.map((u) => u.id)));
+      })
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -31,6 +42,15 @@ export function PlayerRankings() {
     const t = setTimeout(load, 0);
     return () => clearTimeout(t);
   }, [load]);
+
+  function handleFollowToggle(targetUserId, nowFollowing) {
+    setFollowingIds((prev) => {
+      const next = new Set(prev);
+      if (nowFollowing) next.add(targetUserId);
+      else next.delete(targetUserId);
+      return next;
+    });
+  }
 
   return (
     <div>
@@ -63,10 +83,71 @@ export function PlayerRankings() {
             <div className="l9-rank-col-hide" style={{ width: 22, textAlign: "right", flexShrink: 0, fontSize: 11, fontWeight: 700, color: TREND_COLOR[p.trend] }}>
               {TREND_ICON[p.trend]}
             </div>
+            {!p.isCurrentUser && (
+              <FollowButton
+                userId={p.userId}
+                isFollowing={followingIds.has(p.userId)}
+                onToggle={handleFollowToggle}
+              />
+            )}
+            {p.isCurrentUser && <div style={{ width: 24, flexShrink: 0 }} />}
           </RankingRow>
         ))}
       </RankingPanel>
     </div>
+  );
+}
+
+function FollowButton({ userId, isFollowing, onToggle }) {
+  const [hovered, setHovered] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  async function handleClick(e) {
+    e.stopPropagation();
+    if (pending) return;
+    setPending(true);
+    try {
+      const method = isFollowing ? "DELETE" : "POST";
+      const res = await fetch(`/api/me/follow/${userId}`, { method });
+      if (res.ok) onToggle(userId, !isFollowing);
+    } catch {}
+    setPending(false);
+  }
+
+  const showUnfollow = isFollowing && hovered;
+  const icon = showUnfollow ? "×" : isFollowing ? "✓" : "+";
+  const borderColor = isFollowing ? "rgba(200,255,0,0.25)" : "rgba(255,255,255,0.12)";
+  const color = showUnfollow ? "#f87171" : isFollowing ? "#C8FF00" : "rgba(241,243,249,0.6)";
+  const opacity = isFollowing ? (hovered ? 0.9 : 0.5) : (hovered ? 0.8 : 0.22);
+
+  return (
+    <button
+      onClick={handleClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      title={isFollowing ? "Unfollow" : "Follow"}
+      style={{
+        width: 24,
+        height: 24,
+        borderRadius: "50%",
+        border: `1px solid ${borderColor}`,
+        background: "transparent",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: isFollowing ? 12 : 15,
+        fontWeight: 700,
+        color,
+        opacity,
+        cursor: pending ? "wait" : "pointer",
+        transition: "opacity 0.15s, color 0.15s",
+        flexShrink: 0,
+        padding: 0,
+        lineHeight: 1,
+      }}
+    >
+      {icon}
+    </button>
   );
 }
 
