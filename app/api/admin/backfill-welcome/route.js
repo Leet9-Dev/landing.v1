@@ -10,15 +10,15 @@ import { emitWelcomeEvent } from "@/lib/gamification/engine";
  * Call with: POST /api/admin/backfill-welcome
  *            Authorization: Bearer <ADMIN_SECRET>
  */
-export async function POST(request) {
+export async function GET(request) {
   const secret = process.env.ADMIN_SECRET;
   if (!secret) {
     return apiError("NOT_CONFIGURED", "ADMIN_SECRET env var not set.", 500);
   }
 
-  const auth = request.headers.get("authorization") ?? "";
-  if (auth !== `Bearer ${secret}`) {
-    return apiError("UNAUTHORIZED", "Invalid or missing authorization.", 401);
+  const { searchParams } = new URL(request.url);
+  if (searchParams.get("secret") !== secret) {
+    return apiError("UNAUTHORIZED", "Invalid or missing secret.", 401);
   }
 
   // Find users who have NOT yet received the welcome event.
