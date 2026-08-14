@@ -86,8 +86,13 @@ function PlayerIdentity({ player }) {
         color: "#07080F",
         flexShrink: 0,
         border: player.isCurrentUser ? "2px solid rgba(200,255,0,0.5)" : "2px solid transparent",
+        overflow: "hidden",
+        position: "relative",
       }}>
-        {player.avatarInitials}
+        {player.avatarUrl
+          ? <img src={player.avatarUrl} alt={player.gamerTag} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+          : player.avatarInitials
+        }
       </div>
       <div style={{ minWidth: 0 }}>
         <div style={{
