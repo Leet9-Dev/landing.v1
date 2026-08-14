@@ -116,9 +116,9 @@ function FollowButton({ userId, isFollowing, onToggle }) {
 
   const showUnfollow = isFollowing && hovered;
   const icon = showUnfollow ? "×" : isFollowing ? "✓" : "+";
-  const borderColor = isFollowing ? "rgba(200,255,0,0.25)" : "rgba(255,255,255,0.12)";
-  const color = showUnfollow ? "#f87171" : isFollowing ? "#C8FF00" : "rgba(241,243,249,0.6)";
-  const opacity = isFollowing ? (hovered ? 0.9 : 0.5) : (hovered ? 0.8 : 0.22);
+  const borderColor = isFollowing ? "rgba(200,255,0,0.4)" : "rgba(255,255,255,0.18)";
+  const color = showUnfollow ? "#f87171" : isFollowing ? "#C8FF00" : "rgba(241,243,249,0.7)";
+  const opacity = isFollowing ? (hovered ? 1 : 0.7) : (hovered ? 1 : 0.45);
 
   return (
     <button
