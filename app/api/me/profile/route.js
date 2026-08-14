@@ -3,7 +3,7 @@ import { apiOk, apiError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 import { PLATFORM_ACCOUNT_STATUS } from "@/lib/platforms/platforms";
 import { emitProfileUpdatedEvent } from "@/lib/gamification/engine";
-import { computeL9Points, computeLevel, computeRankInfo } from "@/lib/scoring/l9Points";
+import { computeLevel, computeRankInfo } from "@/lib/scoring/l9Points";
 import { MOCK_GAMES } from "@/lib/mock/games";
 
 const GAME_BY_ID = new Map(MOCK_GAMES.map((g) => [g.id, g]));
@@ -29,7 +29,7 @@ export async function GET() {
   const userId = session.user.id;
   const realName = session.user.name || "Gamer";
 
-  const [platformRows, userGames, syncRuns, recentGameRows] = await Promise.all([
+  const [platformRows, userGames, ledgerAgg, syncRuns, recentGameRows] = await Promise.all([
     prisma.platformAccount.findMany({
       where: { userId, status: PLATFORM_ACCOUNT_STATUS.CONNECTED },
     }),
@@ -37,6 +37,7 @@ export async function GET() {
       where: { userId },
       select: { playtimeHours: true, achievementsUnlocked: true },
     }),
+    prisma.pointsLedger.aggregate({ where: { userId }, _sum: { points: true } }),
     prisma.platformSyncRun.findMany({
       where: { platformAccount: { userId }, mode: "execute", status: "success" },
       select: { id: true, provider: true, finishedAt: true, userGamesToCreate: true, matchedCanonicalGames: true },
@@ -55,25 +56,14 @@ export async function GET() {
     .map((r) => r.provider)
     .filter((p) => GAME_PLATFORMS.includes(p));
 
-  // Compute scoring from real data if available
-  let level = null;
-  let l9Points = null;
-  let rankTier = null;
-  let nextRank = null;
-  let rankProgressPct = null;
-  let pointsToNextRank = null;
-
-  if (userGames.length > 0) {
-    const totalHours = userGames.reduce((sum, ug) => sum + (ug.playtimeHours ?? 0), 0);
-    const totalAch = userGames.reduce((sum, ug) => sum + (ug.achievementsUnlocked ?? 0), 0);
-    l9Points = computeL9Points({ playtimeHours: totalHours, achievementsUnlocked: totalAch });
-    level = computeLevel(l9Points);
-    const rankInfo = computeRankInfo(l9Points);
-    rankTier = rankInfo.rankTier;
-    nextRank = rankInfo.nextRank;
-    rankProgressPct = rankInfo.rankProgressPct;
-    pointsToNextRank = rankInfo.pointsToNextRank;
-  }
+  // Use PointsLedger as source of truth for total L9 Points.
+  const l9Points = ledgerAgg._sum.points ?? 0;
+  const level = computeLevel(l9Points);
+  const rankInfo = computeRankInfo(l9Points);
+  const rankTier = rankInfo.rankTier;
+  const nextRank = rankInfo.nextRank;
+  const rankProgressPct = rankInfo.rankProgressPct;
+  const pointsToNextRank = rankInfo.pointsToNextRank;
 
   const user = {
     id: userId,

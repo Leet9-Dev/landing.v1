@@ -13,11 +13,17 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  const userGames = await prisma.userGame.findMany({ where: { userId } });
+  const [userGames, ledgerAgg] = await Promise.all([
+    prisma.userGame.findMany({ where: { userId } }),
+    prisma.pointsLedger.aggregate({ where: { userId }, _sum: { points: true } }),
+  ]);
+
+  // Total L9 Points always from PointsLedger (includes welcome bonus, streaks, etc.)
+  const totalL9Points = ledgerAgg._sum.points ?? 0;
 
   if (userGames.length === 0) {
     return apiOk({
-      totalL9Points: null,
+      totalL9Points,
       totalHoursPlayed: null,
       totalGames: null,
       totalAchievements: null,
@@ -45,7 +51,6 @@ export async function GET() {
 
   totalHoursPlayed = Math.round(totalHoursPlayed * 10) / 10;
   const totalGames = userGames.length;
-  const totalL9Points = computeL9Points({ playtimeHours: totalHoursPlayed, achievementsUnlocked: totalAchievements });
 
   // Platform split as %
   const platformSplit = Object.entries(platformCounts).map(([provider, count]) => ({
