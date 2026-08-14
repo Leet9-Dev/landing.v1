@@ -159,14 +159,22 @@ export default function GameDeepDivePage({ params }) {
           {externalSources.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
               {externalSources.map((s) => {
-                const storeUrl = s.platform === "steam"
-                  ? `https://store.steampowered.com/app/${s.externalId}/`
-                  : `https://store.playstation.com/product/${s.externalId}`;
-                const isSteam = s.platform === "steam";
+                const PLATFORM_META = {
+                  steam:     { label: "Play on Steam",           color: "#b9d8f5", url: `https://store.steampowered.com/app/${s.externalId}/` },
+                  psn:       { label: "Play on PlayStation",     color: "#c8aaff", url: `https://store.playstation.com/product/${s.externalId}` },
+                  xbox:      { label: "Play on Xbox",            color: "#90d890", url: `https://www.xbox.com/games/store/game/${s.externalId}` },
+                  epic:      { label: "Play on Epic Games",      color: "#d4d4d4", url: `https://store.epicgames.com/p/${s.externalId}` },
+                  gog:       { label: "Play on GOG",             color: "#9fc8f5", url: `https://www.gog.com/game/${s.externalId}` },
+                  battlenet: { label: "Play on Battle.net",      color: "#00aeff", url: `https://us.battle.net/` },
+                  ea:        { label: "Play on EA App",          color: "#f4a720", url: `https://www.ea.com/games/${s.externalId}` },
+                  ubisoft:   { label: "Play on Ubisoft Connect", color: "#7fc0e0", url: `https://www.ubisoft.com/game/${s.externalId}` },
+                  itch:      { label: "Play on itch.io",         color: "#fa5c5c", url: `https://itch.io/game/${s.externalId}` },
+                };
+                const meta = PLATFORM_META[s.platform] ?? { label: `Play on ${s.platform}`, color: "rgba(241,243,249,0.6)", url: "#" };
                 return (
                   <a
                     key={s.platform + s.externalId}
-                    href={storeUrl}
+                    href={meta.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
@@ -174,9 +182,9 @@ export default function GameDeepDivePage({ params }) {
                       width: "100%",
                       padding: "14px 20px",
                       borderRadius: 12,
-                      border: `1px solid ${isSteam ? "rgba(185,216,245,0.3)" : "rgba(200,170,255,0.3)"}`,
-                      background: isSteam ? "rgba(185,216,245,0.09)" : "rgba(200,170,255,0.09)",
-                      color: isSteam ? "#b9d8f5" : "#c8aaff",
+                      border: `1px solid ${meta.color}4D`,
+                      background: `${meta.color}14`,
+                      color: meta.color,
                       fontSize: 15,
                       fontWeight: 800,
                       textDecoration: "none",
@@ -186,7 +194,7 @@ export default function GameDeepDivePage({ params }) {
                       boxSizing: "border-box",
                     }}
                   >
-                    {isSteam ? "Play on Steam →" : "Play on PlayStation →"}
+                    {meta.label} →
                   </a>
                 );
               })}
