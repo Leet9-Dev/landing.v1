@@ -1,7 +1,7 @@
 import { apiOk } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 import { prisma } from "@/lib/prisma";
-import { computeL9Points, computeLevel } from "@/lib/scoring/l9Points";
+import { computeLevel } from "@/lib/scoring/l9Points";
 
 export async function GET() {
   const { session, unauthenticated } = await requireSession();
@@ -9,43 +9,35 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  // Fetch all user game rows to aggregate per user.
-  const allRows = await prisma.userGame.findMany({
-    select: {
-      userId: true,
-      playtimeHours: true,
-      achievementsUnlocked: true,
-      sourceProvider: true,
-    },
+  // Aggregate real L9 Points from PointsLedger (source of truth).
+  const ledgerRows = await prisma.pointsLedger.groupBy({
+    by: ["userId"],
+    _sum: { points: true },
   });
 
-  if (allRows.length === 0) {
+  if (ledgerRows.length === 0) {
     return apiOk({ rankings: [], currentUserRank: null });
   }
 
-  // Aggregate per user.
-  const byUser = {};
-  for (const row of allRows) {
-    if (!byUser[row.userId]) {
-      byUser[row.userId] = { totalHours: 0, totalAchievements: 0, gamesCount: 0, platforms: new Set() };
-    }
-    byUser[row.userId].totalHours += row.playtimeHours ?? 0;
-    byUser[row.userId].totalAchievements += row.achievementsUnlocked ?? 0;
-    byUser[row.userId].gamesCount += 1;
-    if (row.sourceProvider) byUser[row.userId].platforms.add(row.sourceProvider);
-  }
-
-  // Compute L9 Points and sort.
-  const scored = Object.entries(byUser)
-    .map(([uid, agg]) => ({
-      userId: uid,
-      totalHours: agg.totalHours,
-      totalAchievements: agg.totalAchievements,
-      gamesCount: agg.gamesCount,
-      platforms: [...agg.platforms].filter((p) => p !== "manual"),
-      l9Points: computeL9Points({ playtimeHours: agg.totalHours, achievementsUnlocked: agg.totalAchievements }),
-    }))
+  // Build scored list sorted by total points.
+  const scored = ledgerRows
+    .map((row) => ({ userId: row.userId, l9Points: row._sum.points ?? 0 }))
     .sort((a, b) => b.l9Points - a.l9Points);
+
+  // Fetch game stats per user for display columns.
+  const allGameRows = await prisma.userGame.findMany({
+    select: { userId: true, playtimeHours: true, achievementsUnlocked: true, sourceProvider: true },
+  });
+  const gamesByUser = {};
+  for (const row of allGameRows) {
+    if (!gamesByUser[row.userId]) {
+      gamesByUser[row.userId] = { totalHours: 0, totalAchievements: 0, gamesCount: 0, platforms: new Set() };
+    }
+    gamesByUser[row.userId].totalHours += row.playtimeHours ?? 0;
+    gamesByUser[row.userId].totalAchievements += row.achievementsUnlocked ?? 0;
+    gamesByUser[row.userId].gamesCount += 1;
+    if (row.sourceProvider) gamesByUser[row.userId].platforms.add(row.sourceProvider);
+  }
 
   // Fetch user display info for top 100.
   const top100 = scored.slice(0, 100);
@@ -58,6 +50,7 @@ export async function GET() {
 
   const rankings = top100.map((row, i) => {
     const u = userMap[row.userId] ?? {};
+    const g = gamesByUser[row.userId] ?? { totalHours: 0, totalAchievements: 0, gamesCount: 0, platforms: new Set() };
     const name = u.name || "Gamer";
     return {
       rank: i + 1,
@@ -68,10 +61,10 @@ export async function GET() {
       avatarInitials: name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2),
       l9Points: row.l9Points,
       level: computeLevel(row.l9Points),
-      totalHoursPlayed: Math.round(row.totalHours * 10) / 10,
-      achievementsCount: row.totalAchievements,
-      gamesCount: row.gamesCount,
-      platforms: row.platforms,
+      totalHoursPlayed: Math.round(g.totalHours * 10) / 10,
+      achievementsCount: g.totalAchievements,
+      gamesCount: g.gamesCount,
+      platforms: [...g.platforms].filter((p) => p !== "manual"),
       tribeTag: null,
       trend: "flat",
     };
@@ -83,6 +76,7 @@ export async function GET() {
   if (currentUserIndex !== -1) {
     const cur = scored[currentUserIndex];
     const cu = userMap[userId] ?? {};
+    const cg = gamesByUser[userId] ?? { totalHours: 0, totalAchievements: 0, gamesCount: 0, platforms: new Set() };
     const curName = cu.name || session.user.name || "Gamer";
     currentUserRank = {
       rank: currentUserIndex + 1,
@@ -93,10 +87,10 @@ export async function GET() {
       avatarInitials: curName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2),
       l9Points: cur.l9Points,
       level: computeLevel(cur.l9Points),
-      totalHoursPlayed: Math.round(cur.totalHours * 10) / 10,
-      achievementsCount: cur.totalAchievements,
-      gamesCount: cur.gamesCount,
-      platforms: cur.platforms,
+      totalHoursPlayed: Math.round(cg.totalHours * 10) / 10,
+      achievementsCount: cg.totalAchievements,
+      gamesCount: cg.gamesCount,
+      platforms: [...cg.platforms].filter((p) => p !== "manual"),
       tribeTag: null,
       trend: "flat",
     };
