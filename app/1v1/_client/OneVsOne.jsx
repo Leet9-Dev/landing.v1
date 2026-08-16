@@ -105,16 +105,23 @@ function OneVsOnePage() {
         <a href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
           <img src="/logo-full-whitegradient.png" alt="Leet9" style={{ height: 28, width: "auto", display: "block" }} />
         </a>
-        <span
+        <a
+          href="/signup"
           style={{
-            fontSize: 12,
-            fontWeight: 500,
-            color: "rgba(241,243,249,0.25)",
-            letterSpacing: "0.04em",
+            display: "inline-flex",
+            alignItems: "center",
+            padding: "8px 18px",
+            borderRadius: 8,
+            background: "#C8FF00",
+            color: "#07080F",
+            fontSize: 13,
+            fontWeight: 800,
+            textDecoration: "none",
+            letterSpacing: "-0.01em",
           }}
         >
-          Your hours are on record. Are you?
-        </span>
+          Join Leet9 — free →
+        </a>
       </div>
 
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "64px 32px 96px" }}>
@@ -404,30 +411,80 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
           )}
         </div>
 
-        <button
-          onClick={onShare}
+        {/* Referral share block */}
+        <div
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "16px 40px",
-            borderRadius: 12,
-            border: "none",
-            background: copied ? "rgba(200,255,0,0.15)" : "#C8FF00",
-            color: copied ? "#C8FF00" : "#07080F",
-            fontFamily: "'Outfit', system-ui, sans-serif",
-            fontSize: 16,
-            fontWeight: 800,
-            cursor: "pointer",
-            transition: "all 0.15s",
-            letterSpacing: "-0.01em",
-            boxShadow: copied ? "none" : "0 0 32px rgba(200,255,0,0.25)",
+            display: "inline-block",
+            padding: "20px 28px 22px",
+            borderRadius: 16,
+            border: "1px solid rgba(200,255,0,0.15)",
+            background: "rgba(200,255,0,0.04)",
+            maxWidth: 420,
+            width: "100%",
+            textAlign: "left",
+            marginBottom: 4,
           }}
         >
-          {copied ? "✓ Link copied!" : "Send it. Let them respond. →"}
-        </button>
-        <div style={{ fontSize: 12, color: "rgba(241,243,249,0.2)", marginTop: 10 }}>
-          The link shows the winner — nothing else.
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "#C8FF00",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              marginBottom: 6,
+            }}
+          >
+            Share & earn
+          </div>
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: "#F1F3F9",
+              marginBottom: 6,
+              letterSpacing: "-0.01em",
+              lineHeight: 1.4,
+            }}
+          >
+            Send this result to your rival.
+          </div>
+          <div
+            style={{
+              fontSize: 13,
+              color: "rgba(241,243,249,0.45)",
+              lineHeight: 1.6,
+              marginBottom: 18,
+            }}
+          >
+            When they open your link and unlock the full stats, you earn{" "}
+            <span style={{ color: "#C8FF00", fontWeight: 700 }}>1,000 bonus L9 Points</span>{" "}
+            — automatically.
+          </div>
+          <button
+            onClick={onShare}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "13px 28px",
+              borderRadius: 10,
+              border: "none",
+              background: copied ? "rgba(200,255,0,0.15)" : "#C8FF00",
+              color: copied ? "#C8FF00" : "#07080F",
+              fontFamily: "'Outfit', system-ui, sans-serif",
+              fontSize: 14,
+              fontWeight: 800,
+              cursor: "pointer",
+              transition: "all 0.15s",
+              letterSpacing: "-0.01em",
+              boxShadow: copied ? "none" : "0 0 24px rgba(200,255,0,0.2)",
+              width: "100%",
+              justifyContent: "center",
+            }}
+          >
+            {copied ? "✓ Link copied!" : "Copy link & earn 1,000 points →"}
+          </button>
         </div>
       </div>
 
@@ -542,6 +599,20 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
               >
                 Unlock for €1 — coming soon
               </button>
+              <div style={{ marginTop: 16 }}>
+                <a
+                  href="/signup"
+                  style={{
+                    fontSize: 13,
+                    color: "rgba(241,243,249,0.35)",
+                    textDecoration: "none",
+                    borderBottom: "1px solid rgba(255,255,255,0.1)",
+                    paddingBottom: 1,
+                  }}
+                >
+                  Just want your profile? Join free →
+                </a>
+              </div>
             </div>
           </div>
         </div>
