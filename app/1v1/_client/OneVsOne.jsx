@@ -113,7 +113,7 @@ function OneVsOnePage() {
             letterSpacing: "0.04em",
           }}
         >
-          Your gaming identity, finally visible.
+          Your hours are on record. Are you?
         </span>
       </div>
 
@@ -145,8 +145,8 @@ function OneVsOnePage() {
               margin: "0 0 20px",
             }}
           >
-            You think you game more.{" "}
-            <span style={{ color: "#C8FF00" }}>Prove it.</span>
+            Who&apos;s the better gamer?{" "}
+            <span style={{ color: "#C8FF00" }}>Find out.</span>
           </h1>
           <p
             style={{
@@ -158,7 +158,7 @@ function OneVsOnePage() {
               fontWeight: 400,
             }}
           >
-            Two profiles. One verdict. The numbers have no mercy.
+            Two profiles. One answer. The data doesn&apos;t lie.
           </p>
         </div>
 
@@ -224,7 +224,7 @@ function OneVsOnePage() {
                 flexShrink: 0,
               }}
             >
-              {loading ? "Pulling data…" : "Settle it →"}
+              {loading ? "Running the numbers…" : "Settle it →"}
             </button>
           </div>
           <p
@@ -235,7 +235,7 @@ function OneVsOnePage() {
               textAlign: "center",
             }}
           >
-            Accepts: SteamID64 · steamcommunity.com/id/username · steamcommunity.com/profiles/ID
+            Paste a SteamID64, vanity name, or full profile URL
           </p>
         </form>
 
@@ -383,7 +383,7 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
             marginBottom: 10,
           }}
         >
-          The verdict is in
+          Verdict
         </div>
         <div
           style={{
@@ -395,11 +395,11 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
           }}
         >
           {hasPrivate ? (
-            "One profile is private — can't compare."
+            "One profile is private. Set it public on Steam to battle."
           ) : (
             <>
               <span style={{ color: "#C8FF00" }}>{winner?.name}</span>{" "}
-              has no excuses to make.
+              is the better gamer. No debate.
             </>
           )}
         </div>
@@ -424,10 +424,10 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
             boxShadow: copied ? "none" : "0 0 32px rgba(200,255,0,0.25)",
           }}
         >
-          {copied ? "✓ Link copied!" : "Send this to them — they won't believe it →"}
+          {copied ? "✓ Link copied!" : "Send it. Let them respond. →"}
         </button>
         <div style={{ fontSize: 12, color: "rgba(241,243,249,0.2)", marginTop: 10 }}>
-          Share the results • The card shows who won
+          The link shows the winner — nothing else.
         </div>
       </div>
 
@@ -509,7 +509,7 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
                   marginBottom: 8,
                 }}
               >
-                Sblocca le stats complete
+                See the full breakdown
               </div>
               <div
                 style={{
@@ -519,7 +519,7 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
                   marginBottom: 24,
                 }}
               >
-                €1 una tantum · <span style={{ color: "#C8FF00", fontWeight: 700 }}>500 L9 Points</span> in regalo · Accedi a Leet9
+                €1 one-time · <span style={{ color: "#C8FF00", fontWeight: 700 }}>500 L9 Points</span> included · Full access to Leet9
               </div>
               <button
                 disabled
@@ -540,7 +540,7 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
                   letterSpacing: "-0.01em",
                 }}
               >
-                Sblocca per €1 — coming soon
+                Unlock for €1 — coming soon
               </button>
             </div>
           </div>
@@ -622,12 +622,12 @@ function PlayerCard({ player, winner, side }) {
         }}
       >
         <div style={{ fontSize: 14, color: "rgba(239,68,68,0.6)", fontWeight: 600 }}>
-          {isSteamDown ? "Steam is unreachable" : "Profile not found"}
+          {isSteamDown ? "Steam is unreachable right now" : "Profile not found"}
         </div>
         <div style={{ fontSize: 12, color: "rgba(241,243,249,0.25)", marginTop: 4 }}>
           {isSteamDown
-            ? "Steam API is currently offline. Try again in a few minutes."
-            : "Check the Steam ID or URL and try again."}
+            ? "Steam API is offline. Give it a minute and try again."
+            : "Double-check the Steam ID or profile URL."}
         </div>
       </div>
     );
@@ -721,7 +721,7 @@ function PlayerCard({ player, winner, side }) {
           }}
         >
           <div style={{ fontSize: 13, color: "rgba(241,243,249,0.35)", marginBottom: 6 }}>
-            This profile is private — stats are hidden.
+            Profile is set to private — no data available.
           </div>
           <a
             href="https://steamcommunity.com/my/privacy/settings"
