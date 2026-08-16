@@ -2,6 +2,7 @@ import { apiOk, apiError } from "@/lib/api/response";
 import {
   fetchSteamPlayerSummaries,
   fetchSteamOwnedGames,
+  fetchSteamAchievements,
   resolveVanityURL,
 } from "@/lib/integrations/steam/steamClient";
 
@@ -10,7 +11,6 @@ const VANITY_URL_RE = /^https?:\/\/steamcommunity\.com\/(id|profiles)\/([^/]+)/;
 
 async function resolveSteamId(input) {
   const trimmed = input.trim();
-
   const urlMatch = trimmed.match(VANITY_URL_RE);
   if (urlMatch) {
     const type = urlMatch[1];
@@ -18,10 +18,43 @@ async function resolveSteamId(input) {
     if (type === "profiles" && STEAMID64_RE.test(value)) return value;
     return resolveVanityURL(value);
   }
-
   if (STEAMID64_RE.test(trimmed)) return trimmed;
-
   return resolveVanityURL(trimmed);
+}
+
+async function computeL9Score(steamId, gameList) {
+  // Intensity: avg hours per game with >30 min played (cap at 200h → 100 pts)
+  const playedGames = gameList.filter((g) => (g.playtime_forever || 0) > 30);
+  const totalHours = gameList.reduce((s, g) => s + (g.playtime_forever || 0), 0) / 60;
+  const avgHoursPerGame = playedGames.length > 0 ? totalHours / playedGames.length : 0;
+  const intensityScore = Math.min(avgHoursPerGame / 2, 100); // 200h/game = 100 pts
+
+  // Achievement rate: top 5 games by playtime, fetch concurrently
+  const top5 = [...gameList]
+    .sort((a, b) => (b.playtime_forever || 0) - (a.playtime_forever || 0))
+    .slice(0, 5);
+
+  const achResults = await Promise.allSettled(
+    top5.map((g) => fetchSteamAchievements(steamId, g.appid))
+  );
+
+  const rates = achResults
+    .filter((r) => r.status === "fulfilled" && Array.isArray(r.value?.achievements))
+    .map((r) => {
+      const achievements = r.value.achievements;
+      if (!achievements.length) return null;
+      return achievements.filter((a) => a.achieved === 1).length / achievements.length;
+    })
+    .filter((r) => r !== null);
+
+  const achievementRate = rates.length > 0 ? rates.reduce((a, b) => a + b, 0) / rates.length : 0;
+  const achievementScore = achievementRate * 100;
+
+  return {
+    l9Score: Math.round(achievementScore * 0.6 + intensityScore * 0.4),
+    achievementRatePct: Math.round(achievementRate * 100),
+    avgHoursPerGame: Math.round(avgHoursPerGame),
+  };
 }
 
 async function buildPlayerData(input) {
@@ -46,9 +79,7 @@ async function buildPlayerData(input) {
 
   if (!summary) return { error: "not_found", input };
 
-  // communityvisibilitystate: 1 = private, 3 = public
   const isPrivate = summary.communityvisibilitystate !== 3;
-
   const gameList = Array.isArray(games) ? games : [];
   const totalPlaytimeMinutes = gameList.reduce((s, g) => s + (g.playtime_forever || 0), 0);
   const totalPlaytimeHours = Math.round(totalPlaytimeMinutes / 60);
@@ -65,6 +96,10 @@ async function buildPlayerData(input) {
         : null,
     }));
 
+  const { l9Score, achievementRatePct, avgHoursPerGame } = isPrivate
+    ? { l9Score: 0, achievementRatePct: 0, avgHoursPerGame: 0 }
+    : await computeL9Score(steamId, gameList);
+
   return {
     steamId,
     name: summary.personaname,
@@ -74,6 +109,9 @@ async function buildPlayerData(input) {
     totalGames: gameList.length,
     totalPlaytimeHours,
     topGames: isPrivate ? [] : topGames,
+    l9Score,
+    achievementRatePct,
+    avgHoursPerGame,
   };
 }
 

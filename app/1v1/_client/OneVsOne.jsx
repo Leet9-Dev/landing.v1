@@ -353,12 +353,13 @@ function ComparisonSkeleton() {
 }
 
 function ComparisonResult({ player1, player2, onShare, copied }) {
-  const p1h = player1?.totalPlaytimeHours ?? 0;
-  const p2h = player2?.totalPlaytimeHours ?? 0;
-  const p1winsHours = p1h >= p2h;
+  const p1Score = player1?.l9Score ?? 0;
+  const p2Score = player2?.l9Score ?? 0;
+  const p1Wins = p1Score >= p2Score;
+  // Fallbacks for blurred section stats
   const p1winsGames = (player1?.totalGames ?? 0) >= (player2?.totalGames ?? 0);
-  const winner = p1winsHours ? player1 : player2;
-  const loser = p1winsHours ? player2 : player1;
+  const winner = p1Wins ? player1 : player2;
+  const loser = p1Wins ? player2 : player1;
 
   const hasError = player1?.error || player2?.error;
   const hasPrivate = player1?.isPrivate || player2?.isPrivate;
@@ -494,9 +495,9 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
       {/* Private fallback — show both cards as-is */}
       {hasPrivate && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 24, alignItems: "start" }}>
-          <PlayerCard player={player1} winner={p1winsHours} side="left" />
+          <PlayerCard player={player1} winner={p1Wins} side="left" />
           <VsDivider />
-          <PlayerCard player={player2} winner={!p1winsHours} side="right" />
+          <PlayerCard player={player2} winner={!p1Wins} side="right" />
         </div>
       )}
 
@@ -514,10 +515,28 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
             {/* Stats */}
             <div style={{ marginTop: 28, borderRadius: 14, border: "1px solid rgba(255,255,255,0.07)", background: "#0D0F1A", overflow: "hidden" }}>
               <StatRow
+                label="L9 Score"
+                v1={`${player1?.l9Score ?? 0}`}
+                v2={`${player2?.l9Score ?? 0}`}
+                p1Wins={p1Wins}
+              />
+              <StatRow
+                label="Achievement Rate"
+                v1={`${player1?.achievementRatePct ?? 0}%`}
+                v2={`${player2?.achievementRatePct ?? 0}%`}
+                p1Wins={(player1?.achievementRatePct ?? 0) >= (player2?.achievementRatePct ?? 0)}
+              />
+              <StatRow
+                label="Avg Hours / Game"
+                v1={`${player1?.avgHoursPerGame ?? 0}h`}
+                v2={`${player2?.avgHoursPerGame ?? 0}h`}
+                p1Wins={(player1?.avgHoursPerGame ?? 0) >= (player2?.avgHoursPerGame ?? 0)}
+              />
+              <StatRow
                 label="Total Playtime"
                 v1={`${player1?.totalPlaytimeHours?.toLocaleString() ?? 0}h`}
                 v2={`${player2?.totalPlaytimeHours?.toLocaleString() ?? 0}h`}
-                p1Wins={p1winsHours}
+                p1Wins={(player1?.totalPlaytimeHours ?? 0) >= (player2?.totalPlaytimeHours ?? 0)}
               />
               <StatRow
                 label="Games Owned"
