@@ -350,227 +350,260 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
   const p2h = player2?.totalPlaytimeHours ?? 0;
   const p1winsHours = p1h >= p2h;
   const p1winsGames = (player1?.totalGames ?? 0) >= (player2?.totalGames ?? 0);
+  const winner = p1winsHours ? player1 : player2;
+  const loser = p1winsHours ? player2 : player1;
+
+  const hasError = player1?.error || player2?.error;
+  const hasPrivate = player1?.isPrivate || player2?.isPrivate;
+  const showPaywall = !hasError && !hasPrivate;
+
+  if (hasError) {
+    return (
+      <div style={{ marginTop: 52 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 24, alignItems: "start" }}>
+          <PlayerCard player={player1} winner={false} side="left" />
+          <VsDivider />
+          <PlayerCard player={player2} winner={false} side="right" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ marginTop: 52 }}>
-      {/* Verdict banner + Share CTA — above the fold, first thing seen */}
-      {!player1?.error && !player2?.error && !player1?.isPrivate && !player2?.isPrivate && (
-        <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: "rgba(241,243,249,0.3)",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              marginBottom: 10,
-            }}
-          >
-            The verdict is in
-          </div>
-          <div
-            style={{
-              fontSize: 28,
-              fontWeight: 900,
-              color: "#F1F3F9",
-              letterSpacing: "-0.02em",
-              marginBottom: 28,
-            }}
-          >
-            <span style={{ color: "#C8FF00" }}>
-              {p1winsHours ? player1?.name : player2?.name}
-            </span>{" "}
-            has no excuses to make.
-          </div>
+      {/* Verdict + Share */}
+      <div style={{ textAlign: "center", marginBottom: 36 }}>
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: "rgba(241,243,249,0.3)",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            marginBottom: 10,
+          }}
+        >
+          The verdict is in
+        </div>
+        <div
+          style={{
+            fontSize: 28,
+            fontWeight: 900,
+            color: "#F1F3F9",
+            letterSpacing: "-0.02em",
+            marginBottom: 28,
+          }}
+        >
+          {hasPrivate ? (
+            "One profile is private — can't compare."
+          ) : (
+            <>
+              <span style={{ color: "#C8FF00" }}>{winner?.name}</span>{" "}
+              has no excuses to make.
+            </>
+          )}
+        </div>
 
-          {/* Big share button — primary CTA */}
-          <button
-            onClick={onShare}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "16px 40px",
-              borderRadius: 12,
-              border: "none",
-              background: copied ? "rgba(200,255,0,0.15)" : "#C8FF00",
-              color: copied ? "#C8FF00" : "#07080F",
-              fontFamily: "'Outfit', system-ui, sans-serif",
-              fontSize: 16,
-              fontWeight: 800,
-              cursor: "pointer",
-              transition: "all 0.15s",
-              letterSpacing: "-0.01em",
-              boxShadow: copied ? "none" : "0 0 32px rgba(200,255,0,0.25)",
-            }}
-          >
-            {copied ? "✓ Link copied!" : "Send this to them — they won't believe it →"}
-          </button>
-          <div
-            style={{
-              fontSize: 12,
-              color: "rgba(241,243,249,0.2)",
-              marginTop: 10,
-            }}
-          >
-            Share the results • The card shows who won
-          </div>
+        <button
+          onClick={onShare}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "16px 40px",
+            borderRadius: 12,
+            border: "none",
+            background: copied ? "rgba(200,255,0,0.15)" : "#C8FF00",
+            color: copied ? "#C8FF00" : "#07080F",
+            fontFamily: "'Outfit', system-ui, sans-serif",
+            fontSize: 16,
+            fontWeight: 800,
+            cursor: "pointer",
+            transition: "all 0.15s",
+            letterSpacing: "-0.01em",
+            boxShadow: copied ? "none" : "0 0 32px rgba(200,255,0,0.25)",
+          }}
+        >
+          {copied ? "✓ Link copied!" : "Send this to them — they won't believe it →"}
+        </button>
+        <div style={{ fontSize: 12, color: "rgba(241,243,249,0.2)", marginTop: 10 }}>
+          Share the results • The card shows who won
+        </div>
+      </div>
+
+      {/* Winner card — visible, no numbers */}
+      {showPaywall && <WinnerCard player={winner} />}
+
+      {/* Private fallback — show both cards as-is */}
+      {hasPrivate && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 24, alignItems: "start" }}>
+          <PlayerCard player={player1} winner={p1winsHours} side="left" />
+          <VsDivider />
+          <PlayerCard player={player2} winner={!p1winsHours} side="right" />
         </div>
       )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto 1fr",
-          gap: 24,
-          alignItems: "start",
-        }}
-      >
-        <PlayerCard player={player1} winner={p1winsHours} side="left" />
-        <VsDivider />
-        <PlayerCard player={player2} winner={!p1winsHours} side="right" />
-      </div>
+      {/* Blurred paywall section */}
+      {showPaywall && (
+        <div style={{ position: "relative", marginTop: 24 }}>
+          {/* Blurred content */}
+          <div style={{ filter: "blur(7px)", userSelect: "none", pointerEvents: "none", opacity: 0.6 }}>
+            {/* VS cards teaser */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 24, alignItems: "start" }}>
+              <PlayerCard player={winner} winner={true} side="left" />
+              <VsDivider />
+              <PlayerCard player={loser} winner={false} side="right" />
+            </div>
+            {/* Stats */}
+            <div style={{ marginTop: 28, borderRadius: 14, border: "1px solid rgba(255,255,255,0.07)", background: "#0D0F1A", overflow: "hidden" }}>
+              <StatRow
+                label="Total Playtime"
+                v1={`${player1?.totalPlaytimeHours?.toLocaleString() ?? 0}h`}
+                v2={`${player2?.totalPlaytimeHours?.toLocaleString() ?? 0}h`}
+                p1Wins={p1winsHours}
+              />
+              <StatRow
+                label="Games Owned"
+                v1={player1?.totalGames?.toLocaleString() ?? "0"}
+                v2={player2?.totalGames?.toLocaleString() ?? "0"}
+                p1Wins={p1winsGames}
+                divider={false}
+              />
+            </div>
+            {/* Top games */}
+            <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <TopGames games={player1?.topGames ?? []} name={player1?.name} />
+              <TopGames games={player2?.topGames ?? []} name={player2?.name} />
+            </div>
+          </div>
 
-      {/* Stats comparison */}
-      <div
-        style={{
-          marginTop: 28,
-          borderRadius: 14,
-          border: "1px solid rgba(255,255,255,0.07)",
-          background: "#0D0F1A",
-          overflow: "hidden",
-        }}
-      >
-        <StatRow
-          label="Total Playtime"
-          v1={`${player1?.totalPlaytimeHours?.toLocaleString() ?? 0}h`}
-          v2={`${player2?.totalPlaytimeHours?.toLocaleString() ?? 0}h`}
-          p1Wins={p1winsHours}
-          p1Private={player1?.isPrivate}
-          p2Private={player2?.isPrivate}
-        />
-        <StatRow
-          label="Games Owned"
-          v1={player1?.totalGames?.toLocaleString() ?? "0"}
-          v2={player2?.totalGames?.toLocaleString() ?? "0"}
-          p1Wins={p1winsGames}
-          p1Private={player1?.isPrivate}
-          p2Private={player2?.isPrivate}
-          divider={false}
-        />
-      </div>
-
-      {/* Top games */}
-      {!player1?.isPrivate && !player2?.isPrivate && (
-        <div
-          style={{
-            marginTop: 20,
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 16,
-          }}
-        >
-          <TopGames games={player1?.topGames ?? []} name={player1?.name} />
-          <TopGames games={player2?.topGames ?? []} name={player2?.name} />
-        </div>
-      )}
-
-      {/* What is Leet9 + CTA */}
-      <div
-        style={{
-          marginTop: 44,
-          borderRadius: 16,
-          border: "1px solid rgba(255,255,255,0.07)",
-          background: "#0D0F1A",
-          overflow: "hidden",
-        }}
-      >
-        {/* What is Leet9 */}
-        <div
-          style={{
-            padding: "32px 36px 28px",
-            borderBottom: "1px solid rgba(255,255,255,0.05)",
-          }}
-        >
+          {/* Paywall overlay */}
           <div
             style={{
+              position: "absolute",
+              inset: 0,
               display: "flex",
               alignItems: "center",
-              gap: 12,
-              marginBottom: 16,
+              justifyContent: "center",
+              background: "linear-gradient(to bottom, transparent 0%, rgba(7,8,15,0.7) 30%, rgba(7,8,15,0.85) 60%)",
             }}
           >
-            <img src="/logo-full-whitegradient.png" alt="Leet9" style={{ height: 20, width: "auto", display: "block", opacity: 0.6 }} />
-            <span
+            <div
               style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "rgba(241,243,249,0.35)",
-                letterSpacing: "0.04em",
+                textAlign: "center",
+                padding: "36px 40px",
+                borderRadius: 20,
+                background: "rgba(13,15,26,0.92)",
+                border: "1px solid rgba(200,255,0,0.15)",
+                backdropFilter: "blur(12px)",
+                maxWidth: 420,
               }}
             >
-              What is Leet9?
-            </span>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>🔒</div>
+              <div
+                style={{
+                  fontSize: 20,
+                  fontWeight: 900,
+                  color: "#F1F3F9",
+                  letterSpacing: "-0.02em",
+                  marginBottom: 8,
+                }}
+              >
+                Sblocca le stats complete
+              </div>
+              <div
+                style={{
+                  fontSize: 14,
+                  color: "rgba(241,243,249,0.45)",
+                  lineHeight: 1.6,
+                  marginBottom: 24,
+                }}
+              >
+                €1 una tantum · <span style={{ color: "#C8FF00", fontWeight: 700 }}>500 L9 Points</span> in regalo · Accedi a Leet9
+              </div>
+              <button
+                disabled
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "14px 36px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "#C8FF00",
+                  color: "#07080F",
+                  fontFamily: "'Outfit', system-ui, sans-serif",
+                  fontSize: 15,
+                  fontWeight: 800,
+                  cursor: "not-allowed",
+                  opacity: 0.6,
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                Sblocca per €1 — coming soon
+              </button>
+            </div>
           </div>
-          <p
-            style={{
-              fontSize: 15,
-              color: "rgba(241,243,249,0.5)",
-              lineHeight: 1.7,
-              margin: 0,
-              maxWidth: 540,
-            }}
-          >
-            Leet9 is the gaming identity platform that turns your Steam library
-            into a real profile. Connect your accounts, earn L9 Points for every
-            hour played and achievement unlocked, and rank against players worldwide —
-            not just your friends list.
-          </p>
         </div>
+      )}
+    </div>
+  );
+}
 
-        {/* CTA */}
-        <div style={{ padding: "28px 36px 32px", textAlign: "center" }}>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: "rgba(241,243,249,0.2)",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              marginBottom: 12,
-            }}
-          >
-            Your hours are on record. Are you?
-          </div>
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 900,
-              color: "#F1F3F9",
-              letterSpacing: "-0.02em",
-              marginBottom: 22,
-              lineHeight: 1.3,
-            }}
-          >
-            Build the profile that backs up the talk.
-          </div>
-          <a
-            href="/signup"
-            style={{
-              display: "inline-block",
-              padding: "13px 32px",
-              borderRadius: 10,
-              background: "#C8FF00",
-              color: "#07080F",
-              fontSize: 14,
-              fontWeight: 800,
-              textDecoration: "none",
-              letterSpacing: "0.01em",
-            }}
-          >
-            Join Leet9 — it&apos;s free
-          </a>
+function WinnerCard({ player }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 16,
+        padding: "28px 24px",
+        borderRadius: 16,
+        border: "1px solid rgba(200,255,0,0.2)",
+        background: "#0D0F1A",
+        boxShadow: "0 0 40px rgba(200,255,0,0.06)",
+      }}
+    >
+      {player?.avatarUrl && (
+        <img
+          src={player.avatarUrl}
+          alt={player.name}
+          width={72}
+          height={72}
+          style={{
+            borderRadius: 14,
+            border: "2px solid #C8FF00",
+          }}
+        />
+      )}
+      <div style={{ textAlign: "center" }}>
+        <div
+          style={{
+            fontSize: 20,
+            fontWeight: 900,
+            color: "#F1F3F9",
+            letterSpacing: "-0.01em",
+            marginBottom: 8,
+          }}
+        >
+          {player?.name}
         </div>
+        <span
+          style={{
+            display: "inline-block",
+            fontSize: 11,
+            fontWeight: 800,
+            letterSpacing: "0.12em",
+            color: "#C8FF00",
+            background: "rgba(200,255,0,0.1)",
+            border: "1px solid rgba(200,255,0,0.25)",
+            padding: "4px 14px",
+            borderRadius: 99,
+          }}
+        >
+          WINNER
+        </span>
       </div>
     </div>
   );
