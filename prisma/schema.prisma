@@ -476,3 +476,17 @@ model GameListItem {
   @@unique([listId, rank])
   @@index([listId])
 }
+
+model OneVsOneLead {
+  id          String   @id @default(cuid())
+  email       String
+  p1Input     String
+  p2Input     String
+  winnerName  String?
+  l9Score1    Int?
+  l9Score2    Int?
+  refToken    String?
+  createdAt   DateTime @default(now())
+
+  @@index([email])
+}

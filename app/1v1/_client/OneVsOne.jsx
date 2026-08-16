@@ -270,6 +270,8 @@ function OneVsOnePage() {
             player2={result.player2}
             onShare={copyShareLink}
             copied={copied}
+            p1Input={p1Input}
+            p2Input={p2Input}
           />
         )}
       </div>
@@ -352,18 +354,52 @@ function ComparisonSkeleton() {
   );
 }
 
-function ComparisonResult({ player1, player2, onShare, copied }) {
+function ComparisonResult({ player1, player2, onShare, copied, p1Input, p2Input }) {
   const p1Score = player1?.l9Score ?? 0;
   const p2Score = player2?.l9Score ?? 0;
   const p1Wins = p1Score >= p2Score;
-  // Fallbacks for blurred section stats
   const p1winsGames = (player1?.totalGames ?? 0) >= (player2?.totalGames ?? 0);
   const winner = p1Wins ? player1 : player2;
   const loser = p1Wins ? player2 : player1;
 
+  const [email, setEmail] = useState("");
+  const [emailSubmitting, setEmailSubmitting] = useState(false);
+  const [emailCaptured, setEmailCaptured] = useState(false);
+  const [emailError, setEmailError] = useState(null);
+
   const hasError = player1?.error || player2?.error;
   const hasPrivate = player1?.isPrivate || player2?.isPrivate;
   const showPaywall = !hasError && !hasPrivate;
+
+  async function captureEmail(e) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setEmailSubmitting(true);
+    setEmailError(null);
+    try {
+      const res = await fetch("/api/1v1/capture-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          p1Input,
+          p2Input,
+          winnerName: winner?.name ?? null,
+          l9Score1: player1?.l9Score ?? null,
+          l9Score2: player2?.l9Score ?? null,
+        }),
+      });
+      const json = await res.json();
+      if (json.ok) {
+        setEmailCaptured(true);
+      } else {
+        setEmailError("Something went wrong. Try again.");
+      }
+    } catch {
+      setEmailError("Network error. Try again.");
+    }
+    setEmailSubmitting(false);
+  }
 
   if (hasError) {
     return (
@@ -575,57 +611,114 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
                 maxWidth: 420,
               }}
             >
-              <div style={{ fontSize: 32, marginBottom: 12 }}>🔒</div>
+              <div style={{ fontSize: 28, marginBottom: 10 }}>🔒</div>
               <div
                 style={{
-                  fontSize: 20,
+                  fontSize: 19,
                   fontWeight: 900,
                   color: "#F1F3F9",
                   letterSpacing: "-0.02em",
-                  marginBottom: 8,
+                  marginBottom: 6,
                 }}
               >
                 See the full breakdown
               </div>
               <div
                 style={{
-                  fontSize: 14,
-                  color: "rgba(241,243,249,0.45)",
+                  fontSize: 13,
+                  color: "rgba(241,243,249,0.4)",
                   lineHeight: 1.6,
-                  marginBottom: 24,
+                  marginBottom: 20,
                 }}
               >
-                €1 one-time · <span style={{ color: "#C8FF00", fontWeight: 700 }}>500 L9 Points</span> included · Full access to Leet9
+                €1 one-time · <span style={{ color: "#C8FF00", fontWeight: 700 }}>500 L9 Points</span> · Full access to Leet9
               </div>
-              <button
-                disabled
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "14px 36px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: "#C8FF00",
-                  color: "#07080F",
-                  fontFamily: "'Outfit', system-ui, sans-serif",
-                  fontSize: 15,
-                  fontWeight: 800,
-                  cursor: "not-allowed",
-                  opacity: 0.6,
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                Unlock for €1 — coming soon
-              </button>
-              <div style={{ marginTop: 16 }}>
+
+              {!emailCaptured ? (
+                <form onSubmit={captureEmail} style={{ width: "100%" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(241,243,249,0.35)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+                    Save your score first
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexDirection: "column" }}>
+                    <input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "11px 14px",
+                        borderRadius: 8,
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        background: "rgba(255,255,255,0.04)",
+                        color: "#F1F3F9",
+                        fontFamily: "'Outfit', system-ui, sans-serif",
+                        fontSize: 14,
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={emailSubmitting}
+                      style={{
+                        padding: "12px 24px",
+                        borderRadius: 8,
+                        border: "none",
+                        background: emailSubmitting ? "rgba(200,255,0,0.4)" : "#C8FF00",
+                        color: "#07080F",
+                        fontFamily: "'Outfit', system-ui, sans-serif",
+                        fontSize: 14,
+                        fontWeight: 800,
+                        cursor: emailSubmitting ? "not-allowed" : "pointer",
+                        width: "100%",
+                      }}
+                    >
+                      {emailSubmitting ? "Saving…" : "Save my score →"}
+                    </button>
+                  </div>
+                  {emailError && (
+                    <div style={{ fontSize: 12, color: "#fca5a5", marginTop: 8 }}>{emailError}</div>
+                  )}
+                </form>
+              ) : (
+                <>
+                  <div style={{ fontSize: 13, color: "rgba(200,255,0,0.8)", marginBottom: 16, fontWeight: 600 }}>
+                    ✓ Score saved — check your inbox.
+                  </div>
+                  <button
+                    disabled
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "13px 32px",
+                      borderRadius: 10,
+                      border: "none",
+                      background: "#C8FF00",
+                      color: "#07080F",
+                      fontFamily: "'Outfit', system-ui, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 800,
+                      cursor: "not-allowed",
+                      opacity: 0.6,
+                      width: "100%",
+                      justifyContent: "center",
+                    }}
+                  >
+                    Unlock for €1 — coming soon
+                  </button>
+                </>
+              )}
+              <div style={{ marginTop: 14 }}>
                 <a
                   href="/signup"
                   style={{
-                    fontSize: 13,
-                    color: "rgba(241,243,249,0.35)",
+                    fontSize: 12,
+                    color: "rgba(241,243,249,0.3)",
                     textDecoration: "none",
-                    borderBottom: "1px solid rgba(255,255,255,0.1)",
+                    borderBottom: "1px solid rgba(255,255,255,0.08)",
                     paddingBottom: 1,
                   }}
                 >
