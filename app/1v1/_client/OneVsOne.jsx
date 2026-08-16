@@ -32,6 +32,7 @@ function OneVsOnePage() {
     setLoading(true);
     setError(null);
     setResult(null);
+    trackEvent("1v1_started", { p1, p2 });
     try {
       const res = await fetch("/api/1v1/compare", {
         method: "POST",
@@ -45,6 +46,7 @@ function OneVsOnePage() {
         setCacheKey(key);
         const params = new URLSearchParams({ p1, p2, ...(key && { t: key }) });
         router.replace(`/1v1?${params}`, { scroll: false });
+        trackEvent("1v1_completed", { p1, p2 });
       } else {
         setError(json.error || "Something went wrong.");
       }
@@ -67,6 +69,7 @@ function OneVsOnePage() {
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      trackEvent("share_clicked", { p1: p1Input, p2: p2Input });
     });
   }
 
@@ -350,14 +353,9 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
 
   return (
     <div style={{ marginTop: 52 }}>
-      {/* Verdict banner */}
+      {/* Verdict banner + Share CTA — above the fold, first thing seen */}
       {!player1?.error && !player2?.error && !player1?.isPrivate && !player2?.isPrivate && (
-        <div
-          style={{
-            textAlign: "center",
-            marginBottom: 36,
-          }}
-        >
+        <div style={{ textAlign: "center", marginBottom: 36 }}>
           <div
             style={{
               fontSize: 13,
@@ -376,6 +374,7 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
               fontWeight: 900,
               color: "#F1F3F9",
               letterSpacing: "-0.02em",
+              marginBottom: 28,
             }}
           >
             <span style={{ color: "#C8FF00" }}>
@@ -383,29 +382,41 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
             </span>{" "}
             has no excuses to make.
           </div>
+
+          {/* Big share button — primary CTA */}
+          <button
+            onClick={onShare}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "16px 40px",
+              borderRadius: 12,
+              border: "none",
+              background: copied ? "rgba(200,255,0,0.15)" : "#C8FF00",
+              color: copied ? "#C8FF00" : "#07080F",
+              fontFamily: "'Outfit', system-ui, sans-serif",
+              fontSize: 16,
+              fontWeight: 800,
+              cursor: "pointer",
+              transition: "all 0.15s",
+              letterSpacing: "-0.01em",
+              boxShadow: copied ? "none" : "0 0 32px rgba(200,255,0,0.25)",
+            }}
+          >
+            {copied ? "✓ Link copied!" : "Send this to them — they won't believe it →"}
+          </button>
+          <div
+            style={{
+              fontSize: 12,
+              color: "rgba(241,243,249,0.2)",
+              marginTop: 10,
+            }}
+          >
+            Share the results • The card shows who won
+          </div>
         </div>
       )}
-
-      {/* Share button */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
-        <button
-          onClick={onShare}
-          style={{
-            padding: "8px 20px",
-            borderRadius: 99,
-            border: "1px solid rgba(255,255,255,0.1)",
-            background: copied ? "rgba(200,255,0,0.07)" : "transparent",
-            color: copied ? "#C8FF00" : "rgba(241,243,249,0.4)",
-            fontFamily: "'Outfit', system-ui, sans-serif",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "all 0.15s",
-          }}
-        >
-          {copied ? "✓ Link copied!" : "Send this to them →"}
-        </button>
-      </div>
 
       <div
         style={{

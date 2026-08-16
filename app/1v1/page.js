@@ -33,6 +33,7 @@ export async function generateMetadata({ searchParams }) {
     title: "1 vs 1 — Steam Battle | Leet9",
     description:
       "Compare two Steam profiles head-to-head. Who has more hours, more games, and bragging rights?",
+    alternates: { canonical: `${BASE_URL}/1v1` },
     openGraph: {
       title: "1 vs 1 Steam Battle — Leet9",
       description: "Compare two Steam profiles head-to-head on Leet9.",
