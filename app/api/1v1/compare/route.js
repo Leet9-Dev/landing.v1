@@ -2,9 +2,9 @@ import { apiOk, apiError } from "@/lib/api/response";
 import {
   fetchSteamPlayerSummaries,
   fetchSteamOwnedGames,
-  fetchSteamAchievements,
   resolveVanityURL,
 } from "@/lib/integrations/steam/steamClient";
+import { computeL9Score } from "@/lib/integrations/steam/l9score";
 
 const STEAMID64_RE = /^[0-9]{17}$/;
 const VANITY_URL_RE = /^https?:\/\/steamcommunity\.com\/(id|profiles)\/([^/]+)/;
@@ -22,40 +22,6 @@ async function resolveSteamId(input) {
   return resolveVanityURL(trimmed);
 }
 
-async function computeL9Score(steamId, gameList) {
-  // Intensity: avg hours per game with >30 min played (cap at 200h → 100 pts)
-  const playedGames = gameList.filter((g) => (g.playtime_forever || 0) > 30);
-  const totalHours = gameList.reduce((s, g) => s + (g.playtime_forever || 0), 0) / 60;
-  const avgHoursPerGame = playedGames.length > 0 ? totalHours / playedGames.length : 0;
-  const intensityScore = Math.min(avgHoursPerGame / 2, 100); // 200h/game = 100 pts
-
-  // Achievement rate: top 5 games by playtime, fetch concurrently
-  const top5 = [...gameList]
-    .sort((a, b) => (b.playtime_forever || 0) - (a.playtime_forever || 0))
-    .slice(0, 5);
-
-  const achResults = await Promise.allSettled(
-    top5.map((g) => fetchSteamAchievements(steamId, g.appid))
-  );
-
-  const rates = achResults
-    .filter((r) => r.status === "fulfilled" && Array.isArray(r.value?.achievements))
-    .map((r) => {
-      const achievements = r.value.achievements;
-      if (!achievements.length) return null;
-      return achievements.filter((a) => a.achieved === 1).length / achievements.length;
-    })
-    .filter((r) => r !== null);
-
-  const achievementRate = rates.length > 0 ? rates.reduce((a, b) => a + b, 0) / rates.length : 0;
-  const achievementScore = achievementRate * 100;
-
-  return {
-    l9Score: Math.round(achievementScore * 0.6 + intensityScore * 0.4),
-    achievementRatePct: Math.round(achievementRate * 100),
-    avgHoursPerGame: Math.round(avgHoursPerGame),
-  };
-}
 
 async function buildPlayerData(input) {
   let steamId;

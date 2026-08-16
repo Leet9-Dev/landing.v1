@@ -526,7 +526,7 @@ function ComparisonResult({ player1, player2, onShare, copied, p1Input, p2Input 
       </div>
 
       {/* Winner card — visible, no numbers */}
-      {showPaywall && <WinnerCard player={winner} />}
+      {showPaywall && <WinnerCard player={winner} loser={loser} />}
 
       {/* Private fallback — show both cards as-is */}
       {hasPrivate && (
@@ -733,7 +733,7 @@ function ComparisonResult({ player1, player2, onShare, copied, p1Input, p2Input 
   );
 }
 
-function WinnerCard({ player }) {
+function WinnerCard({ player, loser }) {
   return (
     <div
       style={{
@@ -788,6 +788,36 @@ function WinnerCard({ player }) {
           WINNER
         </span>
       </div>
+      {player?.steamId && (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginTop: 4 }}>
+          <a
+            href={`/u/${player.steamId}`}
+            style={{
+              fontSize: 12,
+              color: "rgba(241,243,249,0.35)",
+              textDecoration: "none",
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
+              paddingBottom: 1,
+            }}
+          >
+            View profile →
+          </a>
+          {loser?.steamId && (
+            <a
+              href={`/1v1/challenge/${player.steamId}`}
+              style={{
+                fontSize: 12,
+                color: "rgba(200,255,0,0.5)",
+                textDecoration: "none",
+                borderBottom: "1px solid rgba(200,255,0,0.15)",
+                paddingBottom: 1,
+              }}
+            >
+              Send challenge link →
+            </a>
+          )}
+        </div>
+      )}
     </div>
   );
 }
