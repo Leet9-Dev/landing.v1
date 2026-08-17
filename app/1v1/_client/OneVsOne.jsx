@@ -1178,6 +1178,10 @@ function PaidDetailsSection({ player1, player2, unlocked, onUnlock, unlockLoadin
             <div style={{ fontSize: 11, color: "rgba(241,243,249,0.2)" }}>
               Pagamento sicuro via Stripe · Un click per sempre
             </div>
+            <div style={{ fontSize: 11, color: "rgba(241,243,249,0.15)", display: "flex", gap: 12 }}>
+              <a href="/terms" target="_blank" style={{ color: "inherit", textDecoration: "underline" }}>Terms</a>
+              <a href="/privacy" target="_blank" style={{ color: "inherit", textDecoration: "underline" }}>Privacy</a>
+            </div>
           </div>
         )}
       </div>
