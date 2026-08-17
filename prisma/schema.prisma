@@ -68,6 +68,10 @@ model User {
   followers         UserFollow[] @relation("Followers")
   reviews           GameReview[]
   gameLists         GameList[]
+
+  // Billing
+  stripeCustomerId    String?              @unique
+  comparisonUnlocks   ComparisonUnlock[]
 }
 
 model VerificationToken {
@@ -475,4 +479,23 @@ model GameListItem {
   @@unique([listId, gameId])
   @@unique([listId, rank])
   @@index([listId])
+}
+
+// ===========================================================================
+// Billing — pay-per-unlock for detailed 1v1 comparison (€1 one-time)
+// ===========================================================================
+
+// One row per user per comparison pair. Created by the Stripe webhook.
+model ComparisonUnlock {
+  id               String   @id @default(cuid())
+  userId           String
+  comparisonKey    String   // sorted "<steamId1>:<steamId2>"
+  stripeSessionId  String   @unique
+  paidAt           DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, comparisonKey])
+  @@index([userId])
+  @@index([comparisonKey])
 }

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { makeComparisonKey } from "@/lib/billing-utils";
 
 const BASE_URL =
   typeof window !== "undefined"
@@ -18,8 +19,11 @@ function OneVsOnePage() {
   const [cacheKey, setCacheKey] = useState(searchParams.get("t") || "");
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
+  const [unlockLoading, setUnlockLoading] = useState(false);
 
   const hasParams = searchParams.get("p1") && searchParams.get("p2");
+  const stripeSessionId = searchParams.get("session_id");
 
   useEffect(() => {
     if (hasParams) {
@@ -27,6 +31,18 @@ function OneVsOnePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Check unlock status once we have both steamIds resolved
+  useEffect(() => {
+    if (!result?.player1?.steamId || !result?.player2?.steamId) return;
+    const key = makeComparisonKey(result.player1.steamId, result.player2.steamId);
+    const params = new URLSearchParams({ key });
+    if (stripeSessionId) params.set("session_id", stripeSessionId);
+    fetch(`/api/billing/unlock-status?${params}`)
+      .then((r) => r.json())
+      .then((json) => { if (json.ok && json.data?.unlocked) setUnlocked(true); })
+      .catch(() => {});
+  }, [result, stripeSessionId]);
 
   async function runComparison(p1, p2) {
     setLoading(true);
@@ -58,6 +74,29 @@ function OneVsOnePage() {
     e.preventDefault();
     if (!p1Input.trim() || !p2Input.trim()) return;
     runComparison(p1Input.trim(), p2Input.trim());
+  }
+
+  async function handleUnlock() {
+    if (!result?.player1?.steamId || !result?.player2?.steamId) return;
+    setUnlockLoading(true);
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          p1SteamId: result.player1.steamId,
+          p2SteamId: result.player2.steamId,
+          p1Name: result.player1.name,
+          p2Name: result.player2.name,
+        }),
+      });
+      const json = await res.json();
+      if (json.ok && json.url) {
+        window.location.href = json.url;
+      }
+    } catch {
+      setUnlockLoading(false);
+    }
   }
 
   function copyShareLink() {
@@ -260,6 +299,9 @@ function OneVsOnePage() {
             player2={result.player2}
             onShare={copyShareLink}
             copied={copied}
+            unlocked={unlocked}
+            onUnlock={handleUnlock}
+            unlockLoading={unlockLoading}
           />
         )}
       </div>
@@ -342,7 +384,7 @@ function ComparisonSkeleton() {
   );
 }
 
-function ComparisonResult({ player1, player2, onShare, copied }) {
+function ComparisonResult({ player1, player2, onShare, copied, unlocked, onUnlock, unlockLoading }) {
   const p1h = player1?.totalPlaytimeHours ?? 0;
   const p2h = player2?.totalPlaytimeHours ?? 0;
   const p1winsHours = p1h >= p2h;
@@ -462,6 +504,17 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
           <TopGames games={player1?.topGames ?? []} name={player1?.name} />
           <TopGames games={player2?.topGames ?? []} name={player2?.name} />
         </div>
+      )}
+
+      {/* Paid details section */}
+      {!player1?.error && !player2?.error && !player1?.isPrivate && !player2?.isPrivate && (
+        <PaidDetailsSection
+          player1={player1}
+          player2={player2}
+          unlocked={unlocked}
+          onUnlock={onUnlock}
+          unlockLoading={unlockLoading}
+        />
       )}
 
       {/* What is Leet9 + CTA */}
@@ -834,7 +887,7 @@ function TopGames({ games, name }) {
       >
         {name}&apos;s arsenal
       </div>
-      {games.slice(0, 5).map((g, i) => (
+      {games.slice(0, 5).map((g, i) => ( // first 5 free; 6–10 in paid section
         <div
           key={g.appId}
           style={{
@@ -879,6 +932,234 @@ function TopGames({ games, name }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function PaidDetailsSection({ player1, player2, unlocked, onUnlock, unlockLoading }) {
+  const p1Score = player1?.l9Score ?? 0;
+  const p2Score = player2?.l9Score ?? 0;
+  const p1WinsScore = p1Score >= p2Score;
+  const p1Depth = player1?.depthRatio ?? 0;
+  const p2Depth = player2?.depthRatio ?? 0;
+  const p1WinsDepth = p1Depth >= p2Depth;
+
+  return (
+    <div style={{ marginTop: 24, position: "relative" }}>
+      {/* Section header */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          marginBottom: 16,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: "rgba(241,243,249,0.25)",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+          }}
+        >
+          Analisi Dettagliata
+        </div>
+        {!unlocked && (
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 800,
+              color: "#C8FF00",
+              background: "rgba(200,255,0,0.1)",
+              border: "1px solid rgba(200,255,0,0.25)",
+              borderRadius: 4,
+              padding: "2px 7px",
+              letterSpacing: "0.08em",
+            }}
+          >
+            €1
+          </span>
+        )}
+        <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.05)" }} />
+      </div>
+
+      {/* Content — blurred when locked */}
+      <div style={{ position: "relative" }}>
+        <div
+          style={{
+            filter: unlocked ? "none" : "blur(6px)",
+            pointerEvents: unlocked ? "auto" : "none",
+            userSelect: unlocked ? "auto" : "none",
+            transition: "filter 0.3s",
+            borderRadius: 14,
+            border: "1px solid rgba(255,255,255,0.07)",
+            background: "#0D0F1A",
+            overflow: "hidden",
+          }}
+        >
+          {/* L9 Score */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr",
+              alignItems: "center",
+              padding: "24px 24px",
+              borderBottom: "1px solid rgba(255,255,255,0.05)",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: 40,
+                  fontWeight: 900,
+                  letterSpacing: "-0.03em",
+                  color: p1WinsScore ? "#C8FF00" : "#F1F3F9",
+                  lineHeight: 1,
+                }}
+              >
+                {p1Score}
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(241,243,249,0.3)", marginTop: 4 }}>
+                {player1?.name}
+              </div>
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "rgba(241,243,249,0.2)",
+                letterSpacing: "0.08em",
+                textAlign: "center",
+                padding: "0 20px",
+                textTransform: "uppercase",
+              }}
+            >
+              L9 Score
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div
+                style={{
+                  fontSize: 40,
+                  fontWeight: 900,
+                  letterSpacing: "-0.03em",
+                  color: !p1WinsScore ? "#C8FF00" : "#F1F3F9",
+                  lineHeight: 1,
+                }}
+              >
+                {p2Score}
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(241,243,249,0.3)", marginTop: 4 }}>
+                {player2?.name}
+              </div>
+            </div>
+          </div>
+
+          {/* Depth ratio */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr",
+              alignItems: "center",
+              padding: "18px 24px",
+              borderBottom: "1px solid rgba(255,255,255,0.05)",
+            }}
+          >
+            <div style={{ fontSize: 22, fontWeight: 900, color: p1WinsDepth ? "#C8FF00" : "#F1F3F9", letterSpacing: "-0.02em" }}>
+              {p1Depth}%
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(241,243,249,0.2)", letterSpacing: "0.08em", textAlign: "center", padding: "0 20px", textTransform: "uppercase" }}>
+              Gaming Depth
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: !p1WinsDepth ? "#C8FF00" : "#F1F3F9", letterSpacing: "-0.02em", textAlign: "right" }}>
+              {p2Depth}%
+            </div>
+          </div>
+
+          {/* Top games 6–10 */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 1,
+            }}
+          >
+            <div style={{ padding: "16px 20px" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(241,243,249,0.2)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
+                {player1?.name} · Giochi 6–10
+              </div>
+              {(player1?.topGames ?? []).slice(5).map((g, i) => (
+                <div key={g.appId} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: i < 4 ? 10 : 0 }}>
+                  {g.iconUrl && <img src={g.iconUrl} width={22} height={22} style={{ borderRadius: 3 }} alt="" />}
+                  <div style={{ flex: 1, fontSize: 12, fontWeight: 500, color: "rgba(241,243,249,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(200,255,0,0.5)", flexShrink: 0 }}>{g.playtimeHours}h</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: "16px 20px", borderLeft: "1px solid rgba(255,255,255,0.05)" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(241,243,249,0.2)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
+                {player2?.name} · Giochi 6–10
+              </div>
+              {(player2?.topGames ?? []).slice(5).map((g, i) => (
+                <div key={g.appId} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: i < 4 ? 10 : 0 }}>
+                  {g.iconUrl && <img src={g.iconUrl} width={22} height={22} style={{ borderRadius: 3 }} alt="" />}
+                  <div style={{ flex: 1, fontSize: 12, fontWeight: 500, color: "rgba(241,243,249,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(200,255,0,0.5)", flexShrink: 0 }}>{g.playtimeHours}h</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Paywall overlay */}
+        {!unlocked && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 14,
+              borderRadius: 14,
+              background: "rgba(7,8,15,0.6)",
+              backdropFilter: "blur(2px)",
+            }}
+          >
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#F1F3F9", letterSpacing: "-0.01em", textAlign: "center", maxWidth: 260 }}>
+              Sblocca l&apos;analisi completa
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(241,243,249,0.4)", textAlign: "center", maxWidth: 260, lineHeight: 1.5 }}>
+              L9 Score · Gaming Depth · Top 10 giochi.<br />Più 500 L9 Points di benvenuto.
+            </div>
+            <button
+              onClick={onUnlock}
+              disabled={unlockLoading}
+              style={{
+                marginTop: 4,
+                padding: "13px 32px",
+                borderRadius: 10,
+                border: "none",
+                background: unlockLoading ? "rgba(200,255,0,0.4)" : "#C8FF00",
+                color: "#07080F",
+                fontFamily: "'Outfit', system-ui, sans-serif",
+                fontSize: 15,
+                fontWeight: 900,
+                cursor: unlockLoading ? "default" : "pointer",
+                letterSpacing: "-0.01em",
+                transition: "all 0.15s",
+              }}
+            >
+              {unlockLoading ? "Caricamento…" : "Sblocca i dettagli — €1"}
+            </button>
+            <div style={{ fontSize: 11, color: "rgba(241,243,249,0.2)" }}>
+              Pagamento sicuro via Stripe · Un click per sempre
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

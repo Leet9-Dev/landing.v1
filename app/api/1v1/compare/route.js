@@ -53,17 +53,24 @@ async function buildPlayerData(input) {
   const totalPlaytimeMinutes = gameList.reduce((s, g) => s + (g.playtime_forever || 0), 0);
   const totalPlaytimeHours = Math.round(totalPlaytimeMinutes / 60);
 
-  const topGames = [...gameList]
-    .sort((a, b) => (b.playtime_forever || 0) - (a.playtime_forever || 0))
-    .slice(0, 5)
-    .map((g) => ({
-      name: g.name,
-      appId: g.appid,
-      playtimeHours: Math.round((g.playtime_forever || 0) / 60),
-      iconUrl: g.img_icon_url
-        ? `https://media.steampowered.com/steamcommunity/public/images/apps/${g.appid}/${g.img_icon_url}.jpg`
-        : null,
-    }));
+  const sorted = [...gameList].sort((a, b) => (b.playtime_forever || 0) - (a.playtime_forever || 0));
+
+  const topGames = sorted.slice(0, 10).map((g) => ({
+    name: g.name,
+    appId: g.appid,
+    playtimeHours: Math.round((g.playtime_forever || 0) / 60),
+    iconUrl: g.img_icon_url
+      ? `https://media.steampowered.com/steamcommunity/public/images/apps/${g.appid}/${g.img_icon_url}.jpg`
+      : null,
+  }));
+
+  // Computed stats for paid section
+  const gamesWithTenPlusHours = gameList.filter((g) => (g.playtime_forever || 0) >= 600).length;
+  const depthRatio = gameList.length > 0 ? Math.round((gamesWithTenPlusHours / gameList.length) * 100) : 0;
+  // L9 Score: weighted formula (hours intensity 60% + library depth 40%)
+  const hoursScore = Math.min(totalPlaytimeHours / 50, 100) * 60;
+  const depthScore = depthRatio * 0.4;
+  const l9Score = Math.round(hoursScore + depthScore);
 
   return {
     steamId,
@@ -74,6 +81,10 @@ async function buildPlayerData(input) {
     totalGames: gameList.length,
     totalPlaytimeHours,
     topGames: isPrivate ? [] : topGames,
+    // Extended stats (shown in paid section)
+    l9Score: isPrivate ? null : l9Score,
+    depthRatio: isPrivate ? null : depthRatio,
+    gamesWithTenPlusHours: isPrivate ? null : gamesWithTenPlusHours,
   };
 }
 
