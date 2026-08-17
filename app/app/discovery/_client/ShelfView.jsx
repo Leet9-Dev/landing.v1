@@ -2,16 +2,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-const FRONT_W = 198;
-const FRONT_H = 278;
-const SIDE_W = 24;
+const FRONT_W = 272;
+const FRONT_H = 382;
+const SIDE_W = 32;
 const ACTIVE_W = FRONT_W + SIDE_W;
 const ACTIVE_H = FRONT_H;
-const SPINE_W = 34;
-const SPINE_H = 254;
-const GAP = 5;
-const LIFT = 64;
-const SHELF_H = 38;
+const SPINE_W = 42;
+const SPINE_H = 350;
+const GAP = 6;
+const LIFT = 88;
+const SHELF_H = 44;
 
 const PLATFORM_STYLE = {
   steam: { barBg: "#1B2838", barText: "STEAM",       barColor: "#C7D5E0", spineBg: "#101820", sideColor: "#0A1018" },
@@ -29,6 +29,18 @@ function getPortraitCover(url) {
     return url.replace("/header.jpg", "/library_600x900.jpg");
   }
   return url;
+}
+
+function getNextFallback(src, original) {
+  if (!src) return null;
+  // chain: portrait → original header → akamai portrait → null
+  if (src.includes("/library_600x900.jpg") && original.includes("steamstatic.com")) {
+    return original; // try original header.jpg
+  }
+  if (src === original && original.includes("steamstatic.com")) {
+    return original.replace("cdn.cloudflare.steamstatic.com", "cdn.akamai.steamstatic.com").replace("/header.jpg", "/library_600x900.jpg");
+  }
+  return null;
 }
 
 function getPlatform(sourcePlatforms) {
@@ -57,7 +69,7 @@ export default function ShelfView({ games }) {
     let xBefore = 0;
     for (let i = 0; i < idx; i++) xBefore += SPINE_W + GAP;
     const activeCenterX = xBefore + ACTIVE_W / 2;
-    return containerW * 0.56 - activeCenterX;
+    return containerW * 0.62 - activeCenterX;
   }, []);
 
   useEffect(() => {
@@ -372,9 +384,8 @@ function GameCase({ game, isActive, dragDist, onClick }) {
               alt={game.canonicalTitle}
               draggable={false}
               onError={() => {
-                // portrait not available — try original URL, then fallback
-                if (imgSrc !== game.coverImageUrl) setImgSrc(game.coverImageUrl);
-                else setImgSrc(null);
+                const next = getNextFallback(imgSrc, game.coverImageUrl);
+                setImgSrc(next);
               }}
               style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
             />
