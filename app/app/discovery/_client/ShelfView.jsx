@@ -22,7 +22,7 @@ const PLATFORM_STYLE = {
 };
 const DEFAULT_PLATFORM = { barBg: "#181828", barText: "PC", barColor: "rgba(180,180,255,0.7)", spineBg: "#0D0D20", sideColor: "#070712" };
 
-// Steam header.jpg is landscape — swap to portrait library_600x900.jpg for game cases
+// Try portrait first; falls back through a chain to the original URL
 function getPortraitCover(url) {
   if (!url) return null;
   if (url.includes("steamstatic.com") && url.includes("/header.jpg")) {
@@ -31,16 +31,10 @@ function getPortraitCover(url) {
   return url;
 }
 
-function getNextFallback(src, original) {
-  if (!src) return null;
-  // chain: portrait → original header → akamai portrait → null
-  if (src.includes("/library_600x900.jpg") && original.includes("steamstatic.com")) {
-    return original; // try original header.jpg
-  }
-  if (src === original && original.includes("steamstatic.com")) {
-    return original.replace("cdn.cloudflare.steamstatic.com", "cdn.akamai.steamstatic.com").replace("/header.jpg", "/library_600x900.jpg");
-  }
-  return null;
+function getNextFallback(currentSrc, originalUrl) {
+  if (!currentSrc || !originalUrl) return null;
+  if (currentSrc === originalUrl) return null; // already tried original — give up
+  return originalUrl; // fall back to original (header.jpg, landscape — object-fit handles it)
 }
 
 function getPlatform(sourcePlatforms) {
@@ -387,7 +381,7 @@ function GameCase({ game, isActive, dragDist, onClick }) {
                 const next = getNextFallback(imgSrc, game.coverImageUrl);
                 setImgSrc(next);
               }}
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top", display: "block" }}
             />
           ) : (
             <FallbackCover game={game} platform={platform} />
