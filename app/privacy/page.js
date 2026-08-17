@@ -4,7 +4,7 @@ export const metadata = {
 };
 
 const EFFECTIVE_DATE = "August 17, 2026";
-const EMAIL = "privacy@leet9.com";
+const EMAIL = "tech@leet9.com";
 
 export default function PrivacyPage() {
   return (
