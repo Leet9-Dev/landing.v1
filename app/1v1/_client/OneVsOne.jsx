@@ -578,10 +578,11 @@ function ComparisonResult({ player1, player2, onShare, copied, unlocked, onUnloc
               maxWidth: 540,
             }}
           >
-            Leet9 is the gaming identity platform that turns your Steam library
-            into a real profile. Connect your accounts, earn L9 Points for every
-            hour played and achievement unlocked, and rank against players worldwide —
-            not just your friends list.
+            Leet9 is your One Gamer iD — a single profile that connects every game
+            you play, on every platform. PC, console, mobile. Real stats, live.
+            L9 Points not just for hours logged, but for every achievement earned,
+            every competition won, every milestone reached. The gaming identity
+            that finally reflects the real gamer you are.
           </p>
         </div>
 
