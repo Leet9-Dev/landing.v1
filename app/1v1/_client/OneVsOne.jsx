@@ -32,6 +32,7 @@ function OneVsOnePage() {
     setLoading(true);
     setError(null);
     setResult(null);
+    trackEvent("1v1_started", { p1, p2 });
     try {
       const res = await fetch("/api/1v1/compare", {
         method: "POST",
@@ -45,6 +46,7 @@ function OneVsOnePage() {
         setCacheKey(key);
         const params = new URLSearchParams({ p1, p2, ...(key && { t: key }) });
         router.replace(`/1v1?${params}`, { scroll: false });
+        trackEvent("1v1_completed", { p1, p2 });
       } else {
         setError(json.error || "Something went wrong.");
       }
@@ -67,6 +69,7 @@ function OneVsOnePage() {
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      trackEvent("share_clicked", { p1: p1Input, p2: p2Input });
     });
   }
 
@@ -102,16 +105,23 @@ function OneVsOnePage() {
         <a href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
           <img src="/logo-full-whitegradient.png" alt="Leet9" style={{ height: 28, width: "auto", display: "block" }} />
         </a>
-        <span
+        <a
+          href="/signup"
           style={{
-            fontSize: 12,
-            fontWeight: 500,
-            color: "rgba(241,243,249,0.25)",
-            letterSpacing: "0.04em",
+            display: "inline-flex",
+            alignItems: "center",
+            padding: "8px 18px",
+            borderRadius: 8,
+            background: "#C8FF00",
+            color: "#07080F",
+            fontSize: 13,
+            fontWeight: 800,
+            textDecoration: "none",
+            letterSpacing: "-0.01em",
           }}
         >
-          Your gaming identity, finally visible.
-        </span>
+          Join Leet9 — free →
+        </a>
       </div>
 
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "64px 32px 96px" }}>
@@ -142,8 +152,8 @@ function OneVsOnePage() {
               margin: "0 0 20px",
             }}
           >
-            You think you game more.{" "}
-            <span style={{ color: "#C8FF00" }}>Prove it.</span>
+            Who&apos;s the better gamer?{" "}
+            <span style={{ color: "#C8FF00" }}>Find out.</span>
           </h1>
           <p
             style={{
@@ -155,7 +165,7 @@ function OneVsOnePage() {
               fontWeight: 400,
             }}
           >
-            Two profiles. One verdict. The numbers have no mercy.
+            Two profiles. One answer. The data doesn&apos;t lie.
           </p>
         </div>
 
@@ -221,7 +231,7 @@ function OneVsOnePage() {
                 flexShrink: 0,
               }}
             >
-              {loading ? "Pulling data…" : "Settle it →"}
+              {loading ? "Running the numbers…" : "Settle it →"}
             </button>
           </div>
           <p
@@ -232,7 +242,7 @@ function OneVsOnePage() {
               textAlign: "center",
             }}
           >
-            Accepts: SteamID64 · steamcommunity.com/id/username · steamcommunity.com/profiles/ID
+            Paste a SteamID64, vanity name, or full profile URL
           </p>
         </form>
 
@@ -260,6 +270,8 @@ function OneVsOnePage() {
             player2={result.player2}
             onShare={copyShareLink}
             copied={copied}
+            p1Input={p1Input}
+            p2Input={p2Input}
           />
         )}
       </div>
@@ -342,225 +354,470 @@ function ComparisonSkeleton() {
   );
 }
 
-function ComparisonResult({ player1, player2, onShare, copied }) {
-  const p1h = player1?.totalPlaytimeHours ?? 0;
-  const p2h = player2?.totalPlaytimeHours ?? 0;
-  const p1winsHours = p1h >= p2h;
+function ComparisonResult({ player1, player2, onShare, copied, p1Input, p2Input }) {
+  const p1Score = player1?.l9Score ?? 0;
+  const p2Score = player2?.l9Score ?? 0;
+  const p1Wins = p1Score >= p2Score;
   const p1winsGames = (player1?.totalGames ?? 0) >= (player2?.totalGames ?? 0);
+  const winner = p1Wins ? player1 : player2;
+  const loser = p1Wins ? player2 : player1;
+
+  const [email, setEmail] = useState("");
+  const [emailSubmitting, setEmailSubmitting] = useState(false);
+  const [emailCaptured, setEmailCaptured] = useState(false);
+  const [emailError, setEmailError] = useState(null);
+
+  const hasError = player1?.error || player2?.error;
+  const hasPrivate = player1?.isPrivate || player2?.isPrivate;
+  const showPaywall = !hasError && !hasPrivate;
+
+  async function captureEmail(e) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setEmailSubmitting(true);
+    setEmailError(null);
+    try {
+      const res = await fetch("/api/1v1/capture-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          p1Input,
+          p2Input,
+          winnerName: winner?.name ?? null,
+          l9Score1: player1?.l9Score ?? null,
+          l9Score2: player2?.l9Score ?? null,
+        }),
+      });
+      const json = await res.json();
+      if (json.ok) {
+        setEmailCaptured(true);
+      } else {
+        setEmailError("Something went wrong. Try again.");
+      }
+    } catch {
+      setEmailError("Network error. Try again.");
+    }
+    setEmailSubmitting(false);
+  }
+
+  if (hasError) {
+    return (
+      <div style={{ marginTop: 52 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 24, alignItems: "start" }}>
+          <PlayerCard player={player1} winner={false} side="left" />
+          <VsDivider />
+          <PlayerCard player={player2} winner={false} side="right" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ marginTop: 52 }}>
-      {/* Verdict banner */}
-      {!player1?.error && !player2?.error && !player1?.isPrivate && !player2?.isPrivate && (
+      {/* Verdict + Share */}
+      <div style={{ textAlign: "center", marginBottom: 36 }}>
         <div
           style={{
-            textAlign: "center",
-            marginBottom: 36,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: "rgba(241,243,249,0.3)",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              marginBottom: 10,
-            }}
-          >
-            The verdict is in
-          </div>
-          <div
-            style={{
-              fontSize: 28,
-              fontWeight: 900,
-              color: "#F1F3F9",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            <span style={{ color: "#C8FF00" }}>
-              {p1winsHours ? player1?.name : player2?.name}
-            </span>{" "}
-            has no excuses to make.
-          </div>
-        </div>
-      )}
-
-      {/* Share button */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
-        <button
-          onClick={onShare}
-          style={{
-            padding: "8px 20px",
-            borderRadius: 99,
-            border: "1px solid rgba(255,255,255,0.1)",
-            background: copied ? "rgba(200,255,0,0.07)" : "transparent",
-            color: copied ? "#C8FF00" : "rgba(241,243,249,0.4)",
-            fontFamily: "'Outfit', system-ui, sans-serif",
             fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "all 0.15s",
+            fontWeight: 700,
+            color: "rgba(241,243,249,0.3)",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            marginBottom: 10,
           }}
         >
-          {copied ? "✓ Link copied!" : "Send this to them →"}
-        </button>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto 1fr",
-          gap: 24,
-          alignItems: "start",
-        }}
-      >
-        <PlayerCard player={player1} winner={p1winsHours} side="left" />
-        <VsDivider />
-        <PlayerCard player={player2} winner={!p1winsHours} side="right" />
-      </div>
-
-      {/* Stats comparison */}
-      <div
-        style={{
-          marginTop: 28,
-          borderRadius: 14,
-          border: "1px solid rgba(255,255,255,0.07)",
-          background: "#0D0F1A",
-          overflow: "hidden",
-        }}
-      >
-        <StatRow
-          label="Total Playtime"
-          v1={`${player1?.totalPlaytimeHours?.toLocaleString() ?? 0}h`}
-          v2={`${player2?.totalPlaytimeHours?.toLocaleString() ?? 0}h`}
-          p1Wins={p1winsHours}
-          p1Private={player1?.isPrivate}
-          p2Private={player2?.isPrivate}
-        />
-        <StatRow
-          label="Games Owned"
-          v1={player1?.totalGames?.toLocaleString() ?? "0"}
-          v2={player2?.totalGames?.toLocaleString() ?? "0"}
-          p1Wins={p1winsGames}
-          p1Private={player1?.isPrivate}
-          p2Private={player2?.isPrivate}
-          divider={false}
-        />
-      </div>
-
-      {/* Top games */}
-      {!player1?.isPrivate && !player2?.isPrivate && (
+          Verdict
+        </div>
         <div
           style={{
-            marginTop: 20,
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 16,
+            fontSize: 28,
+            fontWeight: 900,
+            color: "#F1F3F9",
+            letterSpacing: "-0.02em",
+            marginBottom: 28,
           }}
         >
-          <TopGames games={player1?.topGames ?? []} name={player1?.name} />
-          <TopGames games={player2?.topGames ?? []} name={player2?.name} />
+          {hasPrivate ? (
+            "One profile is private. Set it public on Steam to battle."
+          ) : (
+            <>
+              <span style={{ color: "#C8FF00" }}>{winner?.name}</span>{" "}
+              is the better gamer. No debate.
+            </>
+          )}
         </div>
-      )}
 
-      {/* What is Leet9 + CTA */}
-      <div
-        style={{
-          marginTop: 44,
-          borderRadius: 16,
-          border: "1px solid rgba(255,255,255,0.07)",
-          background: "#0D0F1A",
-          overflow: "hidden",
-        }}
-      >
-        {/* What is Leet9 */}
+        {/* Referral share block */}
         <div
           style={{
-            padding: "32px 36px 28px",
-            borderBottom: "1px solid rgba(255,255,255,0.05)",
+            display: "inline-block",
+            padding: "20px 28px 22px",
+            borderRadius: 16,
+            border: "1px solid rgba(200,255,0,0.15)",
+            background: "rgba(200,255,0,0.04)",
+            maxWidth: 420,
+            width: "100%",
+            textAlign: "left",
+            marginBottom: 4,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              marginBottom: 16,
-            }}
-          >
-            <img src="/logo-full-whitegradient.png" alt="Leet9" style={{ height: 20, width: "auto", display: "block", opacity: 0.6 }} />
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "rgba(241,243,249,0.35)",
-                letterSpacing: "0.04em",
-              }}
-            >
-              What is Leet9?
-            </span>
-          </div>
-          <p
-            style={{
-              fontSize: 15,
-              color: "rgba(241,243,249,0.5)",
-              lineHeight: 1.7,
-              margin: 0,
-              maxWidth: 540,
-            }}
-          >
-            Leet9 is the gaming identity platform that turns your Steam library
-            into a real profile. Connect your accounts, earn L9 Points for every
-            hour played and achievement unlocked, and rank against players worldwide —
-            not just your friends list.
-          </p>
-        </div>
-
-        {/* CTA */}
-        <div style={{ padding: "28px 36px 32px", textAlign: "center" }}>
           <div
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: "rgba(241,243,249,0.2)",
+              color: "#C8FF00",
               letterSpacing: "0.1em",
               textTransform: "uppercase",
-              marginBottom: 12,
+              marginBottom: 6,
             }}
           >
-            Your hours are on record. Are you?
+            Share & earn
           </div>
           <div
             style={{
-              fontSize: 22,
-              fontWeight: 900,
+              fontSize: 15,
+              fontWeight: 700,
               color: "#F1F3F9",
-              letterSpacing: "-0.02em",
-              marginBottom: 22,
-              lineHeight: 1.3,
+              marginBottom: 6,
+              letterSpacing: "-0.01em",
+              lineHeight: 1.4,
             }}
           >
-            Build the profile that backs up the talk.
+            Send this result to your rival.
           </div>
-          <a
-            href="/signup"
+          <div
             style={{
-              display: "inline-block",
-              padding: "13px 32px",
+              fontSize: 13,
+              color: "rgba(241,243,249,0.45)",
+              lineHeight: 1.6,
+              marginBottom: 18,
+            }}
+          >
+            When they open your link and unlock the full stats, you earn{" "}
+            <span style={{ color: "#C8FF00", fontWeight: 700 }}>1,000 bonus L9 Points</span>{" "}
+            — automatically.
+          </div>
+          <button
+            onClick={onShare}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "13px 28px",
               borderRadius: 10,
-              background: "#C8FF00",
-              color: "#07080F",
+              border: "none",
+              background: copied ? "rgba(200,255,0,0.15)" : "#C8FF00",
+              color: copied ? "#C8FF00" : "#07080F",
+              fontFamily: "'Outfit', system-ui, sans-serif",
               fontSize: 14,
               fontWeight: 800,
-              textDecoration: "none",
-              letterSpacing: "0.01em",
+              cursor: "pointer",
+              transition: "all 0.15s",
+              letterSpacing: "-0.01em",
+              boxShadow: copied ? "none" : "0 0 24px rgba(200,255,0,0.2)",
+              width: "100%",
+              justifyContent: "center",
             }}
           >
-            Join Leet9 — it&apos;s free
-          </a>
+            {copied ? "✓ Link copied!" : "Copy link & earn 1,000 points →"}
+          </button>
         </div>
       </div>
+
+      {/* Winner card — visible, no numbers */}
+      {showPaywall && <WinnerCard player={winner} loser={loser} />}
+
+      {/* Private fallback — show both cards as-is */}
+      {hasPrivate && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 24, alignItems: "start" }}>
+          <PlayerCard player={player1} winner={p1Wins} side="left" />
+          <VsDivider />
+          <PlayerCard player={player2} winner={!p1Wins} side="right" />
+        </div>
+      )}
+
+      {/* Blurred paywall section */}
+      {showPaywall && (
+        <div style={{ position: "relative", marginTop: 24 }}>
+          {/* Blurred content */}
+          <div style={{ filter: "blur(7px)", userSelect: "none", pointerEvents: "none", opacity: 0.6 }}>
+            {/* VS cards teaser */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 24, alignItems: "start" }}>
+              <PlayerCard player={winner} winner={true} side="left" />
+              <VsDivider />
+              <PlayerCard player={loser} winner={false} side="right" />
+            </div>
+            {/* Stats */}
+            <div style={{ marginTop: 28, borderRadius: 14, border: "1px solid rgba(255,255,255,0.07)", background: "#0D0F1A", overflow: "hidden" }}>
+              <StatRow
+                label="L9 Score"
+                v1={`${player1?.l9Score ?? 0}`}
+                v2={`${player2?.l9Score ?? 0}`}
+                p1Wins={p1Wins}
+              />
+              <StatRow
+                label="Achievement Rate"
+                v1={`${player1?.achievementRatePct ?? 0}%`}
+                v2={`${player2?.achievementRatePct ?? 0}%`}
+                p1Wins={(player1?.achievementRatePct ?? 0) >= (player2?.achievementRatePct ?? 0)}
+              />
+              <StatRow
+                label="Avg Hours / Game"
+                v1={`${player1?.avgHoursPerGame ?? 0}h`}
+                v2={`${player2?.avgHoursPerGame ?? 0}h`}
+                p1Wins={(player1?.avgHoursPerGame ?? 0) >= (player2?.avgHoursPerGame ?? 0)}
+              />
+              <StatRow
+                label="Total Playtime"
+                v1={`${player1?.totalPlaytimeHours?.toLocaleString() ?? 0}h`}
+                v2={`${player2?.totalPlaytimeHours?.toLocaleString() ?? 0}h`}
+                p1Wins={(player1?.totalPlaytimeHours ?? 0) >= (player2?.totalPlaytimeHours ?? 0)}
+              />
+              <StatRow
+                label="Games Owned"
+                v1={player1?.totalGames?.toLocaleString() ?? "0"}
+                v2={player2?.totalGames?.toLocaleString() ?? "0"}
+                p1Wins={p1winsGames}
+                divider={false}
+              />
+            </div>
+            {/* Top games */}
+            <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <TopGames games={player1?.topGames ?? []} name={player1?.name} />
+              <TopGames games={player2?.topGames ?? []} name={player2?.name} />
+            </div>
+          </div>
+
+          {/* Paywall overlay */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "linear-gradient(to bottom, transparent 0%, rgba(7,8,15,0.7) 30%, rgba(7,8,15,0.85) 60%)",
+            }}
+          >
+            <div
+              style={{
+                textAlign: "center",
+                padding: "36px 40px",
+                borderRadius: 20,
+                background: "rgba(13,15,26,0.92)",
+                border: "1px solid rgba(200,255,0,0.15)",
+                backdropFilter: "blur(12px)",
+                maxWidth: 420,
+              }}
+            >
+              <div style={{ fontSize: 28, marginBottom: 10 }}>🔒</div>
+              <div
+                style={{
+                  fontSize: 19,
+                  fontWeight: 900,
+                  color: "#F1F3F9",
+                  letterSpacing: "-0.02em",
+                  marginBottom: 6,
+                }}
+              >
+                See the full breakdown
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "rgba(241,243,249,0.4)",
+                  lineHeight: 1.6,
+                  marginBottom: 20,
+                }}
+              >
+                €1 one-time · <span style={{ color: "#C8FF00", fontWeight: 700 }}>500 L9 Points</span> · Full access to Leet9
+              </div>
+
+              {!emailCaptured ? (
+                <form onSubmit={captureEmail} style={{ width: "100%" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(241,243,249,0.35)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+                    Save your score first
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexDirection: "column" }}>
+                    <input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "11px 14px",
+                        borderRadius: 8,
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        background: "rgba(255,255,255,0.04)",
+                        color: "#F1F3F9",
+                        fontFamily: "'Outfit', system-ui, sans-serif",
+                        fontSize: 14,
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={emailSubmitting}
+                      style={{
+                        padding: "12px 24px",
+                        borderRadius: 8,
+                        border: "none",
+                        background: emailSubmitting ? "rgba(200,255,0,0.4)" : "#C8FF00",
+                        color: "#07080F",
+                        fontFamily: "'Outfit', system-ui, sans-serif",
+                        fontSize: 14,
+                        fontWeight: 800,
+                        cursor: emailSubmitting ? "not-allowed" : "pointer",
+                        width: "100%",
+                      }}
+                    >
+                      {emailSubmitting ? "Saving…" : "Save my score →"}
+                    </button>
+                  </div>
+                  {emailError && (
+                    <div style={{ fontSize: 12, color: "#fca5a5", marginTop: 8 }}>{emailError}</div>
+                  )}
+                </form>
+              ) : (
+                <>
+                  <div style={{ fontSize: 13, color: "rgba(200,255,0,0.8)", marginBottom: 16, fontWeight: 600 }}>
+                    ✓ Score saved — check your inbox.
+                  </div>
+                  <button
+                    disabled
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "13px 32px",
+                      borderRadius: 10,
+                      border: "none",
+                      background: "#C8FF00",
+                      color: "#07080F",
+                      fontFamily: "'Outfit', system-ui, sans-serif",
+                      fontSize: 14,
+                      fontWeight: 800,
+                      cursor: "not-allowed",
+                      opacity: 0.6,
+                      width: "100%",
+                      justifyContent: "center",
+                    }}
+                  >
+                    Unlock for €1 — coming soon
+                  </button>
+                </>
+              )}
+              <div style={{ marginTop: 14 }}>
+                <a
+                  href="/signup"
+                  style={{
+                    fontSize: 12,
+                    color: "rgba(241,243,249,0.3)",
+                    textDecoration: "none",
+                    borderBottom: "1px solid rgba(255,255,255,0.08)",
+                    paddingBottom: 1,
+                  }}
+                >
+                  Just want your profile? Join free →
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WinnerCard({ player, loser }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 16,
+        padding: "28px 24px",
+        borderRadius: 16,
+        border: "1px solid rgba(200,255,0,0.2)",
+        background: "#0D0F1A",
+        boxShadow: "0 0 40px rgba(200,255,0,0.06)",
+      }}
+    >
+      {player?.avatarUrl && (
+        <img
+          src={player.avatarUrl}
+          alt={player.name}
+          width={72}
+          height={72}
+          style={{
+            borderRadius: 14,
+            border: "2px solid #C8FF00",
+          }}
+        />
+      )}
+      <div style={{ textAlign: "center" }}>
+        <div
+          style={{
+            fontSize: 20,
+            fontWeight: 900,
+            color: "#F1F3F9",
+            letterSpacing: "-0.01em",
+            marginBottom: 8,
+          }}
+        >
+          {player?.name}
+        </div>
+        <span
+          style={{
+            display: "inline-block",
+            fontSize: 11,
+            fontWeight: 800,
+            letterSpacing: "0.12em",
+            color: "#C8FF00",
+            background: "rgba(200,255,0,0.1)",
+            border: "1px solid rgba(200,255,0,0.25)",
+            padding: "4px 14px",
+            borderRadius: 99,
+          }}
+        >
+          WINNER
+        </span>
+      </div>
+      {player?.steamId && (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginTop: 4 }}>
+          <a
+            href={`/u/${player.steamId}`}
+            style={{
+              fontSize: 12,
+              color: "rgba(241,243,249,0.35)",
+              textDecoration: "none",
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
+              paddingBottom: 1,
+            }}
+          >
+            View profile →
+          </a>
+          {loser?.steamId && (
+            <a
+              href={`/1v1/challenge/${player.steamId}`}
+              style={{
+                fontSize: 12,
+                color: "rgba(200,255,0,0.5)",
+                textDecoration: "none",
+                borderBottom: "1px solid rgba(200,255,0,0.15)",
+                paddingBottom: 1,
+              }}
+            >
+              Send challenge link →
+            </a>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -578,12 +835,12 @@ function PlayerCard({ player, winner, side }) {
         }}
       >
         <div style={{ fontSize: 14, color: "rgba(239,68,68,0.6)", fontWeight: 600 }}>
-          {isSteamDown ? "Steam is unreachable" : "Profile not found"}
+          {isSteamDown ? "Steam is unreachable right now" : "Profile not found"}
         </div>
         <div style={{ fontSize: 12, color: "rgba(241,243,249,0.25)", marginTop: 4 }}>
           {isSteamDown
-            ? "Steam API is currently offline. Try again in a few minutes."
-            : "Check the Steam ID or URL and try again."}
+            ? "Steam API is offline. Give it a minute and try again."
+            : "Double-check the Steam ID or profile URL."}
         </div>
       </div>
     );
@@ -677,7 +934,7 @@ function PlayerCard({ player, winner, side }) {
           }}
         >
           <div style={{ fontSize: 13, color: "rgba(241,243,249,0.35)", marginBottom: 6 }}>
-            This profile is private — stats are hidden.
+            Profile is set to private — no data available.
           </div>
           <a
             href="https://steamcommunity.com/my/privacy/settings"

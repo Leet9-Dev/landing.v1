@@ -4,13 +4,13 @@ import {
   fetchSteamOwnedGames,
   resolveVanityURL,
 } from "@/lib/integrations/steam/steamClient";
+import { computeL9Score } from "@/lib/integrations/steam/l9score";
 
 const STEAMID64_RE = /^[0-9]{17}$/;
 const VANITY_URL_RE = /^https?:\/\/steamcommunity\.com\/(id|profiles)\/([^/]+)/;
 
 async function resolveSteamId(input) {
   const trimmed = input.trim();
-
   const urlMatch = trimmed.match(VANITY_URL_RE);
   if (urlMatch) {
     const type = urlMatch[1];
@@ -18,11 +18,10 @@ async function resolveSteamId(input) {
     if (type === "profiles" && STEAMID64_RE.test(value)) return value;
     return resolveVanityURL(value);
   }
-
   if (STEAMID64_RE.test(trimmed)) return trimmed;
-
   return resolveVanityURL(trimmed);
 }
+
 
 async function buildPlayerData(input) {
   let steamId;
@@ -46,9 +45,7 @@ async function buildPlayerData(input) {
 
   if (!summary) return { error: "not_found", input };
 
-  // communityvisibilitystate: 1 = private, 3 = public
   const isPrivate = summary.communityvisibilitystate !== 3;
-
   const gameList = Array.isArray(games) ? games : [];
   const totalPlaytimeMinutes = gameList.reduce((s, g) => s + (g.playtime_forever || 0), 0);
   const totalPlaytimeHours = Math.round(totalPlaytimeMinutes / 60);
@@ -65,6 +62,10 @@ async function buildPlayerData(input) {
         : null,
     }));
 
+  const { l9Score, achievementRatePct, avgHoursPerGame } = isPrivate
+    ? { l9Score: 0, achievementRatePct: 0, avgHoursPerGame: 0 }
+    : await computeL9Score(steamId, gameList);
+
   return {
     steamId,
     name: summary.personaname,
@@ -74,6 +75,9 @@ async function buildPlayerData(input) {
     totalGames: gameList.length,
     totalPlaytimeHours,
     topGames: isPrivate ? [] : topGames,
+    l9Score,
+    achievementRatePct,
+    avgHoursPerGame,
   };
 }
 
