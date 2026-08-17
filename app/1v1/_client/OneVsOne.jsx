@@ -21,6 +21,7 @@ function OneVsOnePage() {
   const [copied, setCopied] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
   const [unlockLoading, setUnlockLoading] = useState(false);
+  const [unlockError, setUnlockError] = useState(null);
 
   const hasParams = searchParams.get("p1") && searchParams.get("p2");
   const stripeSessionId = searchParams.get("session_id");
@@ -79,6 +80,7 @@ function OneVsOnePage() {
   async function handleUnlock() {
     if (!result?.player1?.steamId || !result?.player2?.steamId) return;
     setUnlockLoading(true);
+    setUnlockError(null);
     try {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
@@ -93,10 +95,13 @@ function OneVsOnePage() {
       const json = await res.json();
       if (json.ok && json.url) {
         window.location.href = json.url;
+        return; // don't reset loading — we're navigating away
       }
+      setUnlockError(json.error?.message || "Qualcosa è andato storto. Riprova.");
     } catch {
-      setUnlockLoading(false);
+      setUnlockError("Errore di rete. Riprova tra qualche secondo.");
     }
+    setUnlockLoading(false);
   }
 
   function copyShareLink() {
@@ -302,6 +307,7 @@ function OneVsOnePage() {
             unlocked={unlocked}
             onUnlock={handleUnlock}
             unlockLoading={unlockLoading}
+            unlockError={unlockError}
           />
         )}
       </div>
@@ -384,7 +390,7 @@ function ComparisonSkeleton() {
   );
 }
 
-function ComparisonResult({ player1, player2, onShare, copied, unlocked, onUnlock, unlockLoading }) {
+function ComparisonResult({ player1, player2, onShare, copied, unlocked, onUnlock, unlockLoading, unlockError }) {
   const p1h = player1?.totalPlaytimeHours ?? 0;
   const p2h = player2?.totalPlaytimeHours ?? 0;
   const p1winsHours = p1h >= p2h;
@@ -421,7 +427,7 @@ function ComparisonResult({ player1, player2, onShare, copied, unlocked, onUnloc
             }}
           >
             <span style={{ color: "#C8FF00" }}>
-              {p1winsHours ? player1?.name : player2?.name}
+              {p1winsHours ? player2?.name : player1?.name}
             </span>{" "}
             has no excuses to make.
           </div>
@@ -501,8 +507,16 @@ function ComparisonResult({ player1, player2, onShare, copied, unlocked, onUnloc
             gap: 16,
           }}
         >
-          <TopGames games={player1?.topGames ?? []} name={player1?.name} />
-          <TopGames games={player2?.topGames ?? []} name={player2?.name} />
+          <div>
+            {(player1?.topGames?.length ?? 0) > 0 && (
+              <TopGames games={player1.topGames} name={player1.name} />
+            )}
+          </div>
+          <div>
+            {(player2?.topGames?.length ?? 0) > 0 && (
+              <TopGames games={player2.topGames} name={player2.name} />
+            )}
+          </div>
         </div>
       )}
 
@@ -514,6 +528,7 @@ function ComparisonResult({ player1, player2, onShare, copied, unlocked, onUnloc
           unlocked={unlocked}
           onUnlock={onUnlock}
           unlockLoading={unlockLoading}
+          unlockError={unlockError}
         />
       )}
 
@@ -936,7 +951,7 @@ function TopGames({ games, name }) {
   );
 }
 
-function PaidDetailsSection({ player1, player2, unlocked, onUnlock, unlockLoading }) {
+function PaidDetailsSection({ player1, player2, unlocked, onUnlock, unlockLoading, unlockError }) {
   const p1Score = player1?.l9Score ?? 0;
   const p2Score = player2?.l9Score ?? 0;
   const p1WinsScore = p1Score >= p2Score;
@@ -1154,6 +1169,11 @@ function PaidDetailsSection({ player1, player2, unlocked, onUnlock, unlockLoadin
             >
               {unlockLoading ? "Caricamento…" : "Sblocca i dettagli — €1"}
             </button>
+            {unlockError && (
+              <div style={{ fontSize: 12, color: "#fca5a5", textAlign: "center", maxWidth: 260 }}>
+                {unlockError}
+              </div>
+            )}
             <div style={{ fontSize: 11, color: "rgba(241,243,249,0.2)" }}>
               Pagamento sicuro via Stripe · Un click per sempre
             </div>
