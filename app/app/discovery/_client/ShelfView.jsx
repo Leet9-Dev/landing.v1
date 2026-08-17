@@ -2,28 +2,38 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-const ACTIVE_W = 152;
-const ACTIVE_H = 218;
-const SPINE_W = 22;
-const SPINE_H = 196;
-const GAP = 4;
-const LIFT = 48;
-const SHELF_H = 32;
+const FRONT_W = 198;
+const FRONT_H = 278;
+const SIDE_W = 24;
+const ACTIVE_W = FRONT_W + SIDE_W;
+const ACTIVE_H = FRONT_H;
+const SPINE_W = 34;
+const SPINE_H = 254;
+const GAP = 5;
+const LIFT = 64;
+const SHELF_H = 38;
 
-// Platform bar styles — anni 2000 console aesthetic
 const PLATFORM_STYLE = {
-  steam: { barBg: "#1B2838", barText: "STEAM", barColor: "#A8C5E0", spineBg: "#0F1820" },
-  psn:   { barBg: "#003087", barText: "PLAYSTATION", barColor: "#FFFFFF", spineBg: "#001A4A" },
-  xbox:  { barBg: "#107C10", barText: "XBOX", barColor: "#FFFFFF", spineBg: "#073A07" },
-  epic:  { barBg: "#1F1F1F", barText: "EPIC GAMES", barColor: "#CCCCCC", spineBg: "#111111" },
-  gog:   { barBg: "#5612A0", barText: "GOG", barColor: "#FFFFFF", spineBg: "#2D0A60" },
+  steam: { barBg: "#1B2838", barText: "STEAM",       barColor: "#C7D5E0", spineBg: "#101820", sideColor: "#0A1018" },
+  psn:   { barBg: "#003087", barText: "PLAYSTATION",  barColor: "#FFFFFF", spineBg: "#001A55", sideColor: "#000E35" },
+  xbox:  { barBg: "#0E6B0E", barText: "XBOX",         barColor: "#FFFFFF", spineBg: "#073507", sideColor: "#041F04" },
+  epic:  { barBg: "#202020", barText: "EPIC GAMES",   barColor: "#CCCCCC", spineBg: "#141414", sideColor: "#0A0A0A" },
+  gog:   { barBg: "#4A12A0", barText: "GOG",          barColor: "#FFFFFF", spineBg: "#280A60", sideColor: "#180640" },
 };
-const DEFAULT_PLATFORM = { barBg: "#1A1830", barText: "PC", barColor: "rgba(200,200,255,0.6)", spineBg: "#0D0D20" };
+const DEFAULT_PLATFORM = { barBg: "#181828", barText: "PC", barColor: "rgba(180,180,255,0.7)", spineBg: "#0D0D20", sideColor: "#070712" };
 
-function getPlatformStyle(sourcePlatforms) {
+// Steam header.jpg is landscape — swap to portrait library_600x900.jpg for game cases
+function getPortraitCover(url) {
+  if (!url) return null;
+  if (url.includes("steamstatic.com") && url.includes("/header.jpg")) {
+    return url.replace("/header.jpg", "/library_600x900.jpg");
+  }
+  return url;
+}
+
+function getPlatform(sourcePlatforms) {
   if (!sourcePlatforms?.length) return DEFAULT_PLATFORM;
-  const priority = ["psn", "xbox", "steam", "gog", "epic"];
-  for (const p of priority) {
+  for (const p of ["psn", "xbox", "steam", "gog", "epic"]) {
     if (sourcePlatforms.includes(p)) return PLATFORM_STYLE[p] ?? DEFAULT_PLATFORM;
   }
   return DEFAULT_PLATFORM;
@@ -47,15 +57,13 @@ export default function ShelfView({ games }) {
     let xBefore = 0;
     for (let i = 0; i < idx; i++) xBefore += SPINE_W + GAP;
     const activeCenterX = xBefore + ACTIVE_W / 2;
-    const target = containerW * 0.56;
-    return target - activeCenterX;
+    return containerW * 0.56 - activeCenterX;
   }, []);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const { width } = el.getBoundingClientRect();
-    setStripX(computeStripX(selectedIdx, width));
+    setStripX(computeStripX(selectedIdx, el.getBoundingClientRect().width));
   }, [selectedIdx, computeStripX]);
 
   useEffect(() => {
@@ -105,13 +113,11 @@ export default function ShelfView({ games }) {
     if (!dragActive.current) return;
     dragActive.current = false;
     setDragging(false);
-
     const el = containerRef.current;
     if (!el) return;
     const { width } = el.getBoundingClientRect();
     const target = width * 0.56;
     const offsetInStrip = target - stripX;
-
     let best = 0, bestDist = Infinity;
     for (let i = 0; i < games.length; i++) {
       let caseLeft = 0;
@@ -124,7 +130,7 @@ export default function ShelfView({ games }) {
   };
 
   const selected = games[selectedIdx];
-  const selectedPlatform = getPlatformStyle(selected?.sourcePlatforms);
+  const selPlatform = getPlatform(selected?.sourcePlatforms);
 
   return (
     <div
@@ -142,35 +148,34 @@ export default function ShelfView({ games }) {
         fontFamily: "'Outfit', system-ui, sans-serif",
       }}
     >
-      {/* Ambient shelf glow — illuminates the cases from below */}
+      {/* Ambient glow under shelf */}
       <div style={{
         position: "absolute",
         bottom: SHELF_H,
-        left: "30%",
-        right: "10%",
-        height: 200,
-        background: "radial-gradient(ellipse at center bottom, rgba(200,160,60,0.08) 0%, transparent 70%)",
+        left: "20%",
+        right: "5%",
+        height: 280,
+        background: "radial-gradient(ellipse at 60% 100%, rgba(180,140,50,0.1) 0%, transparent 65%)",
         pointerEvents: "none",
         zIndex: 1,
       }} />
 
-      {/* Top header */}
+      {/* Header */}
       <div style={{
         position: "absolute",
         top: 0, left: 0, right: 0,
         padding: "18px 36px",
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "center",
         zIndex: 10,
         pointerEvents: "none",
         borderBottom: "1px solid rgba(255,255,255,0.04)",
       }}>
-        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.2em", color: "rgba(241,243,249,0.2)", fontFamily: "monospace" }}>
+        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.2em", color: "rgba(241,243,249,0.18)", fontFamily: "monospace" }}>
           GAME SHELF — INTERACTIVE LIBRARY
         </span>
-        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.2em", color: "rgba(241,243,249,0.2)", fontFamily: "monospace" }}>
-          {String(games.length).padStart(2, "0")} TITLES / CONTINUOUS SHELF
+        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.2em", color: "rgba(241,243,249,0.18)", fontFamily: "monospace" }}>
+          {String(games.length).padStart(2, "0")} TITLES
         </span>
       </div>
 
@@ -179,21 +184,19 @@ export default function ShelfView({ games }) {
         position: "absolute",
         left: 52,
         top: "50%",
-        transform: "translateY(-54%)",
+        transform: "translateY(-52%)",
         maxWidth: 260,
         zIndex: 20,
-        paddingBottom: 72,
+        paddingBottom: 80,
         pointerEvents: "none",
       }}>
         <div style={{
           fontSize: 9,
           fontWeight: 700,
           letterSpacing: "0.16em",
-          color: selectedPlatform.barBg === "#003087"
-            ? "rgba(100,140,255,0.7)"
-            : selectedPlatform.barBg === "#107C10"
-              ? "rgba(100,220,100,0.7)"
-              : "rgba(200,160,60,0.7)",
+          color: selPlatform.barBg === "#003087" ? "rgba(120,160,255,0.8)"
+            : selPlatform.barBg === "#0E6B0E" ? "rgba(100,220,100,0.8)"
+            : "rgba(200,160,60,0.7)",
           fontFamily: "monospace",
           marginBottom: 14,
           transition: "color 0.3s",
@@ -202,10 +205,10 @@ export default function ShelfView({ games }) {
         </div>
 
         <h2 style={{
-          fontSize: 42,
+          fontSize: 44,
           fontWeight: 800,
           color: "#F1F3F9",
-          lineHeight: 1.06,
+          lineHeight: 1.05,
           letterSpacing: "-0.03em",
           marginBottom: 12,
           textWrap: "balance",
@@ -217,8 +220,8 @@ export default function ShelfView({ games }) {
           <div style={{
             fontSize: 11,
             fontWeight: 600,
-            color: "rgba(241,243,249,0.35)",
-            letterSpacing: "0.06em",
+            color: "rgba(241,243,249,0.32)",
+            letterSpacing: "0.07em",
             textTransform: "uppercase",
             fontFamily: "monospace",
             marginBottom: 16,
@@ -228,59 +231,43 @@ export default function ShelfView({ games }) {
         )}
 
         {selected?.communityRating != null && (
-          <div style={{ fontSize: 13, color: "#C8FF00", marginBottom: 22, fontWeight: 700, letterSpacing: "-0.01em" }}>
+          <div style={{ fontSize: 13, color: "#C8FF00", marginBottom: 22, fontWeight: 700 }}>
             ★ {selected.communityRating.toFixed(1)}
-            <span style={{ fontSize: 10, color: "rgba(241,243,249,0.3)", fontWeight: 500, marginLeft: 8 }}>
-              community rating
+            <span style={{ fontSize: 11, color: "rgba(241,243,249,0.28)", fontWeight: 500, marginLeft: 8 }}>
+              community
             </span>
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", pointerEvents: "auto" }}>
-          <button
-            onClick={() => router.push(`/app/discovery/${selected?.id}`)}
-            style={{
-              fontSize: 11,
-              fontWeight: 800,
-              letterSpacing: "0.08em",
-              color: "#07080F",
-              background: "#C8FF00",
-              border: "none",
-              borderRadius: 6,
-              padding: "8px 16px",
-              cursor: "pointer",
-              fontFamily: "'Outfit', sans-serif",
-            }}
-          >
-            INSPECT ↗
-          </button>
-          {selected?.sourcePlatforms?.length > 0 && (
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "8px 12px",
-              borderRadius: 6,
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: "rgba(255,255,255,0.03)",
-            }}>
-              {selected.sourcePlatforms.slice(0, 3).map((p) => (
-                <PlatformDot key={p} platform={p} />
-              ))}
-            </div>
-          )}
-        </div>
+        <button
+          onClick={() => router.push(`/app/discovery/${selected?.id}`)}
+          style={{
+            pointerEvents: "auto",
+            fontSize: 12,
+            fontWeight: 800,
+            letterSpacing: "0.06em",
+            color: "#07080F",
+            background: "#C8FF00",
+            border: "none",
+            borderRadius: 8,
+            padding: "10px 20px",
+            cursor: "pointer",
+            fontFamily: "'Outfit', sans-serif",
+          }}
+        >
+          INSPECT ↗
+        </button>
       </div>
 
       {/* Shelf + cases */}
       <div style={{
         position: "absolute",
         bottom: 0, left: 0, right: 0,
-        height: ACTIVE_H + LIFT + 24 + SHELF_H,
+        height: ACTIVE_H + LIFT + 32 + SHELF_H,
         pointerEvents: "none",
         zIndex: 5,
       }}>
-        {/* Cases strip */}
+        {/* Sliding strip */}
         <div style={{
           position: "absolute",
           bottom: SHELF_H,
@@ -309,19 +296,14 @@ export default function ShelfView({ games }) {
           position: "absolute",
           bottom: 0, left: 0, right: 0,
           height: SHELF_H,
-          background: "linear-gradient(180deg, #4A2E0A 0%, #2E1A04 55%, #1C0E02 100%)",
-          boxShadow: "0 6px 32px rgba(0,0,0,0.8), inset 0 1px 0 rgba(180,120,40,0.25)",
+          background: "linear-gradient(180deg, #52340C 0%, #321E06 55%, #1C1002 100%)",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.9), inset 0 1px 0 rgba(200,140,40,0.3), inset 0 2px 0 rgba(200,140,40,0.12)",
           zIndex: 6,
         }}>
           <div style={{
             position: "absolute",
             top: 0, left: 0, right: 0, height: 1,
-            background: "linear-gradient(90deg, transparent, rgba(200,140,40,0.4), transparent)",
-          }} />
-          <div style={{
-            position: "absolute",
-            top: 1, left: 0, right: 0, height: 1,
-            background: "linear-gradient(90deg, transparent, rgba(200,140,40,0.15), transparent)",
+            background: "linear-gradient(90deg, transparent 0%, rgba(210,150,50,0.5) 40%, rgba(210,150,50,0.5) 60%, transparent 100%)",
           }} />
         </div>
       </div>
@@ -329,13 +311,13 @@ export default function ShelfView({ games }) {
       {/* Controls hint */}
       <div style={{
         position: "absolute",
-        bottom: 10,
+        bottom: 11,
         left: "50%",
         transform: "translateX(-50%)",
         fontSize: 8,
         fontWeight: 700,
         letterSpacing: "0.2em",
-        color: "rgba(255,255,255,0.15)",
+        color: "rgba(255,255,255,0.12)",
         fontFamily: "monospace",
         zIndex: 10,
         pointerEvents: "none",
@@ -349,121 +331,151 @@ export default function ShelfView({ games }) {
 
 function GameCase({ game, isActive, dragDist, onClick }) {
   const [hovered, setHovered] = useState(false);
-  const platform = getPlatformStyle(game.sourcePlatforms);
+  const [imgSrc, setImgSrc] = useState(() => getPortraitCover(game.coverImageUrl));
+  const platform = getPlatform(game.sourcePlatforms);
 
   const handleClick = () => {
     if (dragDist.current > 8) return;
     onClick();
   };
 
-  const lift = isActive ? LIFT : hovered ? 12 : 0;
-  const w = isActive ? ACTIVE_W : SPINE_W;
-  const h = isActive ? ACTIVE_H : hovered ? SPINE_H + 12 : SPINE_H;
-
   if (isActive) {
     return (
       <div
         onClick={handleClick}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
         style={{
           flexShrink: 0,
-          width: w,
-          height: h,
-          position: "relative",
-          transform: `translateY(-${lift}px)`,
-          transition: "all 0.35s cubic-bezier(0.34, 1.1, 0.64, 1)",
+          width: ACTIVE_W,
+          height: ACTIVE_H,
+          display: "flex",
+          alignItems: "stretch",
+          transform: `translateY(-${LIFT}px)`,
+          transition: "transform 0.38s cubic-bezier(0.34, 1.1, 0.64, 1)",
           cursor: "pointer",
-          borderRadius: "3px 3px 0 0",
-          overflow: "hidden",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset -1px 0 0 rgba(255,255,255,0.04)",
+          filter: "drop-shadow(0 24px 48px rgba(0,0,0,0.9)) drop-shadow(0 8px 16px rgba(0,0,0,0.6))",
         }}
       >
-        {/* Cover art or fallback */}
-        {game.coverImageUrl ? (
-          <img
-            src={game.coverImageUrl}
-            alt={game.canonicalTitle}
-            draggable={false}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-          />
-        ) : (
-          <div style={{
-            width: "100%",
-            height: "100%",
-            background: `linear-gradient(160deg, ${platform.spineBg} 0%, ${platform.barBg} 100%)`,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "16px 12px",
-          }}>
-            <div style={{
-              fontSize: 12,
-              fontWeight: 800,
-              color: "rgba(255,255,255,0.85)",
-              textAlign: "center",
-              letterSpacing: "-0.01em",
-              lineHeight: 1.3,
-            }}>
-              {game.canonicalTitle}
-            </div>
-          </div>
-        )}
-
-        {/* Platform bar at top — anni 2000 style */}
+        {/* Front face */}
         <div style={{
-          position: "absolute",
-          top: 0, left: 0, right: 0,
-          height: 20,
-          background: platform.barBg,
-          display: "flex",
-          alignItems: "center",
-          padding: "0 7px",
-          gap: 5,
+          width: FRONT_W,
+          height: FRONT_H,
+          flexShrink: 0,
+          position: "relative",
+          overflow: "hidden",
+          borderRadius: "3px 0 0 0",
+          background: platform.spineBg,
         }}>
-          <PlatformLogoMark platform={game.sourcePlatforms?.[0]} color={platform.barColor} />
-          <span style={{
-            fontSize: 6,
-            fontWeight: 800,
-            color: platform.barColor,
-            letterSpacing: "0.18em",
-            fontFamily: "monospace",
-            opacity: 0.9,
+          {/* Cover image or fallback */}
+          {imgSrc ? (
+            <img
+              src={imgSrc}
+              alt={game.canonicalTitle}
+              draggable={false}
+              onError={() => {
+                // portrait not available — try original URL, then fallback
+                if (imgSrc !== game.coverImageUrl) setImgSrc(game.coverImageUrl);
+                else setImgSrc(null);
+              }}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            />
+          ) : (
+            <FallbackCover game={game} platform={platform} />
+          )}
+
+          {/* Platform bar at top */}
+          <div style={{
+            position: "absolute",
+            top: 0, left: 0, right: 0,
+            height: 22,
+            background: platform.barBg,
+            display: "flex",
+            alignItems: "center",
+            padding: "0 8px",
+            gap: 5,
           }}>
-            {platform.barText}
-          </span>
+            <span style={{ fontSize: 7, fontWeight: 900, color: platform.barColor, letterSpacing: "0.2em", fontFamily: "monospace", opacity: 0.9 }}>
+              {platform.barText}
+            </span>
+          </div>
+
+          {/* Left edge highlight */}
+          <div style={{
+            position: "absolute",
+            top: 0, left: 0, bottom: 0, width: 2,
+            background: "linear-gradient(90deg, rgba(255,255,255,0.12), transparent)",
+            pointerEvents: "none",
+          }} />
+          {/* Bottom edge shadow */}
+          <div style={{
+            position: "absolute",
+            bottom: 0, left: 0, right: 0, height: 6,
+            background: "linear-gradient(180deg, transparent, rgba(0,0,0,0.5))",
+            pointerEvents: "none",
+          }} />
         </div>
 
-        {/* Right edge shadow for 3D depth */}
+        {/* Side face (spine / 3D depth) */}
         <div style={{
-          position: "absolute",
-          top: 0, right: 0, bottom: 0,
-          width: 10,
-          background: "linear-gradient(90deg, transparent, rgba(0,0,0,0.55))",
-          pointerEvents: "none",
-        }} />
-        {/* Left edge highlight */}
-        <div style={{
-          position: "absolute",
-          top: 0, left: 0, bottom: 0,
-          width: 3,
-          background: "linear-gradient(90deg, rgba(255,255,255,0.07), transparent)",
-          pointerEvents: "none",
-        }} />
-        {/* Bottom edge */}
-        <div style={{
-          position: "absolute",
-          bottom: 0, left: 0, right: 0,
-          height: 4,
-          background: "linear-gradient(180deg, transparent, rgba(0,0,0,0.4))",
-          pointerEvents: "none",
-        }} />
+          width: SIDE_W,
+          height: FRONT_H,
+          flexShrink: 0,
+          background: `linear-gradient(90deg, ${platform.sideColor} 0%, #000 100%)`,
+          borderRadius: "0 3px 0 0",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          overflow: "hidden",
+          position: "relative",
+        }}>
+          {/* Platform bar continuation */}
+          <div style={{
+            width: "100%",
+            height: 22,
+            background: platform.barBg,
+            filter: "brightness(0.65)",
+            flexShrink: 0,
+          }} />
+          {/* Title on spine */}
+          <div style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden",
+            padding: "4px 2px",
+          }}>
+            <span style={{
+              writingMode: "vertical-rl",
+              transform: "rotate(180deg)",
+              fontSize: 7,
+              fontWeight: 700,
+              color: "rgba(255,255,255,0.4)",
+              letterSpacing: "0.06em",
+              fontFamily: "monospace",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              maxHeight: "80%",
+              lineHeight: 1,
+            }}>
+              {game.canonicalTitle}
+            </span>
+          </div>
+          {/* Right edge shadow */}
+          <div style={{
+            position: "absolute",
+            top: 0, right: 0, bottom: 0, width: 2,
+            background: "rgba(0,0,0,0.6)",
+          }} />
+        </div>
       </div>
     );
   }
 
-  // Spine view (inactive)
+  // Inactive spine
+  const lift = hovered ? 14 : 0;
+  const h = hovered ? SPINE_H + 14 : SPINE_H;
+
   return (
     <div
       onClick={handleClick}
@@ -471,33 +483,33 @@ function GameCase({ game, isActive, dragDist, onClick }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         flexShrink: 0,
-        width: w,
+        width: SPINE_W,
         height: h,
         position: "relative",
         transform: `translateY(-${lift}px)`,
-        transition: "all 0.3s cubic-bezier(0.34, 1.1, 0.64, 1)",
+        transition: "all 0.28s cubic-bezier(0.34, 1.1, 0.64, 1)",
         cursor: "pointer",
         borderRadius: "2px 2px 0 0",
         overflow: "hidden",
         background: platform.spineBg,
         boxShadow: hovered
-          ? "0 8px 20px rgba(0,0,0,0.6), 1px 0 0 rgba(255,255,255,0.06)"
-          : "0 4px 8px rgba(0,0,0,0.5), 1px 0 0 rgba(255,255,255,0.04)",
+          ? "0 12px 28px rgba(0,0,0,0.7), 1px 0 0 rgba(255,255,255,0.07)"
+          : "0 4px 10px rgba(0,0,0,0.6), 1px 0 0 rgba(255,255,255,0.04)",
       }}
     >
-      {/* Platform color bar at top */}
+      {/* Platform bar at top */}
       <div style={{
         position: "absolute",
         top: 0, left: 0, right: 0,
-        height: 18,
+        height: 22,
         background: platform.barBg,
       }} />
 
-      {/* Spine title */}
+      {/* Game title — vertical */}
       <div style={{
         position: "absolute",
         inset: 0,
-        top: 18,
+        top: 22,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -506,81 +518,100 @@ function GameCase({ game, isActive, dragDist, onClick }) {
         <span style={{
           writingMode: "vertical-rl",
           transform: "rotate(180deg)",
-          fontSize: 7,
+          fontSize: 8,
           fontWeight: 700,
-          color: "rgba(255,255,255,0.65)",
-          letterSpacing: "0.04em",
+          color: "rgba(255,255,255,0.6)",
+          letterSpacing: "0.05em",
           fontFamily: "monospace",
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
-          maxHeight: "85%",
+          maxHeight: "82%",
           lineHeight: 1,
         }}>
           {game.canonicalTitle}
         </span>
       </div>
 
-      {/* Right edge highlight — makes it look like a separate disc case */}
+      {/* Right edge separator */}
       <div style={{
         position: "absolute",
-        top: 0, right: 0, bottom: 0,
-        width: 1,
-        background: "rgba(255,255,255,0.06)",
-        pointerEvents: "none",
+        top: 0, right: 0, bottom: 0, width: 1,
+        background: "rgba(255,255,255,0.05)",
       }} />
     </div>
   );
 }
 
-function PlatformLogoMark({ platform, color }) {
-  const marks = {
-    psn: "✦",
-    xbox: "⊕",
-    steam: "⊗",
-    gog: "◈",
-    epic: "◆",
-  };
+function FallbackCover({ game, platform }) {
   return (
-    <span style={{ fontSize: 8, color, opacity: 0.8, lineHeight: 1 }}>
-      {marks[platform] ?? "◉"}
-    </span>
-  );
-}
-
-function PlatformDot({ platform }) {
-  const colors = {
-    steam: "#A8C5E0",
-    psn: "#4A7FD4",
-    xbox: "#52B043",
-    gog: "#9B5FE0",
-    epic: "#AAAAAA",
-  };
-  const labels = {
-    steam: "Steam",
-    psn: "PSN",
-    xbox: "Xbox",
-    gog: "GOG",
-    epic: "Epic",
-  };
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+    <div style={{
+      width: "100%",
+      height: "100%",
+      background: `linear-gradient(145deg, ${platform.spineBg} 0%, ${platform.barBg} 60%, ${platform.sideColor} 100%)`,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "32px 16px 20px",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      {/* Decorative background shape */}
       <div style={{
-        width: 6,
-        height: 6,
+        position: "absolute",
+        top: "20%",
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: 120,
+        height: 120,
         borderRadius: "50%",
-        background: colors[platform] ?? "rgba(255,255,255,0.3)",
-        flexShrink: 0,
+        background: "rgba(255,255,255,0.03)",
+        border: "1px solid rgba(255,255,255,0.06)",
       }} />
-      <span style={{
-        fontSize: 10,
-        color: colors[platform] ?? "rgba(255,255,255,0.4)",
-        fontWeight: 600,
-        fontFamily: "monospace",
-        letterSpacing: "0.04em",
+      <div style={{
+        position: "absolute",
+        top: "25%",
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: 80,
+        height: 80,
+        borderRadius: "50%",
+        border: "1px solid rgba(255,255,255,0.05)",
+      }} />
+
+      {/* Game title — big */}
+      <div style={{
+        position: "relative",
+        zIndex: 1,
+        marginTop: "auto",
+        textAlign: "center",
       }}>
-        {labels[platform] ?? platform.toUpperCase()}
-      </span>
+        <div style={{
+          fontSize: 18,
+          fontWeight: 900,
+          color: "rgba(255,255,255,0.92)",
+          lineHeight: 1.15,
+          letterSpacing: "-0.02em",
+          fontFamily: "'Outfit', sans-serif",
+          textShadow: "0 2px 8px rgba(0,0,0,0.5)",
+        }}>
+          {game.canonicalTitle}
+        </div>
+        {game.studio && (
+          <div style={{
+            fontSize: 9,
+            fontWeight: 600,
+            color: "rgba(255,255,255,0.35)",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            fontFamily: "monospace",
+            marginTop: 8,
+          }}>
+            {game.studio}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
