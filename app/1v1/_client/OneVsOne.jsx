@@ -578,11 +578,11 @@ function ComparisonResult({ player1, player2, onShare, copied, unlocked, onUnloc
               maxWidth: 540,
             }}
           >
-            Leet9 is your One Gamer iD — a single profile that connects every game
-            you play, on every platform. PC, console, mobile. Real stats, live.
-            L9 Points not just for hours logged, but for every achievement earned,
-            every competition won, every milestone reached. The gaming identity
-            that finally reflects the real gamer you are.
+            Leet9 is your One Gamer ID — a single profile that connects every game
+            you play on every platform: PC, console, mobile. Real stats, live.
+            Earn L9 Points not just for hours logged, but for every achievement
+            earned, every competition won, every milestone reached. The gaming
+            identity that finally reflects the real gamer you actually are.
           </p>
         </div>
 
