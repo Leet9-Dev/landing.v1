@@ -234,7 +234,7 @@ function OneVsOnePage() {
         <form onSubmit={handleSubmit}>
           <div style={{ display: "flex", gap: 10, alignItems: "stretch", flexWrap: "wrap" }}>
             <SteamInput
-              placeholder="Your Steam ID or profile URL"
+              placeholder="Your Steam username or ID"
               value={p1Input}
               onChange={setP1Input}
               accent="#C8FF00"
@@ -256,7 +256,7 @@ function OneVsOnePage() {
               VS
             </div>
             <SteamInput
-              placeholder="Their Steam ID or profile URL"
+              placeholder="Their Steam username or ID"
               value={p2Input}
               onChange={setP2Input}
               accent="#a78bfa"
@@ -288,7 +288,7 @@ function OneVsOnePage() {
             </button>
           </div>
           <p style={{ fontSize: 11, color: "rgba(241,243,249,0.18)", marginTop: 10, textAlign: "center" }}>
-            Accepts: SteamID64 · steamcommunity.com/id/username · steamcommunity.com/profiles/ID
+            Works with Steam username · SteamID64 · or full profile URL
           </p>
         </form>
 
@@ -668,7 +668,7 @@ function PlayerCard({ player, winner, side, isMobile }) {
         <div style={{ fontSize: 12, color: "rgba(241,243,249,0.25)", marginTop: 4 }}>
           {isSteamDown
             ? "Steam API is currently offline. Try again in a few minutes."
-            : "Check the Steam ID or URL and try again."}
+            : "Try your Steam username, SteamID64, or full profile URL."}
         </div>
       </div>
     );
