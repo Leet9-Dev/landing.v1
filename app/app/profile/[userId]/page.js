@@ -55,17 +55,17 @@ function ChallengeSection({ userId, session }) {
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: "#F1F3F9", letterSpacing: "-0.01em", marginBottom: 6 }}>
             {state === "sent"
-              ? "Sfida inviata! 🎯"
+              ? "Challenge sent! 🎯"
               : state === "already_sent"
-              ? "Invito già inviato"
-              : "Vuoi sfidarli?"}
+              ? "Already challenged"
+              : "Want to challenge them?"}
           </div>
           <div style={{ fontSize: 13, color: "rgba(241,243,249,0.45)", lineHeight: 1.55, maxWidth: 340 }}>
             {state === "sent"
-              ? "Gli abbiamo mandato una mail. Ora tocca a loro collegare i loro account e raccogliere la sfida."
+              ? "We've sent them an email. Now it's their turn to link their accounts and accept."
               : state === "already_sent"
-              ? "Hai già inviato una sfida a questo giocatore. Riprova tra 24 ore."
-              : "Non ha ancora collegato i suoi account di gioco. Inviagli una sfida via mail — mettilo sotto pressione di aggiungere il suo ID."}
+              ? "You already sent a challenge to this player. Try again in 24 hours."
+              : "They haven't connected their gaming accounts yet. Send them a challenge — push them to add their ID and go head-to-head."}
           </div>
         </div>
 
@@ -76,7 +76,7 @@ function ChallengeSection({ userId, session }) {
             background: "rgba(200,255,0,0.08)", border: "1px solid rgba(200,255,0,0.25)",
             color: "#C8FF00", fontSize: 13, fontWeight: 800, whiteSpace: "nowrap",
           }}>
-            ✓ Inviata
+            ✓ Sent
           </div>
         ) : state === "already_sent" ? (
           <div style={{
@@ -85,7 +85,7 @@ function ChallengeSection({ userId, session }) {
             background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
             color: "rgba(241,243,249,0.35)", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap",
           }}>
-            Già inviata
+            Already sent
           </div>
         ) : !session ? (
           <div style={{
@@ -93,7 +93,7 @@ function ChallengeSection({ userId, session }) {
             background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
             color: "rgba(241,243,249,0.35)", fontSize: 12, fontWeight: 600,
           }}>
-            Accedi per sfidarlo
+            Sign in to challenge them
           </div>
         ) : (
           <button
@@ -112,7 +112,7 @@ function ChallengeSection({ userId, session }) {
             onMouseEnter={(e) => { if (state === "idle") { e.currentTarget.style.background = "rgba(200,255,0,0.18)"; e.currentTarget.style.borderColor = "rgba(200,255,0,0.6)"; } }}
             onMouseLeave={(e) => { if (state === "idle") { e.currentTarget.style.background = "rgba(200,255,0,0.1)"; e.currentTarget.style.borderColor = "rgba(200,255,0,0.35)"; } }}
           >
-            {state === "sending" ? "Invio…" : state === "error" ? "Riprova" : "⚡ Sfidalo — aggiungi il tuo ID"}
+            {state === "sending" ? "Sending…" : state === "error" ? "Try again" : "⚡ Challenge them — add your ID"}
           </button>
         )}
       </div>
