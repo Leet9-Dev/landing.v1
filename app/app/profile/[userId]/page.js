@@ -58,14 +58,14 @@ function ChallengeSection({ userId, session, userName }) {
               ? `Nudge sent to ${userName}! 🎯`
               : state === "already_sent"
               ? `${userName} already got your nudge`
-              : `${userName} is missing from the competition`}
+              : `${userName} hasn't shown everything yet`}
           </div>
           <div style={{ fontSize: 13, color: "rgba(241,243,249,0.45)", lineHeight: 1.55, maxWidth: 340 }}>
             {state === "sent"
               ? `We've sent the nudge. Now it's up to ${userName} to connect and compete.`
               : state === "already_sent"
-              ? `You already sent a nudge. Give ${userName} 24 hours to respond.`
-              : `${userName} hasn't linked any gaming accounts yet. One nudge might be all it takes.`}
+              ? `You already sent a nudge. Give ${userName} 30 days before nudging again.`
+              : `${userName} is still missing some gaming accounts. One nudge might be all it takes.`}
           </div>
         </div>
 
@@ -398,8 +398,8 @@ export default function PublicProfilePage() {
         <StatCard label="Level" value={user.level} />
       </div>
 
-      {/* Challenge section — shown when target has no platforms connected */}
-      {platforms.length === 0 && (
+      {/* Challenge section — shown when target is missing at least one platform */}
+      {platforms.length < 4 && (
         <ChallengeSection userId={userId} session={session} userName={user.gamerTag} />
       )}
     </div>
