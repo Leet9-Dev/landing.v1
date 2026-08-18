@@ -202,7 +202,7 @@ function OneVsOnePage() {
               marginBottom: 20,
             }}
           >
-            STEAM · 1 VS 1
+            LEET9 · 1 VS 1
           </div>
           <h1
             style={{
@@ -213,8 +213,8 @@ function OneVsOnePage() {
               margin: "0 0 16px",
             }}
           >
-            You think you game more.{" "}
-            <span style={{ color: "#C8FF00" }}>Prove it.</span>
+            Who&apos;s the{" "}
+            <span style={{ color: "#C8FF00" }}>better gamer?</span>
           </h1>
           <p
             style={{
@@ -459,23 +459,30 @@ function ComparisonResult({ player1, player2, onShare, copied, unlocked, onUnloc
       )}
 
       {/* Share button */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}>
         <button
           onClick={onShare}
           style={{
-            padding: "8px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "12px 28px",
             borderRadius: 99,
-            border: "1px solid rgba(255,255,255,0.1)",
-            background: copied ? "rgba(200,255,0,0.07)" : "transparent",
-            color: copied ? "#C8FF00" : "rgba(241,243,249,0.4)",
+            border: copied ? "1px solid rgba(200,255,0,0.4)" : "1px solid rgba(255,255,255,0.15)",
+            background: copied ? "rgba(200,255,0,0.08)" : "rgba(255,255,255,0.04)",
+            color: copied ? "#C8FF00" : "#F1F3F9",
             fontFamily: "'Outfit', system-ui, sans-serif",
-            fontSize: 13,
-            fontWeight: 600,
+            fontSize: 14,
+            fontWeight: 700,
             cursor: "pointer",
             transition: "all 0.15s",
+            letterSpacing: "-0.01em",
+            width: isMobile ? "100%" : "auto",
+            justifyContent: "center",
           }}
         >
-          {copied ? "✓ Link copied!" : "Send this to them →"}
+          <span style={{ fontSize: 16 }}>{copied ? "✓" : "🔗"}</span>
+          {copied ? "Link copied!" : "Challenge a friend — share this battle"}
         </button>
       </div>
 
