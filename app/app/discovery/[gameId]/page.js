@@ -143,6 +143,7 @@ export default function GameDeepDivePage({ params }) {
           <img
             src={game.coverImageUrl}
             alt={game.canonicalTitle}
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
             style={{
               position: "absolute", inset: 0,
               width: "100%", height: "100%",
