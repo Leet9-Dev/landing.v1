@@ -3,32 +3,34 @@ import { apiOk, apiError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 import { MOCK_GAMES } from "@/lib/mock/games";
 
-// Dev-only endpoint to seed mock UserGame records for testing the 1v1 challenge flow.
-// Disabled in production.
-export async function POST(request) {
-  if (process.env.NODE_ENV === "production") {
-    return apiError("FORBIDDEN", "Not available in production.", 403);
-  }
+const ADMIN_EMAILS = ["palesamattia@gmail.com"];
 
+export async function POST(request) {
   const { session, unauthenticated } = await requireSession();
   if (unauthenticated) return unauthenticated;
 
-  const userId = session.user.id;
+  const userEmail = session.user.email;
+  if (!ADMIN_EMAILS.includes(userEmail)) {
+    return apiError("FORBIDDEN", "Admin only.", 403);
+  }
 
-  // Seed the first 5 mock games for this user
-  const gamesToSeed = MOCK_GAMES.slice(0, 5);
+  // Optionally seed for a specific userId (defaults to self)
+  const body = await request.json().catch(() => ({}));
+  const targetUserId = body.userId || session.user.id;
+
+  const gamesToSeed = MOCK_GAMES.slice(0, 8);
 
   await Promise.all(
     gamesToSeed.map((g) =>
       prisma.userGame.upsert({
-        where: { userId_canonicalGameId: { userId, canonicalGameId: g.id } },
+        where: { userId_canonicalGameId: { userId: targetUserId, canonicalGameId: g.id } },
         create: {
-          userId,
+          userId: targetUserId,
           canonicalGameId: g.id,
           sourceProvider: "steam",
-          playtimeHours: Math.round(Math.random() * 200 + 10),
-          achievementsUnlocked: Math.round(Math.random() * 50 + 5),
-          trophiesUnlocked: Math.round(Math.random() * 20),
+          playtimeHours: Math.round(Math.random() * 300 + 20),
+          achievementsUnlocked: Math.round(Math.random() * 60 + 5),
+          trophiesUnlocked: Math.round(Math.random() * 25),
           firstDetectedAt: new Date(),
           lastDetectedAt: new Date(),
         },
@@ -37,5 +39,5 @@ export async function POST(request) {
     )
   );
 
-  return apiOk({ seeded: gamesToSeed.map((g) => g.canonicalTitle) });
+  return apiOk({ seeded: gamesToSeed.map((g) => g.canonicalTitle), forUser: targetUserId });
 }
