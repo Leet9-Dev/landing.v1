@@ -48,5 +48,14 @@ export async function GET(request, { params }) {
     }
   }
 
-  return apiOk({ game, externalSources, currentUserGame }, { _cacheSeconds: 300 });
+  let userReview = null;
+  if (session?.user?.id) {
+    const rev = await prisma.gameReview.findUnique({
+      where: { userId_gameId: { userId: session.user.id, gameId: game.id } },
+      select: { rating: true, content: true, updatedAt: true },
+    });
+    if (rev) userReview = { rating: rev.rating, content: rev.content, updatedAt: rev.updatedAt.toISOString() };
+  }
+
+  return apiOk({ game, externalSources, currentUserGame, userReview }, { _cacheSeconds: 0 });
 }

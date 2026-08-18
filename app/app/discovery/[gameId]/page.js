@@ -10,6 +10,10 @@ export default function GameDeepDivePage({ params }) {
   const [inProfile, setInProfile] = useState(false);
   const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState(null);
+  const [ratingDraft, setRatingDraft] = useState(null);
+  const [commentDraft, setCommentDraft] = useState("");
+  const [reviewSaving, setReviewSaving] = useState(false);
+  const [reviewSaved, setReviewSaved] = useState(false);
 
   useEffect(() => {
     fetch(`/api/games/${gameId}`)
@@ -18,6 +22,10 @@ export default function GameDeepDivePage({ params }) {
         if (json.ok) {
           setData(json.data);
           setInProfile(json.data.currentUserGame?.inProfile ?? false);
+          if (json.data.userReview) {
+            setRatingDraft(json.data.userReview.rating);
+            setCommentDraft(json.data.userReview.content ?? "");
+          }
         }
         setLoading(false);
       });
@@ -43,7 +51,27 @@ export default function GameDeepDivePage({ params }) {
   if (loading) return <LoadingState />;
   if (!data) return <NotFoundState onBack={() => router.push("/app/discovery")} />;
 
-  const { game, externalSources, currentUserGame } = data;
+  const { game, externalSources, currentUserGame, userReview } = data;
+
+  async function handleSubmitReview() {
+    if (!ratingDraft || reviewSaving) return;
+    setReviewSaving(true);
+    try {
+      const res = await fetch("/api/me/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameId: game.id, rating: ratingDraft, content: commentDraft }),
+      });
+      const json = await res.json();
+      if (json.ok) {
+        setReviewSaved(true);
+        showToast("Review saved!");
+        setTimeout(() => setReviewSaved(false), 3000);
+      }
+    } finally {
+      setReviewSaving(false);
+    }
+  }
 
   return (
     <div style={{ fontFamily: "'Outfit', sans-serif", minHeight: "100vh" }}>
@@ -247,6 +275,20 @@ export default function GameDeepDivePage({ params }) {
             </div>
           )}
 
+          {/* Review — mobile only */}
+          <div className="gdp-your-stats-mobile" style={{ marginBottom: 24 }}>
+            <ReviewSection
+              existing={userReview}
+              rating={ratingDraft}
+              comment={commentDraft}
+              onRating={setRatingDraft}
+              onComment={setCommentDraft}
+              onSubmit={handleSubmitReview}
+              saving={reviewSaving}
+              saved={reviewSaved}
+            />
+          </div>
+
           {/* Add to Profile CTA — mobile only */}
           <div className="gdp-cta-mobile">
             <AddToProfileButton inProfile={inProfile} adding={adding} onClick={handleAddToProfile} />
@@ -286,6 +328,20 @@ export default function GameDeepDivePage({ params }) {
               </div>
             </div>
           )}
+
+          {/* Review */}
+          <div style={{ marginTop: 24 }}>
+            <ReviewSection
+              existing={userReview}
+              rating={ratingDraft}
+              comment={commentDraft}
+              onRating={setRatingDraft}
+              onComment={setCommentDraft}
+              onSubmit={handleSubmitReview}
+              saving={reviewSaving}
+              saved={reviewSaved}
+            />
+          </div>
 
         </div>
 
@@ -368,6 +424,79 @@ function StatBox({ label, value, accent, small }) {
       <div style={{ fontSize: small ? 14 : 16, fontWeight: 800, color: accent ? "#C8FF00" : "#F1F3F9", letterSpacing: "-0.02em" }}>
         {value}
       </div>
+    </div>
+  );
+}
+
+function ReviewSection({ existing, rating, comment, onRating, onComment, onSubmit, saving, saved }) {
+  const canSubmit = rating && !saving;
+  return (
+    <div>
+      <SectionLabel>{existing ? "Your Review" : "Rate this game"}</SectionLabel>
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10 }}>
+        {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onRating(n)}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              border: rating === n ? "1px solid #C8FF00" : "1px solid rgba(255,255,255,0.1)",
+              background: rating === n ? "rgba(200,255,0,0.15)" : "rgba(255,255,255,0.03)",
+              color: rating === n ? "#C8FF00" : "rgba(241,243,249,0.45)",
+              fontSize: 12,
+              fontWeight: 700,
+              fontFamily: "'Outfit', sans-serif",
+              cursor: "pointer",
+              transition: "all 0.12s",
+            }}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={comment}
+        onChange={(e) => onComment(e.target.value)}
+        placeholder="Leave a comment (optional)"
+        rows={3}
+        style={{
+          width: "100%",
+          padding: "10px 12px",
+          borderRadius: 9,
+          border: "1px solid rgba(255,255,255,0.08)",
+          background: "rgba(255,255,255,0.03)",
+          color: "#F1F3F9",
+          fontSize: 13,
+          fontFamily: "'Outfit', sans-serif",
+          resize: "vertical",
+          outline: "none",
+          boxSizing: "border-box",
+          marginBottom: 8,
+        }}
+      />
+      <button
+        onClick={onSubmit}
+        disabled={!canSubmit}
+        style={{
+          width: "100%",
+          padding: "11px",
+          borderRadius: 9,
+          border: "none",
+          background: saved ? "rgba(200,255,0,0.12)" : canSubmit ? "linear-gradient(135deg, #C8FF00, #a3e600)" : "rgba(255,255,255,0.05)",
+          color: saved ? "#C8FF00" : canSubmit ? "#07080F" : "rgba(241,243,249,0.2)",
+          fontFamily: "'Outfit', sans-serif",
+          fontSize: 14,
+          fontWeight: 800,
+          cursor: canSubmit ? "pointer" : "default",
+          transition: "all 0.15s",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        {saving ? "Saving…" : saved ? "✓ Saved" : existing ? "Update Review" : "Save Review"}
+      </button>
     </div>
   );
 }
