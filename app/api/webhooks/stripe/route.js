@@ -114,9 +114,11 @@ export async function POST(request) {
     }
 
     // Send magic login link so the user lands straight into their account
-    const redirectPath = p1SteamId && p2SteamId
-      ? `/1v1?p1=${encodeURIComponent(p1SteamId)}&p2=${encodeURIComponent(p2SteamId)}`
-      : "/1v1";
+    const redirectPath = comparisonKey === "profile_access"
+      ? (session.metadata?.gameId ? `/app/discovery/${session.metadata.gameId}` : "/app/discovery")
+      : p1SteamId && p2SteamId
+        ? `/1v1?p1=${encodeURIComponent(p1SteamId)}&p2=${encodeURIComponent(p2SteamId)}`
+        : "/1v1";
 
     const magicToken = await createMagicLoginToken(email);
     await sendMagicLoginEmail({

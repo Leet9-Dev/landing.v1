@@ -10,26 +10,47 @@ export default function GameDeepDivePage({ params }) {
   const [inProfile, setInProfile] = useState(false);
   const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState(null);
+  const [session, setSession] = useState(undefined); // undefined = loading, null = no session
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [ratingDraft, setRatingDraft] = useState(null);
   const [commentDraft, setCommentDraft] = useState("");
   const [reviewSaving, setReviewSaving] = useState(false);
   const [reviewSaved, setReviewSaved] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/games/${gameId}`)
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.ok) {
-          setData(json.data);
-          setInProfile(json.data.currentUserGame?.inProfile ?? false);
-          if (json.data.userReview) {
-            setRatingDraft(json.data.userReview.rating);
-            setCommentDraft(json.data.userReview.content ?? "");
-          }
+    // Fetch session and game data in parallel
+    Promise.all([
+      fetch(`/api/games/${gameId}`).then((r) => r.json()),
+      fetch("/api/auth/session").then((r) => r.json()).catch(() => null),
+    ]).then(([json, sessionJson]) => {
+      setSession(sessionJson?.user ?? null);
+      if (json.ok) {
+        setData(json.data);
+        setInProfile(json.data.currentUserGame?.inProfile ?? false);
+        if (json.data.userReview) {
+          setRatingDraft(json.data.userReview.rating);
+          setCommentDraft(json.data.userReview.content ?? "");
         }
-        setLoading(false);
-      });
+      }
+      setLoading(false);
+    });
   }, [gameId]);
+
+  async function handleUnlock() {
+    if (checkoutLoading) return;
+    setCheckoutLoading(true);
+    try {
+      const res = await fetch("/api/billing/profile-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameId }),
+      });
+      const json = await res.json();
+      if (json.ok && json.url) window.location.href = json.url;
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }
 
   async function handleAddToProfile() {
     if (inProfile || adding) return;
@@ -51,7 +72,7 @@ export default function GameDeepDivePage({ params }) {
   if (loading) return <LoadingState />;
   if (!data) return <NotFoundState onBack={() => router.push("/app/discovery")} />;
 
-  const { game, externalSources, currentUserGame, userReview } = data;
+  const { game, externalSources, currentUserGame, userReview, hasPaid } = data;
 
   async function handleSubmitReview() {
     if (!ratingDraft || reviewSaving) return;
@@ -258,22 +279,16 @@ export default function GameDeepDivePage({ params }) {
             </div>
           </div>
 
-          {/* Your Stats — mobile only (shown inline on mobile, in sidebar on desktop) */}
-          {currentUserGame && (
-            <div className="gdp-your-stats-mobile" style={{ marginBottom: 24 }}>
-              <SectionLabel>Your Stats</SectionLabel>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <StatBox label="Hours" value={currentUserGame.hoursPlayed.toFixed(0)} small />
-                <StatBox label="L9 Points" value={currentUserGame.l9Points.toLocaleString()} small accent />
-                {currentUserGame.achievementsUnlocked != null && currentUserGame.achievementsTotal != null && (
-                  <StatBox label="Achievements" value={`${currentUserGame.achievementsUnlocked}/${currentUserGame.achievementsTotal}`} small />
-                )}
-                {currentUserGame.masteryPct != null && (
-                  <StatBox label="Mastery" value={`${currentUserGame.masteryPct.toFixed(0)}%`} small />
-                )}
-              </div>
-            </div>
-          )}
+          {/* Your Stats — mobile only */}
+          <div className="gdp-your-stats-mobile" style={{ marginBottom: 24 }}>
+            <YourStatsSection
+              session={session}
+              currentUserGame={currentUserGame}
+              hasPaid={hasPaid}
+              onUnlock={handleUnlock}
+              unlockLoading={checkoutLoading}
+            />
+          </div>
 
           {/* Review — mobile only */}
           <div className="gdp-your-stats-mobile" style={{ marginBottom: 24 }}>
@@ -313,21 +328,15 @@ export default function GameDeepDivePage({ params }) {
           )}
 
           {/* Your Stats */}
-          {currentUserGame && (
-            <div style={{ marginTop: 24 }}>
-              <SectionLabel>Your Stats</SectionLabel>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <StatBox label="Hours" value={currentUserGame.hoursPlayed.toFixed(0)} small />
-                <StatBox label="L9 Points" value={currentUserGame.l9Points.toLocaleString()} small accent />
-                {currentUserGame.achievementsUnlocked != null && currentUserGame.achievementsTotal != null && (
-                  <StatBox label="Achievements" value={`${currentUserGame.achievementsUnlocked}/${currentUserGame.achievementsTotal}`} small />
-                )}
-                {currentUserGame.masteryPct != null && (
-                  <StatBox label="Mastery" value={`${currentUserGame.masteryPct.toFixed(0)}%`} small />
-                )}
-              </div>
-            </div>
-          )}
+          <div style={{ marginTop: 24 }}>
+            <YourStatsSection
+              session={session}
+              currentUserGame={currentUserGame}
+              hasPaid={hasPaid}
+              onUnlock={handleUnlock}
+              unlockLoading={checkoutLoading}
+            />
+          </div>
 
           {/* Review */}
           <div style={{ marginTop: 24 }}>
@@ -423,6 +432,137 @@ function StatBox({ label, value, accent, small }) {
       <div style={{ fontSize: small ? 10 : 11, color: "rgba(241,243,249,0.3)", marginBottom: 3 }}>{label}</div>
       <div style={{ fontSize: small ? 14 : 16, fontWeight: 800, color: accent ? "#C8FF00" : "#F1F3F9", letterSpacing: "-0.02em" }}>
         {value}
+      </div>
+    </div>
+  );
+}
+
+function YourStatsSection({ session, currentUserGame, hasPaid, onUnlock, unlockLoading }) {
+  // Not logged in
+  if (!session) {
+    return (
+      <div>
+        <SectionLabel>Your Stats</SectionLabel>
+        <div style={{
+          padding: "16px",
+          borderRadius: 10,
+          border: "1px solid rgba(255,255,255,0.06)",
+          background: "rgba(255,255,255,0.02)",
+          textAlign: "center",
+        }}>
+          <div style={{ fontSize: 12, color: "rgba(241,243,249,0.35)", marginBottom: 12, lineHeight: 1.5 }}>
+            Connect your Steam to see<br />your personal stats for this game
+          </div>
+          <a
+            href="/auth/signin"
+            style={{
+              display: "inline-block",
+              padding: "8px 16px",
+              borderRadius: 8,
+              background: "rgba(200,255,0,0.1)",
+              border: "1px solid rgba(200,255,0,0.25)",
+              color: "#C8FF00",
+              fontSize: 13,
+              fontWeight: 700,
+              fontFamily: "'Outfit', sans-serif",
+              textDecoration: "none",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Sign in →
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Logged in, no payment → blurred stats + CTA
+  if (!hasPaid) {
+    return (
+      <div>
+        <SectionLabel>Your Stats</SectionLabel>
+        <div style={{ position: "relative" }}>
+          {/* Blurred fake stats */}
+          <div style={{ filter: "blur(5px)", pointerEvents: "none", userSelect: "none" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <StatBox label="Hours" value="847" small />
+              <StatBox label="L9 Points" value="3,200" small accent />
+              <StatBox label="Achievements" value="42/80" small />
+              <StatBox label="Mastery" value="52%" small />
+            </div>
+          </div>
+          {/* Overlay CTA */}
+          <div style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}>
+            <div style={{ fontSize: 11, color: "rgba(241,243,249,0.5)", textAlign: "center", lineHeight: 1.4 }}>
+              Sblocca le tue stats
+            </div>
+            <button
+              onClick={onUnlock}
+              disabled={unlockLoading}
+              style={{
+                padding: "8px 18px",
+                borderRadius: 8,
+                border: "none",
+                background: "linear-gradient(135deg, #C8FF00, #a3e600)",
+                color: "#07080F",
+                fontSize: 13,
+                fontWeight: 800,
+                fontFamily: "'Outfit', sans-serif",
+                cursor: unlockLoading ? "wait" : "pointer",
+                letterSpacing: "-0.01em",
+                opacity: unlockLoading ? 0.7 : 1,
+              }}
+            >
+              {unlockLoading ? "…" : "🔓 Unlock — €1"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Paid — no game data for this game
+  if (!currentUserGame) {
+    return (
+      <div>
+        <SectionLabel>Your Stats</SectionLabel>
+        <div style={{
+          padding: "14px",
+          borderRadius: 10,
+          border: "1px solid rgba(255,255,255,0.06)",
+          background: "rgba(255,255,255,0.02)",
+          fontSize: 12,
+          color: "rgba(241,243,249,0.3)",
+          textAlign: "center",
+          lineHeight: 1.5,
+        }}>
+          This game isn't in your library yet
+        </div>
+      </div>
+    );
+  }
+
+  // Paid + has data → show real stats
+  return (
+    <div>
+      <SectionLabel>Your Stats</SectionLabel>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <StatBox label="Hours" value={currentUserGame.hoursPlayed.toFixed(0)} small />
+        <StatBox label="L9 Points" value={currentUserGame.l9Points.toLocaleString()} small accent />
+        {currentUserGame.achievementsUnlocked != null && currentUserGame.achievementsTotal != null && (
+          <StatBox label="Achievements" value={`${currentUserGame.achievementsUnlocked}/${currentUserGame.achievementsTotal}`} small />
+        )}
+        {currentUserGame.masteryPct != null && (
+          <StatBox label="Mastery" value={`${currentUserGame.masteryPct.toFixed(0)}%`} small />
+        )}
       </div>
     </div>
   );

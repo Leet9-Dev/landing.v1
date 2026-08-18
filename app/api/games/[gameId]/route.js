@@ -48,6 +48,15 @@ export async function GET(request, { params }) {
     }
   }
 
+  let hasPaid = false;
+  if (session?.user?.id) {
+    const unlock = await prisma.comparisonUnlock.findFirst({
+      where: { userId: session.user.id },
+      select: { id: true },
+    });
+    hasPaid = !!unlock;
+  }
+
   let userReview = null;
   if (session?.user?.id) {
     const rev = await prisma.gameReview.findUnique({
@@ -57,5 +66,5 @@ export async function GET(request, { params }) {
     if (rev) userReview = { rating: rev.rating, content: rev.content, updatedAt: rev.updatedAt.toISOString() };
   }
 
-  return apiOk({ game, externalSources, currentUserGame, userReview }, { _cacheSeconds: 0 });
+  return apiOk({ game, externalSources, currentUserGame, userReview, hasPaid }, { _cacheSeconds: 0 });
 }
