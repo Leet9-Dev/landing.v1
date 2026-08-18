@@ -1,25 +1,47 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { makeComparisonKey } from "@/lib/billing-utils";
 
 const BASE_URL =
   typeof window !== "undefined"
     ? window.location.origin
     : process.env.NEXT_PUBLIC_BASE_URL || "https://leet9.com";
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return isMobile;
+}
+
 function OneVsOnePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isMobile = useIsMobile();
 
   const [p1Input, setP1Input] = useState(searchParams.get("p1") || "");
   const [p2Input, setP2Input] = useState(searchParams.get("p2") || "");
+  const [p1Platform, setP1Platform] = useState("steam");
+  const [p2Platform, setP2Platform] = useState("steam");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [cacheKey, setCacheKey] = useState(searchParams.get("t") || "");
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
+  const [unlockLoading, setUnlockLoading] = useState(false);
+  const [unlockError, setUnlockError] = useState(null);
+  const [signinEmail, setSigninEmail] = useState("");
+  const [signinLoading, setSigninLoading] = useState(false);
+  const [signinSent, setSigninSent] = useState(false);
 
   const hasParams = searchParams.get("p1") && searchParams.get("p2");
+  const stripeSessionId = searchParams.get("session_id");
 
   useEffect(() => {
     if (hasParams) {
@@ -27,6 +49,17 @@ function OneVsOnePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!result?.player1?.steamId || !result?.player2?.steamId) return;
+    const key = makeComparisonKey(result.player1.steamId, result.player2.steamId);
+    const params = new URLSearchParams({ key });
+    if (stripeSessionId) params.set("session_id", stripeSessionId);
+    fetch(`/api/billing/unlock-status?${params}`)
+      .then((r) => r.json())
+      .then((json) => { if (json.ok && json.data?.unlocked) setUnlocked(true); })
+      .catch(() => {});
+  }, [result, stripeSessionId]);
 
   async function runComparison(p1, p2) {
     setLoading(true);
@@ -60,6 +93,49 @@ function OneVsOnePage() {
     runComparison(p1Input.trim(), p2Input.trim());
   }
 
+  async function handleUnlock() {
+    if (!result?.player1?.steamId || !result?.player2?.steamId) return;
+    setUnlockLoading(true);
+    setUnlockError(null);
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          p1SteamId: result.player1.steamId,
+          p2SteamId: result.player2.steamId,
+          p1Name: result.player1.name,
+          p2Name: result.player2.name,
+        }),
+      });
+      const json = await res.json();
+      if (json.ok && json.url) {
+        window.location.href = json.url;
+        return;
+      }
+      setUnlockError(json.error?.message || "Qualcosa è andato storto. Riprova.");
+    } catch {
+      setUnlockError("Errore di rete. Riprova tra qualche secondo.");
+    }
+    setUnlockLoading(false);
+  }
+
+  async function handleSignin(e) {
+    e.preventDefault();
+    if (!signinEmail.trim()) return;
+    setSigninLoading(true);
+    const redirectPath = result?.player1?.steamId && result?.player2?.steamId
+      ? `/1v1?p1=${result.player1.steamId}&p2=${result.player2.steamId}`
+      : "/1v1";
+    await fetch("/api/auth/request-magic-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: signinEmail.trim(), redirectPath }),
+    }).catch(() => {});
+    setSigninLoading(false);
+    setSigninSent(true);
+  }
+
   function copyShareLink() {
     if (!result) return;
     const params = new URLSearchParams({ p1: p1Input, p2: p2Input, ...(cacheKey && { t: cacheKey }) });
@@ -80,6 +156,8 @@ function OneVsOnePage() {
     if (result) trackEvent("1v1_result_viewed", { hasResult: true });
   }, [result]);
 
+  const px = isMobile ? "16px" : "32px";
+
   return (
     <div
       style={{
@@ -93,7 +171,7 @@ function OneVsOnePage() {
       <div
         style={{
           borderBottom: "1px solid rgba(255,255,255,0.06)",
-          padding: "18px 32px",
+          padding: `18px ${px}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -102,21 +180,16 @@ function OneVsOnePage() {
         <a href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
           <img src="/logo-full-whitegradient.png" alt="Leet9" style={{ height: 28, width: "auto", display: "block" }} />
         </a>
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 500,
-            color: "rgba(241,243,249,0.25)",
-            letterSpacing: "0.04em",
-          }}
-        >
-          Your gaming identity, finally visible.
-        </span>
+        {!isMobile && (
+          <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(241,243,249,0.25)", letterSpacing: "0.04em" }}>
+            Your gaming identity, finally visible.
+          </span>
+        )}
       </div>
 
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "64px 32px 96px" }}>
+      <div style={{ maxWidth: 860, margin: "0 auto", padding: `${isMobile ? "36px" : "64px"} ${px} 96px` }}>
         {/* Hero */}
-        <div style={{ textAlign: "center", marginBottom: 52 }}>
+        <div style={{ textAlign: "center", marginBottom: isMobile ? 32 : 52 }}>
           <div
             style={{
               display: "inline-block",
@@ -128,26 +201,26 @@ function OneVsOnePage() {
               fontWeight: 700,
               color: "rgba(241,243,249,0.45)",
               letterSpacing: "0.12em",
-              marginBottom: 24,
+              marginBottom: 20,
             }}
           >
-            STEAM · 1 VS 1
+            LEET9 · 1 VS 1
           </div>
           <h1
             style={{
-              fontSize: 56,
+              fontSize: isMobile ? 34 : 56,
               fontWeight: 900,
               letterSpacing: "-0.035em",
-              lineHeight: 1.05,
-              margin: "0 0 20px",
+              lineHeight: 1.1,
+              margin: "0 0 16px",
             }}
           >
-            You think you game more.{" "}
-            <span style={{ color: "#C8FF00" }}>Prove it.</span>
+            Who&apos;s the{" "}
+            <span style={{ color: "#C8FF00" }}>better gamer?</span>
           </h1>
           <p
             style={{
-              fontSize: 17,
+              fontSize: isMobile ? 15 : 17,
               color: "rgba(241,243,249,0.4)",
               maxWidth: 460,
               margin: "0 auto",
@@ -161,20 +234,19 @@ function OneVsOnePage() {
 
         {/* Input form */}
         <form onSubmit={handleSubmit}>
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              alignItems: "stretch",
-              flexWrap: "wrap",
-            }}
-          >
-            <SteamInput
-              placeholder="Your Steam ID or profile URL"
-              value={p1Input}
-              onChange={setP1Input}
-              accent="#C8FF00"
-            />
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+            {/* Player 1 */}
+            <div style={{ flex: "1 1 200px", display: "flex", flexDirection: "column", gap: 6 }}>
+              <PlatformSelector value={p1Platform} onChange={setP1Platform} />
+              <SteamInput
+                placeholder={platformPlaceholder(p1Platform, true)}
+                value={p1Input}
+                onChange={setP1Input}
+                accent="#C8FF00"
+                disabled={p1Platform !== "steam"}
+              />
+            </div>
+
             <div
               style={{
                 display: "flex",
@@ -186,54 +258,63 @@ function OneVsOnePage() {
                 color: "rgba(255,255,255,0.14)",
                 letterSpacing: "0.1em",
                 flexShrink: 0,
+                paddingBottom: 2,
+                ...(isMobile && { width: "100%", padding: "2px 0" }),
               }}
             >
               VS
             </div>
-            <SteamInput
-              placeholder="Their Steam ID or profile URL"
-              value={p2Input}
-              onChange={setP2Input}
-              accent="#a78bfa"
-            />
+
+            {/* Player 2 */}
+            <div style={{ flex: "1 1 200px", display: "flex", flexDirection: "column", gap: 6 }}>
+              <PlatformSelector value={p2Platform} onChange={setP2Platform} />
+              <SteamInput
+                placeholder={platformPlaceholder(p2Platform, false)}
+                value={p2Input}
+                onChange={setP2Input}
+                accent="#a78bfa"
+                disabled={p2Platform !== "steam"}
+              />
+            </div>
+
             <button
               type="submit"
-              disabled={loading || !p1Input.trim() || !p2Input.trim()}
+              disabled={loading || !p1Input.trim() || !p2Input.trim() || p1Platform !== "steam" || p2Platform !== "steam"}
               onClick={() => trackEvent("1v1_compare_clicked", {})}
               style={{
                 padding: "12px 28px",
                 borderRadius: 10,
                 border: "none",
                 background:
-                  loading || !p1Input.trim() || !p2Input.trim()
+                  loading || !p1Input.trim() || !p2Input.trim() || p1Platform !== "steam" || p2Platform !== "steam"
                     ? "rgba(200,255,0,0.25)"
                     : "#C8FF00",
                 color: "#07080F",
                 fontFamily: "'Outfit', system-ui, sans-serif",
                 fontSize: 14,
                 fontWeight: 800,
-                cursor:
-                  loading || !p1Input.trim() || !p2Input.trim()
-                    ? "not-allowed"
-                    : "pointer",
+                cursor: loading || !p1Input.trim() || !p2Input.trim() || p1Platform !== "steam" || p2Platform !== "steam" ? "not-allowed" : "pointer",
                 transition: "all 0.15s",
                 whiteSpace: "nowrap",
                 flexShrink: 0,
+                alignSelf: "flex-end",
+                ...(isMobile && { width: "100%", padding: "14px 28px" }),
               }}
             >
               {loading ? "Pulling data…" : "Settle it →"}
             </button>
           </div>
-          <p
-            style={{
-              fontSize: 12,
-              color: "rgba(241,243,249,0.18)",
-              marginTop: 10,
-              textAlign: "center",
-            }}
-          >
-            Accepts: SteamID64 · steamcommunity.com/id/username · steamcommunity.com/profiles/ID
-          </p>
+
+          {(p1Platform !== "steam" || p2Platform !== "steam") && (
+            <p style={{ fontSize: 12, color: "rgba(200,255,0,0.5)", marginTop: 10, textAlign: "center" }}>
+              PSN and Xbox integrations are coming soon — stay tuned.
+            </p>
+          )}
+          {p1Platform === "steam" && p2Platform === "steam" && (
+            <p style={{ fontSize: 11, color: "rgba(241,243,249,0.18)", marginTop: 10, textAlign: "center" }}>
+              Works with Steam username · SteamID64 · or full profile URL
+            </p>
+          )}
         </form>
 
         {error && (
@@ -253,13 +334,23 @@ function OneVsOnePage() {
           </div>
         )}
 
-        {loading && <ComparisonSkeleton />}
+        {loading && <ComparisonSkeleton isMobile={isMobile} />}
         {!loading && result && (
           <ComparisonResult
             player1={result.player1}
             player2={result.player2}
             onShare={copyShareLink}
             copied={copied}
+            unlocked={unlocked}
+            onUnlock={handleUnlock}
+            unlockLoading={unlockLoading}
+            unlockError={unlockError}
+            signinEmail={signinEmail}
+            onSigninEmailChange={setSigninEmail}
+            onSignin={handleSignin}
+            signinLoading={signinLoading}
+            signinSent={signinSent}
+            isMobile={isMobile}
           />
         )}
       </div>
@@ -267,8 +358,64 @@ function OneVsOnePage() {
   );
 }
 
+const PLATFORMS = [
+  { id: "steam", label: "Steam", soon: false },
+  { id: "psn",   label: "PSN",   soon: true  },
+  { id: "xbox",  label: "Xbox",  soon: true  },
+];
 
-function SteamInput({ placeholder, value, onChange, accent }) {
+function platformPlaceholder(platform, isYou) {
+  if (platform === "psn")  return isYou ? "Your PSN username" : "Their PSN username";
+  if (platform === "xbox") return isYou ? "Your Xbox Gamertag" : "Their Xbox Gamertag";
+  return isYou ? "Your Steam username or ID" : "Their Steam username or ID";
+}
+
+function PlatformSelector({ value, onChange }) {
+  return (
+    <div style={{ display: "flex", gap: 4 }}>
+      {PLATFORMS.map((p) => (
+        <button
+          key={p.id}
+          type="button"
+          onClick={() => onChange(p.id)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            padding: "4px 10px",
+            borderRadius: 6,
+            border: value === p.id ? "1px solid rgba(255,255,255,0.25)" : "1px solid rgba(255,255,255,0.07)",
+            background: value === p.id ? "rgba(255,255,255,0.08)" : "transparent",
+            color: value === p.id ? "#F1F3F9" : "rgba(241,243,249,0.35)",
+            fontFamily: "'Outfit', system-ui, sans-serif",
+            fontSize: 11,
+            fontWeight: 700,
+            cursor: "pointer",
+            transition: "all 0.12s",
+            letterSpacing: "0.03em",
+          }}
+        >
+          {p.label}
+          {p.soon && (
+            <span style={{
+              fontSize: 8,
+              fontWeight: 800,
+              color: "rgba(200,255,0,0.6)",
+              letterSpacing: "0.05em",
+              background: "rgba(200,255,0,0.08)",
+              padding: "1px 4px",
+              borderRadius: 3,
+            }}>
+              SOON
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SteamInput({ placeholder, value, onChange, accent, disabled }) {
   const [focused, setFocused] = useState(false);
   return (
     <input
@@ -278,31 +425,35 @@ function SteamInput({ placeholder, value, onChange, accent }) {
       onChange={(e) => onChange(e.target.value)}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
+      disabled={disabled}
       style={{
-        flex: "1 1 220px",
+        width: "100%",
         padding: "12px 16px",
         borderRadius: 10,
         border: `1px solid ${focused ? `${accent}55` : "rgba(255,255,255,0.09)"}`,
-        background: "rgba(255,255,255,0.03)",
-        color: "#F1F3F9",
+        background: disabled ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.03)",
+        color: disabled ? "rgba(241,243,249,0.25)" : "#F1F3F9",
         fontFamily: "'Outfit', system-ui, sans-serif",
         fontSize: 14,
         outline: "none",
         transition: "border-color 0.15s",
+        minWidth: 0,
+        boxSizing: "border-box",
+        cursor: disabled ? "not-allowed" : "text",
       }}
     />
   );
 }
 
-function ComparisonSkeleton() {
+function ComparisonSkeleton({ isMobile }) {
   return (
     <div style={{ marginTop: 48 }}>
       <style>{`@keyframes shimmer{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr auto 1fr",
-          gap: 20,
+          gridTemplateColumns: isMobile ? "1fr" : "1fr auto 1fr",
+          gap: 16,
           alignItems: "start",
           marginTop: 40,
         }}
@@ -317,6 +468,8 @@ function ComparisonSkeleton() {
               padding: 24,
               animation: "shimmer 1.4s ease infinite",
               animationDelay: `${i * 0.15}s`,
+              ...(isMobile && i === 0 && { order: 0 }),
+              ...(isMobile && i === 1 && { order: 2 }),
             }}
           >
             <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 24 }}>
@@ -334,15 +487,23 @@ function ComparisonSkeleton() {
             ))}
           </div>
         ))}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "0 8px" }}>
-          <div style={{ fontSize: 36, fontWeight: 900, color: "rgba(255,255,255,0.05)", letterSpacing: "-0.04em" }}>VS</div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: isMobile ? "8px 0" : "0 8px",
+            ...(isMobile && { order: 1 }),
+          }}
+        >
+          <div style={{ fontSize: 28, fontWeight: 900, color: "rgba(255,255,255,0.05)", letterSpacing: "-0.04em" }}>VS</div>
         </div>
       </div>
     </div>
   );
 }
 
-function ComparisonResult({ player1, player2, onShare, copied }) {
+function ComparisonResult({ player1, player2, onShare, copied, unlocked, onUnlock, unlockLoading, unlockError, signinEmail, onSigninEmailChange, onSignin, signinLoading, signinSent, isMobile }) {
   const p1h = player1?.totalPlaytimeHours ?? 0;
   const p2h = player2?.totalPlaytimeHours ?? 0;
   const p1winsHours = p1h >= p2h;
@@ -352,12 +513,7 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
     <div style={{ marginTop: 52 }}>
       {/* Verdict banner */}
       {!player1?.error && !player2?.error && !player1?.isPrivate && !player2?.isPrivate && (
-        <div
-          style={{
-            textAlign: "center",
-            marginBottom: 36,
-          }}
-        >
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div
             style={{
               fontSize: 13,
@@ -372,14 +528,15 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
           </div>
           <div
             style={{
-              fontSize: 28,
+              fontSize: isMobile ? 22 : 28,
               fontWeight: 900,
               color: "#F1F3F9",
               letterSpacing: "-0.02em",
+              lineHeight: 1.3,
             }}
           >
             <span style={{ color: "#C8FF00" }}>
-              {p1winsHours ? player1?.name : player2?.name}
+              {p1winsHours ? player2?.name : player1?.name}
             </span>{" "}
             has no excuses to make.
           </div>
@@ -387,43 +544,51 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
       )}
 
       {/* Share button */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}>
         <button
           onClick={onShare}
           style={{
-            padding: "8px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "12px 28px",
             borderRadius: 99,
-            border: "1px solid rgba(255,255,255,0.1)",
-            background: copied ? "rgba(200,255,0,0.07)" : "transparent",
-            color: copied ? "#C8FF00" : "rgba(241,243,249,0.4)",
+            border: copied ? "1px solid rgba(200,255,0,0.4)" : "1px solid rgba(255,255,255,0.15)",
+            background: copied ? "rgba(200,255,0,0.08)" : "rgba(255,255,255,0.04)",
+            color: copied ? "#C8FF00" : "#F1F3F9",
             fontFamily: "'Outfit', system-ui, sans-serif",
-            fontSize: 13,
-            fontWeight: 600,
+            fontSize: 14,
+            fontWeight: 700,
             cursor: "pointer",
             transition: "all 0.15s",
+            letterSpacing: "-0.01em",
+            width: isMobile ? "100%" : "auto",
+            justifyContent: "center",
           }}
         >
-          {copied ? "✓ Link copied!" : "Send this to them →"}
+          <span style={{ fontSize: 16 }}>{copied ? "✓" : "🔗"}</span>
+          {copied ? "Link copied!" : "Challenge a friend — share this comparison"}
         </button>
       </div>
 
+      {/* Player cards */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr auto 1fr",
-          gap: 24,
+          gridTemplateColumns: isMobile ? "1fr" : "1fr auto 1fr",
+          gap: isMobile ? 0 : 24,
           alignItems: "start",
         }}
       >
-        <PlayerCard player={player1} winner={p1winsHours} side="left" />
-        <VsDivider />
-        <PlayerCard player={player2} winner={!p1winsHours} side="right" />
+        <PlayerCard player={player1} winner={p1winsHours} side="left" isMobile={isMobile} />
+        <VsDivider isMobile={isMobile} />
+        <PlayerCard player={player2} winner={!p1winsHours} side={isMobile ? "left" : "right"} isMobile={isMobile} />
       </div>
 
       {/* Stats comparison */}
       <div
         style={{
-          marginTop: 28,
+          marginTop: 20,
           borderRadius: 14,
           border: "1px solid rgba(255,255,255,0.07)",
           background: "#0D0F1A",
@@ -437,6 +602,7 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
           p1Wins={p1winsHours}
           p1Private={player1?.isPrivate}
           p2Private={player2?.isPrivate}
+          isMobile={isMobile}
         />
         <StatRow
           label="Games Owned"
@@ -446,6 +612,7 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
           p1Private={player1?.isPrivate}
           p2Private={player2?.isPrivate}
           divider={false}
+          isMobile={isMobile}
         />
       </div>
 
@@ -453,15 +620,41 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
       {!player1?.isPrivate && !player2?.isPrivate && (
         <div
           style={{
-            marginTop: 20,
+            marginTop: 16,
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 16,
+            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+            gap: 12,
           }}
         >
-          <TopGames games={player1?.topGames ?? []} name={player1?.name} />
-          <TopGames games={player2?.topGames ?? []} name={player2?.name} />
+          <div>
+            {(player1?.topGames?.length ?? 0) > 0 && (
+              <TopGames games={player1.topGames} name={player1.name} />
+            )}
+          </div>
+          <div>
+            {(player2?.topGames?.length ?? 0) > 0 && (
+              <TopGames games={player2.topGames} name={player2.name} />
+            )}
+          </div>
         </div>
+      )}
+
+      {/* Paid details section */}
+      {!player1?.error && !player2?.error && !player1?.isPrivate && !player2?.isPrivate && (
+        <PaidDetailsSection
+          player1={player1}
+          player2={player2}
+          unlocked={unlocked}
+          onUnlock={onUnlock}
+          unlockLoading={unlockLoading}
+          unlockError={unlockError}
+          signinEmail={signinEmail}
+          onSigninEmailChange={onSigninEmailChange}
+          onSignin={onSignin}
+          signinLoading={signinLoading}
+          signinSent={signinSent}
+          isMobile={isMobile}
+        />
       )}
 
       {/* What is Leet9 + CTA */}
@@ -474,51 +667,28 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
           overflow: "hidden",
         }}
       >
-        {/* What is Leet9 */}
         <div
           style={{
-            padding: "32px 36px 28px",
+            padding: isMobile ? "24px 20px" : "32px 36px 28px",
             borderBottom: "1px solid rgba(255,255,255,0.05)",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              marginBottom: 16,
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
             <img src="/logo-full-whitegradient.png" alt="Leet9" style={{ height: 20, width: "auto", display: "block", opacity: 0.6 }} />
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "rgba(241,243,249,0.35)",
-                letterSpacing: "0.04em",
-              }}
-            >
+            <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(241,243,249,0.35)", letterSpacing: "0.04em" }}>
               What is Leet9?
             </span>
           </div>
-          <p
-            style={{
-              fontSize: 15,
-              color: "rgba(241,243,249,0.5)",
-              lineHeight: 1.7,
-              margin: 0,
-              maxWidth: 540,
-            }}
-          >
-            Leet9 is the gaming identity platform that turns your Steam library
-            into a real profile. Connect your accounts, earn L9 Points for every
-            hour played and achievement unlocked, and rank against players worldwide —
-            not just your friends list.
+          <p style={{ fontSize: 15, color: "rgba(241,243,249,0.5)", lineHeight: 1.7, margin: 0 }}>
+            Leet9 is your One Gamer ID — a single profile that connects every game
+            you play on every platform: PC, console, mobile. Real stats, live.
+            Earn L9 Points not just for hours logged, but for every achievement
+            earned, every competition won, every milestone reached. The gaming
+            identity that finally reflects the real gamer you actually are.
           </p>
         </div>
 
-        {/* CTA */}
-        <div style={{ padding: "28px 36px 32px", textAlign: "center" }}>
+        <div style={{ padding: isMobile ? "24px 20px" : "28px 36px 32px", textAlign: "center" }}>
           <div
             style={{
               fontSize: 11,
@@ -533,7 +703,7 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
           </div>
           <div
             style={{
-              fontSize: 22,
+              fontSize: isMobile ? 18 : 22,
               fontWeight: 900,
               color: "#F1F3F9",
               letterSpacing: "-0.02em",
@@ -565,7 +735,7 @@ function ComparisonResult({ player1, player2, onShare, copied }) {
   );
 }
 
-function PlayerCard({ player, winner, side }) {
+function PlayerCard({ player, winner, side, isMobile }) {
   if (!player || player.error) {
     const isSteamDown = player?.error === "steam_offline";
     return (
@@ -583,20 +753,28 @@ function PlayerCard({ player, winner, side }) {
         <div style={{ fontSize: 12, color: "rgba(241,243,249,0.25)", marginTop: 4 }}>
           {isSteamDown
             ? "Steam API is currently offline. Try again in a few minutes."
-            : "Check the Steam ID or URL and try again."}
+            : "Try your Steam username, SteamID64, or full profile URL."}
         </div>
       </div>
     );
   }
 
+  // On mobile, always left-align for readability
+  const align = !isMobile && side === "right" ? "right" : "left";
+  const rowDir = !isMobile && side === "right" ? "row-reverse" : "row";
+  const borderRadius = isMobile
+    ? (side === "left" ? "16px 16px 0 0" : "0 0 16px 16px")
+    : "16px";
+
   return (
     <div
       style={{
-        borderRadius: 16,
+        borderRadius,
         border: `1px solid ${winner ? "rgba(200,255,0,0.18)" : "rgba(255,255,255,0.07)"}`,
         background: "#0D0F1A",
         padding: 24,
-        textAlign: side === "right" ? "right" : "left",
+        textAlign: align,
+        ...(isMobile && side === "right" && { borderTop: "none" }),
       }}
     >
       <div
@@ -604,7 +782,7 @@ function PlayerCard({ player, winner, side }) {
           display: "flex",
           gap: 14,
           alignItems: "center",
-          flexDirection: side === "right" ? "row-reverse" : "row",
+          flexDirection: rowDir,
           marginBottom: 18,
         }}
       >
@@ -622,15 +800,7 @@ function PlayerCard({ player, winner, side }) {
           />
         )}
         <div>
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 800,
-              color: "#F1F3F9",
-              letterSpacing: "-0.01em",
-              marginBottom: 5,
-            }}
-          >
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#F1F3F9", letterSpacing: "-0.01em", marginBottom: 5 }}>
             {player.name}
           </div>
           {winner && (
@@ -670,12 +840,7 @@ function PlayerCard({ player, winner, side }) {
       </div>
 
       {player.isPrivate ? (
-        <div
-          style={{
-            padding: "12px 0",
-            borderTop: "1px solid rgba(255,255,255,0.05)",
-          }}
-        >
+        <div style={{ padding: "12px 0", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           <div style={{ fontSize: 13, color: "rgba(241,243,249,0.35)", marginBottom: 6 }}>
             This profile is private — stats are hidden.
           </div>
@@ -708,13 +873,7 @@ function PlayerCard({ player, winner, side }) {
           >
             {player.totalPlaytimeHours?.toLocaleString()}h
           </div>
-          <div
-            style={{
-              fontSize: 12,
-              color: "rgba(241,243,249,0.3)",
-              marginBottom: 14,
-            }}
-          >
+          <div style={{ fontSize: 12, color: "rgba(241,243,249,0.3)", marginBottom: 14 }}>
             total playtime · {player.totalGames} games
           </div>
           <a
@@ -737,21 +896,26 @@ function PlayerCard({ player, winner, side }) {
   );
 }
 
-function VsDivider() {
+function VsDivider({ isMobile }) {
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "24px 0",
+        padding: isMobile ? "12px 0" : "24px 0",
+        ...(isMobile && {
+          background: "#0D0F1A",
+          borderLeft: "1px solid rgba(255,255,255,0.07)",
+          borderRight: "1px solid rgba(255,255,255,0.07)",
+        }),
       }}
     >
       <div
         style={{
-          fontSize: 40,
+          fontSize: isMobile ? 20 : 40,
           fontWeight: 900,
-          color: "rgba(255,255,255,0.05)",
+          color: "rgba(255,255,255,0.08)",
           letterSpacing: "-0.04em",
           lineHeight: 1,
         }}
@@ -762,20 +926,20 @@ function VsDivider() {
   );
 }
 
-function StatRow({ label, v1, v2, p1Wins, p1Private, p2Private, divider = true }) {
+function StatRow({ label, v1, v2, p1Wins, p1Private, p2Private, divider = true, isMobile }) {
   return (
     <div
       style={{
         display: "grid",
         gridTemplateColumns: "1fr auto 1fr",
         alignItems: "center",
-        padding: "18px 24px",
+        padding: isMobile ? "14px 16px" : "18px 24px",
         borderBottom: divider ? "1px solid rgba(255,255,255,0.05)" : "none",
       }}
     >
       <div
         style={{
-          fontSize: 22,
+          fontSize: isMobile ? 18 : 22,
           fontWeight: 900,
           color: !p1Private && p1Wins ? "#C8FF00" : p1Private ? "rgba(241,243,249,0.15)" : "#F1F3F9",
           letterSpacing: "-0.02em",
@@ -785,12 +949,12 @@ function StatRow({ label, v1, v2, p1Wins, p1Private, p2Private, divider = true }
       </div>
       <div
         style={{
-          fontSize: 11,
+          fontSize: isMobile ? 9 : 11,
           fontWeight: 700,
           color: "rgba(241,243,249,0.2)",
-          letterSpacing: "0.08em",
+          letterSpacing: "0.06em",
           textAlign: "center",
-          padding: "0 20px",
+          padding: isMobile ? "0 10px" : "0 20px",
           textTransform: "uppercase",
         }}
       >
@@ -798,7 +962,7 @@ function StatRow({ label, v1, v2, p1Wins, p1Private, p2Private, divider = true }
       </div>
       <div
         style={{
-          fontSize: 22,
+          fontSize: isMobile ? 18 : 22,
           fontWeight: 900,
           color: !p2Private && !p1Wins ? "#C8FF00" : p2Private ? "rgba(241,243,249,0.15)" : "#F1F3F9",
           letterSpacing: "-0.02em",
@@ -837,21 +1001,10 @@ function TopGames({ games, name }) {
       {games.slice(0, 5).map((g, i) => (
         <div
           key={g.appId}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: i < games.length - 1 ? 12 : 0,
-          }}
+          style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: i < 4 ? 12 : 0 }}
         >
           {g.iconUrl && (
-            <img
-              src={g.iconUrl}
-              alt={g.name}
-              width={28}
-              height={28}
-              style={{ borderRadius: 4, flexShrink: 0 }}
-            />
+            <img src={g.iconUrl} alt={g.name} width={28} height={28} style={{ borderRadius: 4, flexShrink: 0 }} />
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
@@ -867,18 +1020,260 @@ function TopGames({ games, name }) {
               {g.name}
             </div>
           </div>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: "rgba(200,255,0,0.55)",
-              flexShrink: 0,
-            }}
-          >
+          <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(200,255,0,0.55)", flexShrink: 0 }}>
             {g.playtimeHours}h
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function PaidDetailsSection({ player1, player2, unlocked, onUnlock, unlockLoading, unlockError, signinEmail, onSigninEmailChange, onSignin, signinLoading, signinSent, isMobile }) {
+  const p1Score = player1?.l9Score ?? 0;
+  const p2Score = player2?.l9Score ?? 0;
+  const p1WinsScore = p1Score >= p2Score;
+  const p1Depth = player1?.depthRatio ?? 0;
+  const p2Depth = player2?.depthRatio ?? 0;
+  const p1WinsDepth = p1Depth >= p2Depth;
+
+  return (
+    <div style={{ marginTop: 24, position: "relative" }}>
+      {/* Section header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: "rgba(241,243,249,0.25)",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+          }}
+        >
+          Analisi Dettagliata
+        </div>
+        {!unlocked && (
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 800,
+              color: "#C8FF00",
+              background: "rgba(200,255,0,0.1)",
+              border: "1px solid rgba(200,255,0,0.25)",
+              borderRadius: 4,
+              padding: "2px 7px",
+              letterSpacing: "0.08em",
+            }}
+          >
+            €1
+          </span>
+        )}
+        <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.05)" }} />
+      </div>
+
+      {/* Content — blurred when locked */}
+      <div style={{ position: "relative" }}>
+        <div
+          style={{
+            filter: unlocked ? "none" : "blur(6px)",
+            pointerEvents: unlocked ? "auto" : "none",
+            userSelect: unlocked ? "auto" : "none",
+            transition: "filter 0.3s",
+            borderRadius: 14,
+            border: "1px solid rgba(255,255,255,0.07)",
+            background: "#0D0F1A",
+            overflow: "hidden",
+          }}
+        >
+          {/* L9 Score */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr",
+              alignItems: "center",
+              padding: isMobile ? "20px 16px" : "24px",
+              borderBottom: "1px solid rgba(255,255,255,0.05)",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: isMobile ? 32 : 40, fontWeight: 900, letterSpacing: "-0.03em", color: p1WinsScore ? "#C8FF00" : "#F1F3F9", lineHeight: 1 }}>
+                {p1Score}
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(241,243,249,0.3)", marginTop: 4 }}>{player1?.name}</div>
+            </div>
+            <div style={{ fontSize: isMobile ? 9 : 11, fontWeight: 700, color: "rgba(241,243,249,0.2)", letterSpacing: "0.06em", textAlign: "center", padding: isMobile ? "0 10px" : "0 20px", textTransform: "uppercase" }}>
+              L9 Score
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: isMobile ? 32 : 40, fontWeight: 900, letterSpacing: "-0.03em", color: !p1WinsScore ? "#C8FF00" : "#F1F3F9", lineHeight: 1 }}>
+                {p2Score}
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(241,243,249,0.3)", marginTop: 4 }}>{player2?.name}</div>
+            </div>
+          </div>
+
+          {/* Depth ratio */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr",
+              alignItems: "center",
+              padding: isMobile ? "14px 16px" : "18px 24px",
+              borderBottom: "1px solid rgba(255,255,255,0.05)",
+            }}
+          >
+            <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 900, color: p1WinsDepth ? "#C8FF00" : "#F1F3F9", letterSpacing: "-0.02em" }}>
+              {p1Depth}%
+            </div>
+            <div style={{ fontSize: isMobile ? 9 : 11, fontWeight: 700, color: "rgba(241,243,249,0.2)", letterSpacing: "0.06em", textAlign: "center", padding: isMobile ? "0 10px" : "0 20px", textTransform: "uppercase" }}>
+              Gaming Depth
+            </div>
+            <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 900, color: !p1WinsDepth ? "#C8FF00" : "#F1F3F9", letterSpacing: "-0.02em", textAlign: "right" }}>
+              {p2Depth}%
+            </div>
+          </div>
+
+          {/* Top games 6–10 */}
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 1 }}>
+            <div style={{ padding: isMobile ? "16px 16px" : "16px 20px", borderBottom: isMobile ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(241,243,249,0.2)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
+                {player1?.name} · Games 6–10
+              </div>
+              {(player1?.topGames ?? []).slice(5).map((g, i) => (
+                <div key={g.appId} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: i < 4 ? 10 : 0 }}>
+                  {g.iconUrl && <img src={g.iconUrl} width={22} height={22} style={{ borderRadius: 3 }} alt="" />}
+                  <div style={{ flex: 1, fontSize: 12, fontWeight: 500, color: "rgba(241,243,249,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(200,255,0,0.5)", flexShrink: 0 }}>{g.playtimeHours}h</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: isMobile ? "16px 16px" : "16px 20px", borderLeft: isMobile ? "none" : "1px solid rgba(255,255,255,0.05)" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(241,243,249,0.2)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
+                {player2?.name} · Games 6–10
+              </div>
+              {(player2?.topGames ?? []).slice(5).map((g, i) => (
+                <div key={g.appId} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: i < 4 ? 10 : 0 }}>
+                  {g.iconUrl && <img src={g.iconUrl} width={22} height={22} style={{ borderRadius: 3 }} alt="" />}
+                  <div style={{ flex: 1, fontSize: 12, fontWeight: 500, color: "rgba(241,243,249,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(200,255,0,0.5)", flexShrink: 0 }}>{g.playtimeHours}h</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Paywall overlay */}
+        {!unlocked && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 14,
+              borderRadius: 14,
+              background: "rgba(7,8,15,0.6)",
+              backdropFilter: "blur(2px)",
+              padding: "20px 16px",
+            }}
+          >
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#F1F3F9", letterSpacing: "-0.01em", textAlign: "center", maxWidth: 260 }}>
+              Sblocca l&apos;analisi completa
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(241,243,249,0.4)", textAlign: "center", maxWidth: 260, lineHeight: 1.5 }}>
+              L9 Score · Gaming Depth · Top 10 giochi.<br />Più 500 L9 Points di benvenuto.
+            </div>
+            <button
+              onClick={onUnlock}
+              disabled={unlockLoading}
+              style={{
+                marginTop: 4,
+                padding: "13px 32px",
+                borderRadius: 10,
+                border: "none",
+                background: unlockLoading ? "rgba(200,255,0,0.4)" : "#C8FF00",
+                color: "#07080F",
+                fontFamily: "'Outfit', system-ui, sans-serif",
+                fontSize: 15,
+                fontWeight: 900,
+                cursor: unlockLoading ? "default" : "pointer",
+                letterSpacing: "-0.01em",
+                transition: "all 0.15s",
+                width: isMobile ? "100%" : "auto",
+              }}
+            >
+              {unlockLoading ? "Caricamento…" : "Sblocca i dettagli — €1"}
+            </button>
+            {unlockError && (
+              <div style={{ fontSize: 12, color: "#fca5a5", textAlign: "center", maxWidth: 260 }}>
+                {unlockError}
+              </div>
+            )}
+            <div style={{ fontSize: 11, color: "rgba(241,243,249,0.2)", textAlign: "center" }}>
+              Pagamento sicuro via Stripe · Un click per sempre
+            </div>
+            <div style={{ fontSize: 11, color: "rgba(241,243,249,0.15)", display: "flex", gap: 12 }}>
+              <a href="/terms" target="_blank" style={{ color: "inherit", textDecoration: "underline" }}>Terms</a>
+              <a href="/privacy" target="_blank" style={{ color: "inherit", textDecoration: "underline" }}>Privacy</a>
+            </div>
+
+            {/* Returning user sign-in */}
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 14, width: "100%", maxWidth: 280 }}>
+              {!signinSent ? (
+                <form onSubmit={onSignin} style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
+                  <div style={{ fontSize: 12, color: "rgba(241,243,249,0.3)", textAlign: "center" }}>
+                    Already purchased? Sign in →
+                  </div>
+                  <div style={{ display: "flex", gap: 6, width: "100%" }}>
+                    <input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={signinEmail}
+                      onChange={(e) => onSigninEmailChange(e.target.value)}
+                      required
+                      style={{
+                        flex: 1,
+                        padding: "8px 12px",
+                        borderRadius: 8,
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        background: "rgba(255,255,255,0.05)",
+                        color: "#F1F3F9",
+                        fontFamily: "'Outfit', system-ui, sans-serif",
+                        fontSize: 12,
+                        outline: "none",
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={signinLoading}
+                      style={{
+                        padding: "8px 14px",
+                        borderRadius: 8,
+                        border: "1px solid rgba(200,255,0,0.3)",
+                        background: "transparent",
+                        color: "#C8FF00",
+                        fontFamily: "'Outfit', system-ui, sans-serif",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: signinLoading ? "default" : "pointer",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {signinLoading ? "…" : "Send link"}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div style={{ fontSize: 12, color: "#C8FF00", textAlign: "center" }}>
+                  Magic link sent! Check your inbox.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
