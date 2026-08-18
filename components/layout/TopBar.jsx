@@ -159,11 +159,13 @@ function SearchDropdown({ onClose }) {
 
 export function TopBar({ user }) {
   const pathname = usePathname();
+  const router = useRouter();
   const section = NAV_ITEMS.find(
     (n) => pathname === n.href || pathname.startsWith(n.href + "/")
   );
   const [totalPoints, setTotalPoints] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     fetch("/api/me/gamification")
@@ -171,6 +173,13 @@ export function TopBar({ user }) {
       .then((json) => { if (json.ok) setTotalPoints(json.data.totalPoints); })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    fetch("/api/notifications")
+      .then((r) => r.json())
+      .then((json) => { if (json.ok) setUnreadCount(json.data.unreadCount); })
+      .catch(() => {});
+  }, [pathname]);
 
   return (
     <header className="l9-topbar" style={{
@@ -228,6 +237,38 @@ export function TopBar({ user }) {
             </button>
           )
         }
+        {/* Notification bell */}
+        <button
+          onClick={() => { router.push("/app/challenges"); setUnreadCount(0); fetch("/api/notifications", { method: "PATCH" }).catch(() => {}); }}
+          title="Challenges & Notifications"
+          style={{
+            position: "relative",
+            width: 30, height: 30, borderRadius: 8,
+            border: "1px solid rgba(255,255,255,0.09)",
+            background: "transparent",
+            color: unreadCount > 0 ? "#C8FF00" : "rgba(241,243,249,0.45)",
+            fontSize: 15, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "all 0.15s", flexShrink: 0,
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(200,255,0,0.3)"; e.currentTarget.style.color = "#C8FF00"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)"; e.currentTarget.style.color = unreadCount > 0 ? "#C8FF00" : "rgba(241,243,249,0.45)"; }}
+        >
+          ⚡
+          {unreadCount > 0 && (
+            <span style={{
+              position: "absolute", top: -3, right: -3,
+              width: 14, height: 14, borderRadius: "50%",
+              background: "#C8FF00", color: "#07080F",
+              fontSize: 8, fontWeight: 900,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontFamily: "'Outfit', sans-serif",
+            }}>
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </button>
+
         <div className="l9-topbar-l9" style={{
           padding: "4px 12px",
           borderRadius: 99,

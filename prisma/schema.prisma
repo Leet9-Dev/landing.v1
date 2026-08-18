@@ -72,6 +72,13 @@ model User {
   // Billing
   stripeCustomerId    String?              @unique
   comparisonUnlocks   ComparisonUnlock[]
+
+  // 1v1 game challenges
+  challengesIssued    GameChallenge[]      @relation("ChallengesIssued")
+  challengesReceived  GameChallenge[]      @relation("ChallengesReceived")
+
+  // In-app notifications
+  notifications       Notification[]
 }
 
 model VerificationToken {
@@ -479,6 +486,48 @@ model GameListItem {
   @@unique([listId, gameId])
   @@unique([listId, rank])
   @@index([listId])
+}
+
+// ===========================================================================
+// 1v1 Game Challenges
+// ===========================================================================
+
+model GameChallenge {
+  id              String   @id @default(cuid())
+  challengerId    String
+  challengedId    String
+  gameId          String
+  gameName        String
+  status          String   @default("PENDING")  // PENDING | ACCEPTED | DECLINED
+  challengerStats Json?    // snapshot at acceptance: { hours, achievements }
+  challengedStats Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  challenger User @relation("ChallengesIssued",   fields: [challengerId], references: [id], onDelete: Cascade)
+  challenged User @relation("ChallengesReceived", fields: [challengedId], references: [id], onDelete: Cascade)
+
+  @@index([challengerId])
+  @@index([challengedId])
+  @@index([status])
+}
+
+// ===========================================================================
+// In-app Notifications
+// ===========================================================================
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // CHALLENGE_RECEIVED | CHALLENGE_ACCEPTED | CHALLENGE_DECLINED
+  payload   Json
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
 }
 
 // ===========================================================================
