@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Outfit, Space_Grotesk } from "next/font/google";
 import { SessionProviderWrapper } from "@/components/SessionProviderWrapper";
+import { Analytics } from "@vercel/analytics/next";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -71,6 +72,7 @@ export default function RootLayout({ children }) {
     <html lang="en" className={`${outfit.variable} ${spaceGrotesk.variable}`}>
       <body>
         <SessionProviderWrapper>{children}</SessionProviderWrapper>
+        <Analytics />
       </body>
     </html>
   );

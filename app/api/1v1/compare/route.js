@@ -4,17 +4,7 @@ import {
   fetchSteamOwnedGames,
   resolveVanityURL,
 } from "@/lib/integrations/steam/steamClient";
-
-// In-memory rate limiter: 10 requests / 60s per IP (resets on cold start — sufficient for serverless)
-const _rl = new Map();
-function checkRate(ip) {
-  const now = Date.now();
-  const e = _rl.get(ip) ?? { n: 0, reset: now + 60_000 };
-  if (now > e.reset) { e.n = 0; e.reset = now + 60_000; }
-  e.n++;
-  _rl.set(ip, e);
-  return e.n <= 10;
-}
+import { compareRatelimit } from "@/lib/ratelimit";
 
 const STEAMID64_RE = /^[0-9]{17}$/;
 const VANITY_URL_RE = /^https?:\/\/steamcommunity\.com\/(id|profiles)\/([^/]+)/;
@@ -101,7 +91,8 @@ async function buildPlayerData(input) {
 
 export async function POST(request) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  if (!checkRate(ip)) return apiError("RATE_LIMITED", "Too many requests. Try again in a minute.", 429);
+  const { success } = await compareRatelimit.limit(ip);
+  if (!success) return apiError("RATE_LIMITED", "Too many requests. Try again in a minute.", 429);
 
   let body;
   try {
