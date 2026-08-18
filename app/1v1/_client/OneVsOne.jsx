@@ -482,7 +482,7 @@ function ComparisonResult({ player1, player2, onShare, copied, unlocked, onUnloc
           }}
         >
           <span style={{ fontSize: 16 }}>{copied ? "✓" : "🔗"}</span>
-          {copied ? "Link copied!" : "Challenge a friend — share this battle"}
+          {copied ? "Link copied!" : "Challenge a friend — share this comparison"}
         </button>
       </div>
 
