@@ -34,6 +34,9 @@ function OneVsOnePage() {
   const [unlocked, setUnlocked] = useState(false);
   const [unlockLoading, setUnlockLoading] = useState(false);
   const [unlockError, setUnlockError] = useState(null);
+  const [signinEmail, setSigninEmail] = useState("");
+  const [signinLoading, setSigninLoading] = useState(false);
+  const [signinSent, setSigninSent] = useState(false);
 
   const hasParams = searchParams.get("p1") && searchParams.get("p2");
   const stripeSessionId = searchParams.get("session_id");
@@ -113,6 +116,22 @@ function OneVsOnePage() {
       setUnlockError("Errore di rete. Riprova tra qualche secondo.");
     }
     setUnlockLoading(false);
+  }
+
+  async function handleSignin(e) {
+    e.preventDefault();
+    if (!signinEmail.trim()) return;
+    setSigninLoading(true);
+    const redirectPath = result?.player1?.steamId && result?.player2?.steamId
+      ? `/1v1?p1=${result.player1.steamId}&p2=${result.player2.steamId}`
+      : "/1v1";
+    await fetch("/api/auth/request-magic-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: signinEmail.trim(), redirectPath }),
+    }).catch(() => {});
+    setSigninLoading(false);
+    setSigninSent(true);
   }
 
   function copyShareLink() {
@@ -301,6 +320,11 @@ function OneVsOnePage() {
             onUnlock={handleUnlock}
             unlockLoading={unlockLoading}
             unlockError={unlockError}
+            signinEmail={signinEmail}
+            onSigninEmailChange={setSigninEmail}
+            onSignin={handleSignin}
+            signinLoading={signinLoading}
+            signinSent={signinSent}
             isMobile={isMobile}
           />
         )}
@@ -394,7 +418,7 @@ function ComparisonSkeleton({ isMobile }) {
   );
 }
 
-function ComparisonResult({ player1, player2, onShare, copied, unlocked, onUnlock, unlockLoading, unlockError, isMobile }) {
+function ComparisonResult({ player1, player2, onShare, copied, unlocked, onUnlock, unlockLoading, unlockError, signinEmail, onSigninEmailChange, onSignin, signinLoading, signinSent, isMobile }) {
   const p1h = player1?.totalPlaytimeHours ?? 0;
   const p2h = player2?.totalPlaytimeHours ?? 0;
   const p1winsHours = p1h >= p2h;
@@ -532,6 +556,11 @@ function ComparisonResult({ player1, player2, onShare, copied, unlocked, onUnloc
           onUnlock={onUnlock}
           unlockLoading={unlockLoading}
           unlockError={unlockError}
+          signinEmail={signinEmail}
+          onSigninEmailChange={onSigninEmailChange}
+          onSignin={onSignin}
+          signinLoading={signinLoading}
+          signinSent={signinSent}
           isMobile={isMobile}
         />
       )}
@@ -908,7 +937,7 @@ function TopGames({ games, name }) {
   );
 }
 
-function PaidDetailsSection({ player1, player2, unlocked, onUnlock, unlockLoading, unlockError, isMobile }) {
+function PaidDetailsSection({ player1, player2, unlocked, onUnlock, unlockLoading, unlockError, signinEmail, onSigninEmailChange, onSignin, signinLoading, signinSent, isMobile }) {
   const p1Score = player1?.l9Score ?? 0;
   const p2Score = player2?.l9Score ?? 0;
   const p1WinsScore = p1Score >= p2Score;
@@ -1096,6 +1125,59 @@ function PaidDetailsSection({ player1, player2, unlocked, onUnlock, unlockLoadin
             <div style={{ fontSize: 11, color: "rgba(241,243,249,0.15)", display: "flex", gap: 12 }}>
               <a href="/terms" target="_blank" style={{ color: "inherit", textDecoration: "underline" }}>Terms</a>
               <a href="/privacy" target="_blank" style={{ color: "inherit", textDecoration: "underline" }}>Privacy</a>
+            </div>
+
+            {/* Returning user sign-in */}
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 14, width: "100%", maxWidth: 280 }}>
+              {!signinSent ? (
+                <form onSubmit={onSignin} style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
+                  <div style={{ fontSize: 12, color: "rgba(241,243,249,0.3)", textAlign: "center" }}>
+                    Already purchased? Sign in →
+                  </div>
+                  <div style={{ display: "flex", gap: 6, width: "100%" }}>
+                    <input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={signinEmail}
+                      onChange={(e) => onSigninEmailChange(e.target.value)}
+                      required
+                      style={{
+                        flex: 1,
+                        padding: "8px 12px",
+                        borderRadius: 8,
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        background: "rgba(255,255,255,0.05)",
+                        color: "#F1F3F9",
+                        fontFamily: "'Outfit', system-ui, sans-serif",
+                        fontSize: 12,
+                        outline: "none",
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={signinLoading}
+                      style={{
+                        padding: "8px 14px",
+                        borderRadius: 8,
+                        border: "1px solid rgba(200,255,0,0.3)",
+                        background: "transparent",
+                        color: "#C8FF00",
+                        fontFamily: "'Outfit', system-ui, sans-serif",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: signinLoading ? "default" : "pointer",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {signinLoading ? "…" : "Send link"}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div style={{ fontSize: 12, color: "#C8FF00", textAlign: "center" }}>
+                  Magic link sent! Check your inbox.
+                </div>
+              )}
             </div>
           </div>
         )}

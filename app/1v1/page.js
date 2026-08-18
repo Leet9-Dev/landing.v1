@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import OneVsOnePage from "./_client/OneVsOne";
 import {
   fetchSteamPlayerSummaries,
+  fetchSteamOwnedGames,
   resolveVanityURL,
 } from "@/lib/integrations/steam/steamClient";
 
@@ -54,9 +55,11 @@ export async function generateMetadata({ searchParams }) {
 
     if (!id1 || !id2) return defaultMeta;
 
-    const [s1, s2] = await Promise.all([
+    const [s1, s2, g1, g2] = await Promise.all([
       fetchSteamPlayerSummaries(id1).catch(() => null),
       fetchSteamPlayerSummaries(id2).catch(() => null),
+      fetchSteamOwnedGames(id1).catch(() => null),
+      fetchSteamOwnedGames(id2).catch(() => null),
     ]);
 
     const name1 = s1?.personaname || "Player 1";
@@ -64,9 +67,18 @@ export async function generateMetadata({ searchParams }) {
     const avatar1 = s1?.avatarfull || "";
     const avatar2 = s2?.avatarfull || "";
 
+    const hours1 = g1 ? Math.round(g1.reduce((s, g) => s + (g.playtime_forever || 0), 0) / 60) : 0;
+    const hours2 = g2 ? Math.round(g2.reduce((s, g) => s + (g.playtime_forever || 0), 0) / 60) : 0;
+    const games1 = g1?.length ?? 0;
+    const games2 = g2?.length ?? 0;
+
     const ogParams = new URLSearchParams({
       p1name: name1,
       p2name: name2,
+      p1hours: String(hours1),
+      p2hours: String(hours2),
+      p1games: String(games1),
+      p2games: String(games2),
       ...(avatar1 && { p1avatar: avatar1 }),
       ...(avatar2 && { p2avatar: avatar2 }),
       ...(t && { t }),
