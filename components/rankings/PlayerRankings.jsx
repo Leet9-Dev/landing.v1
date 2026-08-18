@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { RankingFilters } from "@/components/rankings/RankingFilters";
 import { RankingRow } from "@/components/rankings/RankingRow";
 import { RankingStat } from "@/components/rankings/RankingStat";
@@ -15,6 +16,7 @@ const TREND_ICON = { up: "▲", down: "▼", flat: "–" };
 const TREND_COLOR = { up: "#C8FF00", down: "#f87171", flat: "rgba(241,243,249,0.3)" };
 
 export function PlayerRankings() {
+  const router = useRouter();
   const [scope, setScope] = useState("global");
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +76,7 @@ export function PlayerRankings() {
             key={p.userId}
             rank={p.rank}
             highlight={p.isCurrentUser}
+            onClick={() => router.push(p.isCurrentUser ? "/app/profile" : `/app/profile/${p.userId}`)}
             leading={<PlayerIdentity player={p} />}
           >
             <RankingStat label="L9 Points" value={p.l9Points.toLocaleString()} accent width={88} />
