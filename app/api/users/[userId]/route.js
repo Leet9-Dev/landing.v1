@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { apiOk, apiError } from "@/lib/api/response";
 import { computeLevel, computeRankInfo } from "@/lib/scoring/l9Points";
+import { MOCK_GAMES } from "@/lib/mock/games";
+
+const MOCK_GAMES_MAP = Object.fromEntries(MOCK_GAMES.map((g) => [g.id, g]));
 
 export async function GET(request, { params }) {
   const { userId } = await params;
@@ -17,7 +20,13 @@ export async function GET(request, { params }) {
     prisma.pointsLedger.aggregate({ where: { userId }, _sum: { points: true } }),
     prisma.userGame.findMany({
       where: { userId },
-      select: { playtimeHours: true, achievementsUnlocked: true, sourceProvider: true },
+      select: {
+        canonicalGameId: true,
+        playtimeHours: true,
+        achievementsUnlocked: true,
+        trophiesUnlocked: true,
+        sourceProvider: true,
+      },
     }),
     prisma.platformAccount.findMany({
       where: { userId, status: "connected" },
@@ -39,6 +48,20 @@ export async function GET(request, { params }) {
   const gamesCount = gameRows.length;
   const name = user.name || "Gamer";
 
+  const games = gameRows.map((g) => {
+    const meta = MOCK_GAMES_MAP[g.canonicalGameId];
+    return {
+      id: g.canonicalGameId,
+      title: meta?.canonicalTitle ?? g.canonicalGameId,
+      studio: meta?.studio ?? null,
+      coverImageUrl: meta?.coverImageUrl ?? null,
+      playtimeHours: g.playtimeHours ? Math.round(g.playtimeHours) : null,
+      achievementsUnlocked: g.achievementsUnlocked ?? null,
+      trophiesUnlocked: g.trophiesUnlocked ?? null,
+      sourceProvider: g.sourceProvider ?? null,
+    };
+  });
+
   return apiOk({
     user: {
       id: user.id,
@@ -57,6 +80,7 @@ export async function GET(request, { params }) {
       gamesCount,
       totalHours: Math.round(totalHours),
       totalAchievements,
+      games,
     },
   });
 }

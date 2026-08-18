@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 const PLATFORM_COLORS = { steam: "#b9d8f5", psn: "#c8aaff", xbox: "#7bcb80", epic: "#d4c4ff" };
@@ -186,6 +186,110 @@ function FollowButton({ userId, isFollowing, onToggle }) {
   );
 }
 
+function GameChallengeButton({ userId, gameId, gameName, session }) {
+  const router = useRouter();
+  const [state, setState] = useState("idle"); // idle | sending | sent | exists | error
+
+  async function handleChallenge() {
+    if (!session) { router.push("/login"); return; }
+    if (state !== "idle" && state !== "error") return;
+    setState("sending");
+    try {
+      const res = await fetch(`/api/users/${userId}/game-challenge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameId }),
+      });
+      const json = await res.json();
+      if (res.status === 409) { setState("exists"); return; }
+      if (json.ok) setState("sent");
+      else setState("error");
+    } catch {
+      setState("error");
+    }
+  }
+
+  if (state === "sent") return (
+    <div style={{ padding: "7px 14px", borderRadius: 8, background: "rgba(200,255,0,0.08)", border: "1px solid rgba(200,255,0,0.2)", color: "#C8FF00", fontSize: 12, fontWeight: 700 }}>
+      ✓ Challenge sent
+    </div>
+  );
+
+  if (state === "exists") return (
+    <div style={{ padding: "7px 14px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(241,243,249,0.3)", fontSize: 12, fontWeight: 600 }}>
+      Already challenged
+    </div>
+  );
+
+  return (
+    <button
+      onClick={handleChallenge}
+      disabled={state === "sending"}
+      style={{
+        padding: "7px 14px", borderRadius: 8,
+        border: "1px solid rgba(200,255,0,0.3)",
+        background: "rgba(200,255,0,0.07)",
+        color: state === "sending" ? "rgba(200,255,0,0.4)" : "#C8FF00",
+        fontFamily: "'Outfit', sans-serif", fontSize: 12, fontWeight: 700,
+        cursor: state === "sending" ? "wait" : "pointer",
+        transition: "all 0.15s", whiteSpace: "nowrap",
+      }}
+      onMouseEnter={(e) => { if (state === "idle") { e.currentTarget.style.background = "rgba(200,255,0,0.15)"; e.currentTarget.style.borderColor = "rgba(200,255,0,0.5)"; } }}
+      onMouseLeave={(e) => { if (state === "idle") { e.currentTarget.style.background = "rgba(200,255,0,0.07)"; e.currentTarget.style.borderColor = "rgba(200,255,0,0.3)"; } }}
+    >
+      {state === "sending" ? "…" : state === "error" ? "Try again" : "⚡ Challenge"}
+    </button>
+  );
+}
+
+function SharedGamesSection({ targetGames, myGames, userId, session }) {
+  // me/games returns { gameId, ... }; target games return { id, ... }
+  const sharedGameIds = new Set(myGames.map((g) => g.gameId));
+  const shared = targetGames.filter((g) => sharedGameIds.has(g.id));
+
+  if (shared.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(241,243,249,0.3)", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 12 }}>
+        Shared Games · Challenge
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {shared.map((game) => {
+          const myGame = myGames.find((g) => g.id === game.id);
+          return (
+            <div
+              key={game.id}
+              style={{
+                display: "flex", alignItems: "center", gap: 12,
+                padding: "12px 16px", borderRadius: 12,
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.07)",
+              }}
+            >
+              <div style={{
+                width: 40, height: 28, borderRadius: 6, flexShrink: 0,
+                background: game.coverImageUrl ? `url(${game.coverImageUrl}) center/cover no-repeat` : "rgba(200,255,0,0.1)",
+                border: "1px solid rgba(255,255,255,0.07)",
+              }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#F1F3F9", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {game.title}
+                </div>
+                <div style={{ fontSize: 11, color: "rgba(241,243,249,0.35)", marginTop: 2 }}>
+                  {game.playtimeHours != null ? `${game.playtimeHours}h` : "—"}
+                  {game.achievementsUnlocked != null ? ` · ${game.achievementsUnlocked} achievements` : ""}
+                </div>
+              </div>
+              <GameChallengeButton userId={userId} gameId={game.id} gameName={game.title} session={session} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function PublicProfilePage() {
   const { userId } = useParams();
   const router = useRouter();
@@ -195,19 +299,24 @@ export default function PublicProfilePage() {
   const [notFound, setNotFound] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [session, setSession] = useState(null);
+  const [myGames, setMyGames] = useState([]);
 
   useEffect(() => {
     Promise.all([
       fetch(`/api/users/${userId}`).then((r) => r.json()),
       fetch("/api/auth/session").then((r) => r.json()),
       fetch("/api/me/followers?type=following").then((r) => r.json()).catch(() => ({ ok: false })),
-    ]).then(([profileJson, sessionJson, followJson]) => {
+      fetch("/api/me/games").then((r) => r.json()).catch(() => ({ ok: false })),
+    ]).then(([profileJson, sessionJson, followJson, myGamesJson]) => {
       if (!profileJson.ok) { setNotFound(true); setLoading(false); return; }
       setUser(profileJson.data.user);
       setSession(sessionJson?.user ?? null);
       if (followJson.ok) {
         const ids = new Set(followJson.data.users.map((u) => u.id));
         setIsFollowing(ids.has(userId));
+      }
+      if (myGamesJson?.ok) {
+        setMyGames(myGamesJson.data.games);
       }
       // If this is the current user's own profile, redirect to /app/profile
       if (sessionJson?.user?.id === profileJson.data.user.id) {
@@ -398,7 +507,17 @@ export default function PublicProfilePage() {
         <StatCard label="Level" value={user.level} />
       </div>
 
-      {/* Challenge section — shown when target is missing at least one platform */}
+      {/* Shared games — 1v1 challenge */}
+      {session && (user.games ?? []).length > 0 && myGames.length > 0 && (
+        <SharedGamesSection
+          targetGames={user.games}
+          myGames={myGames}
+          userId={userId}
+          session={session}
+        />
+      )}
+
+      {/* Nudge section — shown when target is missing at least one platform */}
       {platforms.length < 4 && (
         <ChallengeSection userId={userId} session={session} userName={user.gamerTag} />
       )}
