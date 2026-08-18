@@ -55,17 +55,17 @@ function ChallengeSection({ userId, session, userName }) {
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: "#F1F3F9", letterSpacing: "-0.01em", marginBottom: 6 }}>
             {state === "sent"
-              ? `Challenge sent to ${userName}! 🎯`
+              ? `Nudge sent to ${userName}! 🎯`
               : state === "already_sent"
-              ? `${userName} already got your challenge`
-              : `${userName} isn't on the board yet`}
+              ? `${userName} already got your nudge`
+              : `${userName} is missing from the competition`}
           </div>
           <div style={{ fontSize: 13, color: "rgba(241,243,249,0.45)", lineHeight: 1.55, maxWidth: 340 }}>
             {state === "sent"
-              ? `We've emailed ${userName}. Now it's their move — connect, compete, and see who wins.`
+              ? `We've sent the nudge. Now it's up to ${userName} to connect and compete.`
               : state === "already_sent"
-              ? "You already dropped the gauntlet. Give them 24 hours to respond."
-              : `${userName} hasn't linked their gaming accounts yet. Send them a challenge and make them show up.`}
+              ? `You already sent a nudge. Give ${userName} 24 hours to respond.`
+              : `${userName} hasn't linked any gaming accounts yet. One nudge might be all it takes.`}
           </div>
         </div>
 
@@ -112,7 +112,7 @@ function ChallengeSection({ userId, session, userName }) {
             onMouseEnter={(e) => { if (state === "idle") { e.currentTarget.style.background = "rgba(200,255,0,0.18)"; e.currentTarget.style.borderColor = "rgba(200,255,0,0.6)"; } }}
             onMouseLeave={(e) => { if (state === "idle") { e.currentTarget.style.background = "rgba(200,255,0,0.1)"; e.currentTarget.style.borderColor = "rgba(200,255,0,0.35)"; } }}
           >
-            {state === "sending" ? "Sending…" : state === "error" ? "Try again" : "⚡ Drop the gauntlet"}
+            {state === "sending" ? "Sending…" : state === "error" ? "Try again" : "⚡ Send the nudge"}
           </button>
         )}
       </div>
