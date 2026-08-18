@@ -26,6 +26,8 @@ function OneVsOnePage() {
 
   const [p1Input, setP1Input] = useState(searchParams.get("p1") || "");
   const [p2Input, setP2Input] = useState(searchParams.get("p2") || "");
+  const [p1Platform, setP1Platform] = useState("steam");
+  const [p2Platform, setP2Platform] = useState("steam");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [cacheKey, setCacheKey] = useState(searchParams.get("t") || "");
@@ -232,13 +234,19 @@ function OneVsOnePage() {
 
         {/* Input form */}
         <form onSubmit={handleSubmit}>
-          <div style={{ display: "flex", gap: 10, alignItems: "stretch", flexWrap: "wrap" }}>
-            <SteamInput
-              placeholder="Your Steam username or ID"
-              value={p1Input}
-              onChange={setP1Input}
-              accent="#C8FF00"
-            />
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+            {/* Player 1 */}
+            <div style={{ flex: "1 1 200px", display: "flex", flexDirection: "column", gap: 6 }}>
+              <PlatformSelector value={p1Platform} onChange={setP1Platform} />
+              <SteamInput
+                placeholder={platformPlaceholder(p1Platform, true)}
+                value={p1Input}
+                onChange={setP1Input}
+                accent="#C8FF00"
+                disabled={p1Platform !== "steam"}
+              />
+            </div>
+
             <div
               style={{
                 display: "flex",
@@ -250,46 +258,63 @@ function OneVsOnePage() {
                 color: "rgba(255,255,255,0.14)",
                 letterSpacing: "0.1em",
                 flexShrink: 0,
-                ...(isMobile && { width: "100%", padding: "4px 0" }),
+                paddingBottom: 2,
+                ...(isMobile && { width: "100%", padding: "2px 0" }),
               }}
             >
               VS
             </div>
-            <SteamInput
-              placeholder="Their Steam username or ID"
-              value={p2Input}
-              onChange={setP2Input}
-              accent="#a78bfa"
-            />
+
+            {/* Player 2 */}
+            <div style={{ flex: "1 1 200px", display: "flex", flexDirection: "column", gap: 6 }}>
+              <PlatformSelector value={p2Platform} onChange={setP2Platform} />
+              <SteamInput
+                placeholder={platformPlaceholder(p2Platform, false)}
+                value={p2Input}
+                onChange={setP2Input}
+                accent="#a78bfa"
+                disabled={p2Platform !== "steam"}
+              />
+            </div>
+
             <button
               type="submit"
-              disabled={loading || !p1Input.trim() || !p2Input.trim()}
+              disabled={loading || !p1Input.trim() || !p2Input.trim() || p1Platform !== "steam" || p2Platform !== "steam"}
               onClick={() => trackEvent("1v1_compare_clicked", {})}
               style={{
                 padding: "12px 28px",
                 borderRadius: 10,
                 border: "none",
                 background:
-                  loading || !p1Input.trim() || !p2Input.trim()
+                  loading || !p1Input.trim() || !p2Input.trim() || p1Platform !== "steam" || p2Platform !== "steam"
                     ? "rgba(200,255,0,0.25)"
                     : "#C8FF00",
                 color: "#07080F",
                 fontFamily: "'Outfit', system-ui, sans-serif",
                 fontSize: 14,
                 fontWeight: 800,
-                cursor: loading || !p1Input.trim() || !p2Input.trim() ? "not-allowed" : "pointer",
+                cursor: loading || !p1Input.trim() || !p2Input.trim() || p1Platform !== "steam" || p2Platform !== "steam" ? "not-allowed" : "pointer",
                 transition: "all 0.15s",
                 whiteSpace: "nowrap",
                 flexShrink: 0,
+                alignSelf: "flex-end",
                 ...(isMobile && { width: "100%", padding: "14px 28px" }),
               }}
             >
               {loading ? "Pulling data…" : "Settle it →"}
             </button>
           </div>
-          <p style={{ fontSize: 11, color: "rgba(241,243,249,0.18)", marginTop: 10, textAlign: "center" }}>
-            Works with Steam username · SteamID64 · or full profile URL
-          </p>
+
+          {(p1Platform !== "steam" || p2Platform !== "steam") && (
+            <p style={{ fontSize: 12, color: "rgba(200,255,0,0.5)", marginTop: 10, textAlign: "center" }}>
+              PSN and Xbox integrations are coming soon — stay tuned.
+            </p>
+          )}
+          {p1Platform === "steam" && p2Platform === "steam" && (
+            <p style={{ fontSize: 11, color: "rgba(241,243,249,0.18)", marginTop: 10, textAlign: "center" }}>
+              Works with Steam username · SteamID64 · or full profile URL
+            </p>
+          )}
         </form>
 
         {error && (
@@ -333,7 +358,64 @@ function OneVsOnePage() {
   );
 }
 
-function SteamInput({ placeholder, value, onChange, accent }) {
+const PLATFORMS = [
+  { id: "steam", label: "Steam", soon: false },
+  { id: "psn",   label: "PSN",   soon: true  },
+  { id: "xbox",  label: "Xbox",  soon: true  },
+];
+
+function platformPlaceholder(platform, isYou) {
+  if (platform === "psn")  return isYou ? "Your PSN username" : "Their PSN username";
+  if (platform === "xbox") return isYou ? "Your Xbox Gamertag" : "Their Xbox Gamertag";
+  return isYou ? "Your Steam username or ID" : "Their Steam username or ID";
+}
+
+function PlatformSelector({ value, onChange }) {
+  return (
+    <div style={{ display: "flex", gap: 4 }}>
+      {PLATFORMS.map((p) => (
+        <button
+          key={p.id}
+          type="button"
+          onClick={() => onChange(p.id)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            padding: "4px 10px",
+            borderRadius: 6,
+            border: value === p.id ? "1px solid rgba(255,255,255,0.25)" : "1px solid rgba(255,255,255,0.07)",
+            background: value === p.id ? "rgba(255,255,255,0.08)" : "transparent",
+            color: value === p.id ? "#F1F3F9" : "rgba(241,243,249,0.35)",
+            fontFamily: "'Outfit', system-ui, sans-serif",
+            fontSize: 11,
+            fontWeight: 700,
+            cursor: "pointer",
+            transition: "all 0.12s",
+            letterSpacing: "0.03em",
+          }}
+        >
+          {p.label}
+          {p.soon && (
+            <span style={{
+              fontSize: 8,
+              fontWeight: 800,
+              color: "rgba(200,255,0,0.6)",
+              letterSpacing: "0.05em",
+              background: "rgba(200,255,0,0.08)",
+              padding: "1px 4px",
+              borderRadius: 3,
+            }}>
+              SOON
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SteamInput({ placeholder, value, onChange, accent, disabled }) {
   const [focused, setFocused] = useState(false);
   return (
     <input
@@ -343,18 +425,21 @@ function SteamInput({ placeholder, value, onChange, accent }) {
       onChange={(e) => onChange(e.target.value)}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
+      disabled={disabled}
       style={{
-        flex: "1 1 220px",
+        width: "100%",
         padding: "12px 16px",
         borderRadius: 10,
         border: `1px solid ${focused ? `${accent}55` : "rgba(255,255,255,0.09)"}`,
-        background: "rgba(255,255,255,0.03)",
-        color: "#F1F3F9",
+        background: disabled ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.03)",
+        color: disabled ? "rgba(241,243,249,0.25)" : "#F1F3F9",
         fontFamily: "'Outfit', system-ui, sans-serif",
         fontSize: 14,
         outline: "none",
         transition: "border-color 0.15s",
         minWidth: 0,
+        boxSizing: "border-box",
+        cursor: disabled ? "not-allowed" : "text",
       }}
     />
   );
