@@ -16,6 +16,110 @@ function getRankColor(rankTier) {
   return "#C8FF00";
 }
 
+function ChallengeSection({ userId, session }) {
+  const [state, setState] = useState("idle"); // idle | sending | sent | error | already_sent
+
+  async function handleChallenge() {
+    if (state !== "idle" && state !== "error") return;
+    setState("sending");
+    try {
+      const res = await fetch(`/api/users/${userId}/challenge`, { method: "POST" });
+      const json = await res.json();
+      if (res.status === 429) { setState("already_sent"); return; }
+      if (json.ok) setState("sent");
+      else setState("error");
+    } catch {
+      setState("error");
+    }
+  }
+
+  return (
+    <div style={{
+      borderRadius: 16,
+      border: "1px solid rgba(200,255,0,0.15)",
+      background: "linear-gradient(135deg, rgba(200,255,0,0.04) 0%, rgba(124,58,237,0.08) 100%)",
+      padding: "24px 28px",
+      marginTop: 20,
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      {/* Decorative glow */}
+      <div style={{
+        position: "absolute", top: -40, right: -40,
+        width: 120, height: 120, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(200,255,0,0.12) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#F1F3F9", letterSpacing: "-0.01em", marginBottom: 6 }}>
+            {state === "sent"
+              ? "Sfida inviata! 🎯"
+              : state === "already_sent"
+              ? "Invito già inviato"
+              : "Vuoi sfidarli?"}
+          </div>
+          <div style={{ fontSize: 13, color: "rgba(241,243,249,0.45)", lineHeight: 1.55, maxWidth: 340 }}>
+            {state === "sent"
+              ? "Gli abbiamo mandato una mail. Ora tocca a loro collegare i loro account e raccogliere la sfida."
+              : state === "already_sent"
+              ? "Hai già inviato una sfida a questo giocatore. Riprova tra 24 ore."
+              : "Non ha ancora collegato i suoi account di gioco. Inviagli una sfida via mail — mettilo sotto pressione di aggiungere il suo ID."}
+          </div>
+        </div>
+
+        {state === "sent" ? (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "10px 20px", borderRadius: 10,
+            background: "rgba(200,255,0,0.08)", border: "1px solid rgba(200,255,0,0.25)",
+            color: "#C8FF00", fontSize: 13, fontWeight: 800, whiteSpace: "nowrap",
+          }}>
+            ✓ Inviata
+          </div>
+        ) : state === "already_sent" ? (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "10px 20px", borderRadius: 10,
+            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+            color: "rgba(241,243,249,0.35)", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap",
+          }}>
+            Già inviata
+          </div>
+        ) : !session ? (
+          <div style={{
+            padding: "10px 20px", borderRadius: 10,
+            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+            color: "rgba(241,243,249,0.35)", fontSize: 12, fontWeight: 600,
+          }}>
+            Accedi per sfidarlo
+          </div>
+        ) : (
+          <button
+            onClick={handleChallenge}
+            disabled={state === "sending"}
+            style={{
+              padding: "10px 22px", borderRadius: 10,
+              border: "1px solid rgba(200,255,0,0.35)",
+              background: state === "sending" ? "rgba(200,255,0,0.05)" : "rgba(200,255,0,0.1)",
+              color: state === "sending" ? "rgba(200,255,0,0.5)" : "#C8FF00",
+              fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 800,
+              cursor: state === "sending" ? "wait" : "pointer",
+              whiteSpace: "nowrap", transition: "all 0.15s",
+              letterSpacing: "-0.01em",
+            }}
+            onMouseEnter={(e) => { if (state === "idle") { e.currentTarget.style.background = "rgba(200,255,0,0.18)"; e.currentTarget.style.borderColor = "rgba(200,255,0,0.6)"; } }}
+            onMouseLeave={(e) => { if (state === "idle") { e.currentTarget.style.background = "rgba(200,255,0,0.1)"; e.currentTarget.style.borderColor = "rgba(200,255,0,0.35)"; } }}
+          >
+            {state === "sending" ? "Invio…" : state === "error" ? "Riprova" : "⚡ Sfidalo — aggiungi il tuo ID"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function StatCard({ label, value }) {
   return (
     <div style={{
@@ -293,6 +397,11 @@ export default function PublicProfilePage() {
         <StatCard label="Achievements" value={user.totalAchievements?.toLocaleString()} />
         <StatCard label="Level" value={user.level} />
       </div>
+
+      {/* Challenge section — shown when target has no platforms connected */}
+      {platforms.length === 0 && (
+        <ChallengeSection userId={userId} session={session} />
+      )}
     </div>
   );
 }
