@@ -16,7 +16,7 @@ function getRankColor(rankTier) {
   return "#C8FF00";
 }
 
-function ChallengeSection({ userId, session }) {
+function ChallengeSection({ userId, session, userName }) {
   const [state, setState] = useState("idle"); // idle | sending | sent | error | already_sent
 
   async function handleChallenge() {
@@ -55,17 +55,17 @@ function ChallengeSection({ userId, session }) {
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: "#F1F3F9", letterSpacing: "-0.01em", marginBottom: 6 }}>
             {state === "sent"
-              ? "Challenge sent! 🎯"
+              ? `Challenge sent to ${userName}! 🎯`
               : state === "already_sent"
-              ? "Already challenged"
-              : "Want to challenge them?"}
+              ? `${userName} already got your challenge`
+              : `${userName} isn't on the board yet`}
           </div>
           <div style={{ fontSize: 13, color: "rgba(241,243,249,0.45)", lineHeight: 1.55, maxWidth: 340 }}>
             {state === "sent"
-              ? "We've sent them an email. Now it's their turn to link their accounts and accept."
+              ? `We've emailed ${userName}. Now it's their move — connect, compete, and see who wins.`
               : state === "already_sent"
-              ? "You already sent a challenge to this player. Try again in 24 hours."
-              : "They haven't connected their gaming accounts yet. Send them a challenge — push them to add their ID and go head-to-head."}
+              ? "You already dropped the gauntlet. Give them 24 hours to respond."
+              : `${userName} hasn't linked their gaming accounts yet. Send them a challenge and make them show up.`}
           </div>
         </div>
 
@@ -93,7 +93,7 @@ function ChallengeSection({ userId, session }) {
             background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
             color: "rgba(241,243,249,0.35)", fontSize: 12, fontWeight: 600,
           }}>
-            Sign in to challenge them
+            Sign in to challenge {userName}
           </div>
         ) : (
           <button
@@ -112,7 +112,7 @@ function ChallengeSection({ userId, session }) {
             onMouseEnter={(e) => { if (state === "idle") { e.currentTarget.style.background = "rgba(200,255,0,0.18)"; e.currentTarget.style.borderColor = "rgba(200,255,0,0.6)"; } }}
             onMouseLeave={(e) => { if (state === "idle") { e.currentTarget.style.background = "rgba(200,255,0,0.1)"; e.currentTarget.style.borderColor = "rgba(200,255,0,0.35)"; } }}
           >
-            {state === "sending" ? "Sending…" : state === "error" ? "Try again" : "⚡ Challenge them — add your ID"}
+            {state === "sending" ? "Sending…" : state === "error" ? "Try again" : "⚡ Drop the gauntlet"}
           </button>
         )}
       </div>
@@ -400,7 +400,7 @@ export default function PublicProfilePage() {
 
       {/* Challenge section — shown when target has no platforms connected */}
       {platforms.length === 0 && (
-        <ChallengeSection userId={userId} session={session} />
+        <ChallengeSection userId={userId} session={session} userName={user.gamerTag} />
       )}
     </div>
   );
