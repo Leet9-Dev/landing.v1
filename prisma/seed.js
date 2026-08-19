@@ -600,6 +600,27 @@ async function main() {
     update: {},
   });
   console.log("Season 0 (Preseason) ensured.");
+
+  // ---------------------------------------------------------------------------
+  // Level curve — generate from config (idempotent TRUNCATE + INSERT)
+  // ---------------------------------------------------------------------------
+  {
+    const base  = 300;
+    const coef  = 65;
+    const exp   = 1.5;
+    const maxLevel = 100;
+    const rows = [];
+    let cumulative = 0;
+    for (let level = 1; level <= maxLevel; level++) {
+      const raw  = base + coef * Math.pow(level - 1, exp);
+      const step = Math.round(raw / 10) * 10;
+      cumulative += step;
+      rows.push({ level, stepXp: step, cumulativeXp: cumulative });
+    }
+    await prisma.levelCurve.deleteMany();
+    await prisma.levelCurve.createMany({ data: rows });
+    console.log(`LevelCurve — ${rows.length} levels seeded (L1 step: ${rows[0].stepXp}, L100 step: ${rows[99].stepXp}).`);
+  }
 }
 
 main()
