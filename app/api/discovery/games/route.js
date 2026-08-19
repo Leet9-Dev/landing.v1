@@ -5,6 +5,16 @@ import { fetchIgdbGamesBatch } from "@/lib/integrations/igdb/igdbMatcher";
 import { prisma } from "@/lib/prisma";
 import { apiOk } from "@/lib/api/response";
 
+// Deterministic display player count — gives each game a unique number in range 4509–13620.
+// Added to real DB count so actual community growth shows on top.
+function mockPlayerBase(gameId) {
+  let h = 5381;
+  for (let i = 0; i < gameId.length; i++) {
+    h = (((h << 5) + h) + gameId.charCodeAt(i)) | 0;
+  }
+  return 4509 + (Math.abs(h) % (13620 - 4509 + 1));
+}
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.toLowerCase() || "";
@@ -71,8 +81,8 @@ export async function GET(request) {
       return {
         ...g,
         sourcePlatforms: sourceMap.get(g.id) ?? g.sourcePlatforms,
-        communityPlayerCount: stats.playerCount,
-        communityHours: stats.totalHours,
+        communityPlayerCount: mockPlayerBase(g.id) + stats.playerCount,
+        communityHours: (g.communityHours ?? 0) + stats.totalHours,
       };
     }),
     ...igdbGames,
