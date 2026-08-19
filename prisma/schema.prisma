@@ -503,9 +503,23 @@ model GameChallenge {
   challengedId    String
   gameId          String
   gameName        String
-  status          String   @default("PENDING")  // PENDING | ACCEPTED | DECLINED
-  challengerStats Json?    // snapshot at acceptance: { hours, achievements }
+  // Status: PENDING | ACTIVE | COMPLETED | DRAW | DECLINED | EXPIRED
+  // (ACCEPTED is a legacy alias for ACTIVE in pre-E4 rows)
+  status          String   @default("PENDING")
+  // Legacy v1 snapshot fields (kept for backwards compat)
+  challengerStats Json?
   challengedStats Json?
+  // E4 Sprint fields
+  sprintDuration     String   @default("72h")  // "24h" | "72h" | "7d"
+  sprintStat         String   @default("hours") // "hours" | "achievements"
+  acceptedAt         DateTime?
+  expiresAt          DateTime?
+  resolvedAt         DateTime?
+  challengerBaseline Json?    // stats snapshot at accept: { hours, achievements }
+  challengedBaseline Json?
+  challengerDelta    Float    @default(0)
+  challengedDelta    Float    @default(0)
+  winnerId           String?  // userId of winner; null = tie / unresolved
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -515,6 +529,8 @@ model GameChallenge {
   @@index([challengerId])
   @@index([challengedId])
   @@index([status])
+  @@index([expiresAt])
+  @@index([winnerId])
 }
 
 // ===========================================================================

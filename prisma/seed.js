@@ -487,6 +487,26 @@ async function main() {
     update: {},
   });
 
+  // sprint rules — virtual rules for sprintEngine v1 bridge writes
+  for (const [ruleId, label, desc] of [
+    ["sprint_win",         "Sprint Win",         "Won a sprint challenge — great effort!"],
+    ["sprint_draw",        "Sprint Draw",         "Tied a sprint challenge — well matched!"],
+    ["sprint_participate", "Sprint Participation","Completed a sprint challenge — keep playing!"],
+  ]) {
+    const ex = await prisma.gamificationRule.findUnique({ where: { id: ruleId } });
+    if (!ex) {
+      await prisma.gamificationRule.create({
+        data: {
+          id: ruleId, family: "video_game", objective: "sprint_challenge",
+          type: "activity", active: true, label, description: desc,
+          looped: false, loopFrequency: null, points: null,
+          eventType: "sprint_resolved", yearlyMaxPoints: null,
+        },
+      });
+      created++;
+    } else { skipped++; }
+  }
+
   // heritage_award — virtual rule referenced by heritageEngine v1 bridge write
   const heritageExists = await prisma.gamificationRule.findUnique({ where: { id: "heritage_award" } });
   if (!heritageExists) {
@@ -549,6 +569,11 @@ async function main() {
 
     // SP multiplier
     { key: "sp.multiplier", value: "1", description: "Seasonal SP = xpDelta * multiplier" },
+
+    // Sprint XP
+    { key: "sprint.xp.winner", value: "150", description: "XP awarded to sprint challenge winner" },
+    { key: "sprint.xp.loser",  value: "30",  description: "XP awarded to sprint challenge loser (participation)" },
+    { key: "sprint.xp.draw",   value: "75",  description: "XP awarded to each player on sprint draw" },
 
     // Economy invariants (informational)
     { key: "invariant.play_family_min_pct", value: "60", description: "Min % of XP from play+ach+challenges" },
