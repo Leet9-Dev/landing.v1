@@ -7,6 +7,7 @@ import { matchDetectedGameToCanonical } from "@/lib/platforms/canonicalMatching"
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
 import { batchMatchToIgdb } from "@/lib/integrations/igdb/igdbMatcher";
 import { emitGameAddedEvent } from "@/lib/gamification/engine";
+import { awardHeritageXp, hasHeritageXp } from "@/lib/gamification/heritageEngine";
 
 // Steam library execute sync (Phase 17).
 //
@@ -152,6 +153,18 @@ export async function POST() {
         const runningTotal = totalGamesRow - newGameIds.length + i + 1;
         emitGameAddedEvent(prisma, userId, newGameIds[i], runningTotal).catch(() => {});
       }
+    }
+
+    // 5c. Heritage XP — fires once on first successful Steam sync.
+    // Compute total imported hours from all matched UserGame rows for this user/steam.
+    const alreadyHasHeritage = await hasHeritageXp(prisma, userId, "steam");
+    if (!alreadyHasHeritage) {
+      const steamGames = await prisma.userGame.findMany({
+        where: { userId, sourceProvider: "steam" },
+        select: { playtimeHours: true },
+      });
+      const totalSteamHours = steamGames.reduce((sum, g) => sum + (g.playtimeHours ?? 0), 0);
+      awardHeritageXp(prisma, userId, "steam", totalSteamHours).catch(() => {});
     }
 
     // 6. Stamp the sync run as complete.

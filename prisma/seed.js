@@ -487,6 +487,28 @@ async function main() {
     update: {},
   });
 
+  // heritage_award — virtual rule referenced by heritageEngine v1 bridge write
+  const heritageExists = await prisma.gamificationRule.findUnique({ where: { id: "heritage_award" } });
+  if (!heritageExists) {
+    await prisma.gamificationRule.create({
+      data: {
+        id: "heritage_award",
+        family: "prerequisite",
+        objective: "heritage_bonus",
+        type: "milestone",
+        active: true,
+        label: "Heritage Bonus",
+        description: "XP awarded based on your lifetime play history imported from a connected platform.",
+        looped: false,
+        loopFrequency: null,
+        points: null, // variable — computed by heritageEngine, not fixed
+        eventType: "platform_first_sync",
+        yearlyMaxPoints: null,
+      },
+    });
+    created++;
+  } else { skipped++; }
+
   console.log(`Done. Created: ${created + 1}  Already present: ${skipped}`);
 
   // ---------------------------------------------------------------------------
