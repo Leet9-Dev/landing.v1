@@ -9,8 +9,13 @@ export async function POST(request) {
   const { session, unauthenticated } = await requireSession();
   if (unauthenticated) return unauthenticated;
 
-  const userEmail = session.user.email;
-  if (!ADMIN_EMAILS.includes(userEmail)) {
+  // Fetch email from DB — more reliable than session (works with Steam/OAuth logins)
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { email: true },
+  });
+
+  if (!ADMIN_EMAILS.includes(dbUser?.email)) {
     return apiError("FORBIDDEN", "Admin only.", 403);
   }
 
