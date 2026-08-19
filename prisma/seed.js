@@ -488,6 +488,71 @@ async function main() {
   });
 
   console.log(`Done. Created: ${created + 1}  Already present: ${skipped}`);
+
+  // ---------------------------------------------------------------------------
+  // v2.2 GamificationConfig — §19 keys (safe to re-run; upsert on key)
+  // ---------------------------------------------------------------------------
+  const CONFIG_ENTRIES = [
+    // Level curve
+    { key: "level.step.base", value: "300",   description: "Base XP cost for level 1" },
+    { key: "level.step.coef", value: "65",    description: "Coefficient for level curve polynomial" },
+    { key: "level.step.exp",  value: "1.5",   description: "Exponent for level curve polynomial" },
+    { key: "level.max",       value: "100",   description: "Maximum level" },
+
+    // Tier thresholds (cumulative XP)
+    { key: "tier.bronze",    value: "0",     description: "XP threshold for Bronze tier" },
+    { key: "tier.silver",    value: "1000",  description: "XP threshold for Silver tier" },
+    { key: "tier.gold",      value: "3500",  description: "XP threshold for Gold tier" },
+    { key: "tier.platinum",  value: "5250",  description: "XP threshold for Platinum tier" },
+    { key: "tier.diamond",   value: "15000", description: "XP threshold for Diamond tier" },
+
+    // Daily caps
+    { key: "cap.play_hours.daily", value: "3", description: "Max SP-eligible play hours per day" },
+    { key: "cap.share.daily",      value: "1", description: "Max share events per day" },
+
+    // Heritage rule (E2)
+    { key: "heritage.per_hour", value: "1.5",  description: "XP per imported play hour" },
+    { key: "heritage.cap",      value: "2500", description: "Max heritage XP per platform" },
+
+    // XP award amounts
+    { key: "xp.login_daily",      value: "20",  description: "XP per daily login" },
+    { key: "xp.play_hour",        value: "30",  description: "XP per play-hour" },
+    { key: "xp.achievement",      value: "50",  description: "XP per achievement unlocked" },
+    { key: "xp.share_daily",      value: "25",  description: "XP per daily share" },
+    { key: "xp.game_added",       value: "10",  description: "XP per new game added" },
+    { key: "xp.connect_gaming",   value: "150", description: "XP per gaming account connected" },
+    { key: "xp.connect_social",   value: "100", description: "XP per social account connected" },
+    { key: "xp.follow_first",     value: "50",  description: "XP for first follow" },
+    { key: "xp.friend_activated", value: "200", description: "XP when referred friend activates" },
+
+    // SP multiplier
+    { key: "sp.multiplier", value: "1", description: "Seasonal SP = xpDelta * multiplier" },
+
+    // Economy invariants (informational)
+    { key: "invariant.play_family_min_pct", value: "60", description: "Min % of XP from play+ach+challenges" },
+    { key: "invariant.login_max_pct",       value: "15", description: "Max % of XP from login" },
+    { key: "invariant.social_max_pct",      value: "10", description: "Max % of XP from social" },
+  ];
+
+  let configCreated = 0;
+  let configSkipped = 0;
+  for (const entry of CONFIG_ENTRIES) {
+    const existing = await prisma.gamificationConfig.findUnique({ where: { key: entry.key } });
+    if (existing) { configSkipped++; continue; }
+    await prisma.gamificationConfig.create({ data: { key: entry.key, value: entry.value, description: entry.description } });
+    configCreated++;
+  }
+  console.log(`GamificationConfig — Created: ${configCreated}  Already present: ${configSkipped}`);
+
+  // ---------------------------------------------------------------------------
+  // Season 0 — Preseason (upsert)
+  // ---------------------------------------------------------------------------
+  await prisma.season.upsert({
+    where: { id: 0 },
+    create: { id: 0, name: "Preseason", isActive: true },
+    update: {},
+  });
+  console.log("Season 0 (Preseason) ensured.");
 }
 
 main()
