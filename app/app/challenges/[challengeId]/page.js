@@ -115,7 +115,7 @@ export default function ChallengePage() {
     );
   }
 
-  const { challenger, challenged, myRole, status, gameName, gameCoverUrl } = challenge;
+  const { challenger, challenged, myRole, status, gameName, gameCoverUrl, gameCoverGradient } = challenge;
   const me = myRole === "challenger" ? challenger : challenged;
   const them = myRole === "challenger" ? challenged : challenger;
 
@@ -148,7 +148,7 @@ export default function ChallengePage() {
         borderRadius: 18, border: "1px solid rgba(255,255,255,0.08)",
         background: gameCoverUrl
           ? `linear-gradient(to bottom, rgba(7,8,15,0) 0%, rgba(7,8,15,0.9) 60%, #07080F 100%), url(${gameCoverUrl}) center/cover no-repeat`
-          : "linear-gradient(135deg, rgba(200,255,0,0.06) 0%, rgba(124,58,237,0.1) 100%)",
+          : (gameCoverGradient || "linear-gradient(135deg, rgba(200,255,0,0.06) 0%, rgba(124,58,237,0.1) 100%)"),
         padding: "32px 28px 24px",
         marginBottom: 24,
         position: "relative",
