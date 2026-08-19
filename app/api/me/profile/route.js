@@ -3,7 +3,8 @@ import { apiOk, apiError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 import { PLATFORM_ACCOUNT_STATUS } from "@/lib/platforms/platforms";
 import { emitProfileUpdatedEvent } from "@/lib/gamification/engine";
-import { computeL9Points, computeLevel, computeRankInfo } from "@/lib/scoring/l9Points";
+import { computeL9Points, computeLevel, computeLevelFromXp, computeRankInfo } from "@/lib/scoring/l9Points";
+import { loadCurve } from "@/lib/scoring/levelCurve";
 import { MOCK_GAMES } from "@/lib/mock/games";
 
 const GAME_BY_ID = new Map(MOCK_GAMES.map((g) => [g.id, g]));
@@ -29,7 +30,7 @@ export async function GET() {
   const userId = session.user.id;
   const realName = session.user.name || "Gamer";
 
-  const [platformRows, userGames, ledgerAgg, syncRuns, recentGameRows, allLedger] = await Promise.all([
+  const [platformRows, userGames, xpAgg, legacyPointsAgg, syncRuns, recentGameRows, allXpLedger, seasonScoreRow, levelCurve] = await Promise.all([
     prisma.platformAccount.findMany({
       where: { userId, status: PLATFORM_ACCOUNT_STATUS.CONNECTED },
     }),
@@ -37,6 +38,9 @@ export async function GET() {
       where: { userId },
       select: { playtimeHours: true, achievementsUnlocked: true },
     }),
+    // v2.2 primary: sum lifetime XP from XpLedger
+    prisma.xpLedger.aggregate({ where: { userId }, _sum: { xpDelta: true } }).catch(() => ({ _sum: { xpDelta: null } })),
+    // v1 fallback: PointsLedger (used when XpLedger is empty / pre-backfill)
     prisma.pointsLedger.aggregate({ where: { userId }, _sum: { points: true } }),
     prisma.platformSyncRun.findMany({
       where: { platformAccount: { userId }, mode: "execute", status: "success" },
@@ -50,20 +54,36 @@ export async function GET() {
       orderBy: { firstDetectedAt: "desc" },
       take: 10,
     }),
-    prisma.pointsLedger.groupBy({
-      by: ["userId"],
-      _sum: { points: true },
-    }),
+    // For leaderboard: sum XP per user from XpLedger (primary), fallback handled below
+    prisma.xpLedger.groupBy({ by: ["userId"], _sum: { xpDelta: true } }).catch(() => []),
+    // Current season SP for this user
+    prisma.seasonScore.findFirst({
+      where: { userId },
+      orderBy: { seasonId: "desc" },
+      select: { spTotal: true, tier: true, seasonId: true },
+    }).catch(() => null),
+    // Level curve for v2.2 level calculation
+    loadCurve().catch(() => []),
   ]);
 
   const platformsConnected = platformRows
     .map((r) => r.provider)
     .filter((p) => GAME_PLATFORMS.includes(p));
 
-  // Use PointsLedger as source of truth for total L9 Points.
-  const l9Points = ledgerAgg._sum.points ?? 0;
-  const level = computeLevel(l9Points);
-  const rankInfo = computeRankInfo(l9Points);
+  // E3 Cutover: XpLedger is the primary source of truth for lifetime XP.
+  // Fall back to PointsLedger for users whose XpLedger is empty (pre-backfill).
+  const xpFromV2 = xpAgg._sum.xpDelta ?? 0;
+  const xpFromV1 = legacyPointsAgg._sum.points ?? 0;
+  const lifetimeXp = xpFromV2 > 0 ? xpFromV2 : xpFromV1;
+  const l9Points = lifetimeXp; // alias kept for downstream references
+  const seasonSp = seasonScoreRow?.spTotal ?? 0;
+
+  // Level from v2.2 curve; falls back to v1 formula if curve is empty.
+  const level = levelCurve.length > 0
+    ? computeLevelFromXp(lifetimeXp, levelCurve)
+    : computeLevel(lifetimeXp);
+
+  const rankInfo = computeRankInfo(lifetimeXp);
   const rankTier = rankInfo.rankTier;
   const nextRank = rankInfo.nextRank;
   const rankProgressPct = rankInfo.rankProgressPct;
@@ -89,6 +109,9 @@ export async function GET() {
     profileCompletenessPct: null,
     platformsConnected,
     gamesCount: userGames.length,
+    lifetimeXp,
+    seasonSp,
+    seasonId: seasonScoreRow?.seasonId ?? 0,
   };
 
   // Build recentActivity events for the profile overview.
@@ -124,8 +147,9 @@ export async function GET() {
     .map(({ _ts, ...rest }) => rest);
 
   // Nearby players in global ranking (2 above, current user, 2 below).
-  const ranked = allLedger
-    .map((r) => ({ userId: r.userId, total: r._sum.points ?? 0 }))
+  // E3: use XpLedger as primary; fall back to PointsLedger groupBy if XpLedger is empty.
+  const xpRanked = allXpLedger.map((r) => ({ userId: r.userId, total: r._sum.xpDelta ?? 0 }));
+  const ranked = (xpRanked.length > 0 ? xpRanked : [])
     .sort((a, b) => b.total - a.total);
 
   const myIdx = ranked.findIndex((r) => r.userId === userId);
