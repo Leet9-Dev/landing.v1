@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { apiOk, apiError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 import { sendGameChallengeAcceptedEmail } from "@/lib/email";
+import { computeExpiresAt } from "@/lib/gamification/sprintEngine";
 
 export async function POST(request, { params }) {
   const { session, unauthenticated } = await requireSession();
@@ -23,6 +24,7 @@ export async function POST(request, { params }) {
       challenged: { select: { id: true, name: true } },
     },
   });
+
 
   if (!challenge) return apiError("NOT_FOUND", "Challenge not found.", 404);
   if (challenge.challengedId !== userId) return apiError("FORBIDDEN", "Only the challenged player can respond.", 403);
@@ -47,7 +49,8 @@ export async function POST(request, { params }) {
     return apiOk({ status: "DECLINED" });
   }
 
-  // Accept: snapshot both users' stats for this game
+  // Accept: snapshot baseline stats for delta-based sprint tracking.
+  // Both players' deltas start at 0 from this moment — only new progress counts.
   const [challengerGame, challengedGame] = await Promise.all([
     prisma.userGame.findUnique({
       where: { userId_canonicalGameId: { userId: challenge.challengerId, canonicalGameId: challenge.gameId } },
@@ -59,21 +62,31 @@ export async function POST(request, { params }) {
     }),
   ]);
 
-  const challengerStats = {
-    hours: challengerGame ? Math.round(challengerGame.playtimeHours ?? 0) : 0,
+  const challengerBaseline = {
+    hours: Math.round((challengerGame?.playtimeHours ?? 0) * 10) / 10,
     achievements: challengerGame?.achievementsUnlocked ?? 0,
-    trophies: challengerGame?.trophiesUnlocked ?? 0,
   };
-  const challengedStats = {
-    hours: challengedGame ? Math.round(challengedGame.playtimeHours ?? 0) : 0,
+  const challengedBaseline = {
+    hours: Math.round((challengedGame?.playtimeHours ?? 0) * 10) / 10,
     achievements: challengedGame?.achievementsUnlocked ?? 0,
-    trophies: challengedGame?.trophiesUnlocked ?? 0,
   };
+
+  const acceptedAt = new Date();
+  const expiresAt = computeExpiresAt(acceptedAt, challenge.sprintDuration ?? "72h");
 
   await prisma.$transaction([
     prisma.gameChallenge.update({
       where: { id: challengeId },
-      data: { status: "ACCEPTED", challengerStats, challengedStats },
+      data: {
+        status: "ACTIVE",
+        acceptedAt,
+        expiresAt,
+        challengerBaseline,
+        challengedBaseline,
+        // Keep legacy fields populated for v1 clients
+        challengerStats: challengerBaseline,
+        challengedStats: challengedBaseline,
+      },
     }),
     prisma.notification.create({
       data: {
@@ -84,6 +97,9 @@ export async function POST(request, { params }) {
           challengedName: challenge.challenged.name || "Gamer",
           gameId: challenge.gameId,
           gameName: challenge.gameName,
+          sprintDuration: challenge.sprintDuration,
+          sprintStat: challenge.sprintStat,
+          expiresAt: expiresAt.toISOString(),
         },
       },
     }),
@@ -100,5 +116,12 @@ export async function POST(request, { params }) {
     }).catch(() => {});
   }
 
-  return apiOk({ status: "ACCEPTED", challengerStats, challengedStats });
+  return apiOk({
+    status: "ACTIVE",
+    expiresAt: expiresAt.toISOString(),
+    sprintDuration: challenge.sprintDuration,
+    sprintStat: challenge.sprintStat,
+    challengerBaseline,
+    challengedBaseline,
+  });
 }

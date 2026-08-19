@@ -3,6 +3,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import LeaderboardView from "./_client/LeaderboardView";
 
+export const dynamic = "force-dynamic";
+
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://leet9.com";
 const NEW_THRESHOLD_MS = 14 * 24 * 60 * 60 * 1000;
 

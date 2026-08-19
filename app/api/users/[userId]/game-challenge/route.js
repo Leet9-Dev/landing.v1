@@ -18,8 +18,14 @@ export async function POST(request, { params }) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const { gameId } = body;
+  const { gameId, sprintDuration = "72h", sprintStat = "hours" } = body;
   if (!gameId) return apiError("MISSING_GAME", "gameId is required.", 400);
+  if (!["24h", "72h", "7d"].includes(sprintDuration)) {
+    return apiError("INVALID_DURATION", "sprintDuration must be '24h', '72h', or '7d'.", 400);
+  }
+  if (!["hours", "achievements"].includes(sprintStat)) {
+    return apiError("INVALID_STAT", "sprintStat must be 'hours' or 'achievements'.", 400);
+  }
 
   const gameMeta = MOCK_GAMES_MAP[gameId];
   if (!gameMeta) return apiError("UNKNOWN_GAME", "Game not found.", 404);
@@ -62,6 +68,8 @@ export async function POST(request, { params }) {
       challengedId: targetId,
       gameId,
       gameName: gameMeta.canonicalTitle,
+      sprintDuration,
+      sprintStat,
     },
   });
 

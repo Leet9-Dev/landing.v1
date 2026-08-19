@@ -53,13 +53,18 @@ model User {
   platformAccounts PlatformAccount[]
   userGames        UserGame[]
 
-  // Phase 11 gamification engine
+  // Phase 11 gamification engine (v1 — kept until E3 cutover)
   gamificationEvents GamificationEvent[]
   pointsLedger       PointsLedger[]
   userRuleStates     UserRuleState[]
   userBrandPoints    UserBrandPoints[]
   userBadges         UserBadge[]
   userStreaks        UserStreak[]
+
+  // Phase 11 gamification engine v2.2 (E1 Foundation)
+  xpLedger      XpLedger[]
+  dailyCounters DailyCounter[]
+  seasonScores  SeasonScore[]
 
   // Phase 12 social graph + referrals
   inviteCodesIssued InviteCode[] @relation("InviterCodes")
@@ -400,8 +405,11 @@ model UserStreak {
   streakType       String                     // "login_daily" | "play_weekly"
   currentStreak    Int       @default(0)
   longestStreak    Int       @default(0)
-  lastActivityDate DateTime?                  // date-only; used to detect streak continuity
+  lastActivityDate DateTime?
   streakStartedAt  DateTime?
+  // E5: freeze tokens let users protect a streak through one missed day
+  freezeTokens     Int       @default(0)
+  lastFreezeUsedAt DateTime?
   updatedAt        DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -498,9 +506,23 @@ model GameChallenge {
   challengedId    String
   gameId          String
   gameName        String
-  status          String   @default("PENDING")  // PENDING | ACCEPTED | DECLINED
-  challengerStats Json?    // snapshot at acceptance: { hours, achievements }
+  // Status: PENDING | ACTIVE | COMPLETED | DRAW | DECLINED | EXPIRED
+  // (ACCEPTED is a legacy alias for ACTIVE in pre-E4 rows)
+  status          String   @default("PENDING")
+  // Legacy v1 snapshot fields (kept for backwards compat)
+  challengerStats Json?
   challengedStats Json?
+  // E4 Sprint fields
+  sprintDuration     String   @default("72h")  // "24h" | "72h" | "7d"
+  sprintStat         String   @default("hours") // "hours" | "achievements"
+  acceptedAt         DateTime?
+  expiresAt          DateTime?
+  resolvedAt         DateTime?
+  challengerBaseline Json?    // stats snapshot at accept: { hours, achievements }
+  challengedBaseline Json?
+  challengerDelta    Float    @default(0)
+  challengedDelta    Float    @default(0)
+  winnerId           String?  // userId of winner; null = tie / unresolved
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -510,6 +532,8 @@ model GameChallenge {
   @@index([challengerId])
   @@index([challengedId])
   @@index([status])
+  @@index([expiresAt])
+  @@index([winnerId])
 }
 
 // ===========================================================================
@@ -528,6 +552,104 @@ model Notification {
 
   @@index([userId])
   @@index([read])
+}
+
+// ===========================================================================
+// Gamification Engine v2.2 — E1 Foundation (additive; v1 tables kept until E3)
+//
+// New tables:
+//   XpLedger         — dual-currency audit trail (xp_delta + sp_delta)
+//   DailyCounter     — per-user per-day cap enforcement
+//   GamificationConfig — hot-reloadable §19 key-value config
+//   LevelCurve       — (level → cumulativeXp) snapshot generated at boot
+//   Season           — season metadata; id=0 = Preseason
+//   SeasonScore      — (userId, seasonId) running SP total + tier
+// ===========================================================================
+
+// Immutable dual-currency ledger. xpDelta can be negative (reversals only).
+// idempotencyKey prevents double-awards on retries (ON CONFLICT DO NOTHING).
+model XpLedger {
+  id             String   @id @default(cuid())
+  userId         String
+  ruleId         String?                       // null = manual / admin / backfill
+  eventId        String?                       // null = no triggering event record
+  xpDelta        Int                           // lifetime XP awarded (negative = reversal)
+  spDelta        Int      @default(0)          // seasonal SP awarded
+  seasonId       Int      @default(0)          // Season.id; 0 = Preseason
+  source         String   @default("rule")     // "rule" | "heritage" | "backfill" | "admin" | "migration"
+  idempotencyKey String   @unique
+  reversalOf     String?                       // XpLedger.id this entry reverses
+  awardedAt      DateTime @default(now())
+  note           String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([seasonId])
+  @@index([awardedAt])
+  @@index([ruleId])
+}
+
+// Per-user per-day counter for capped rules (e.g. max 3 play-hours/day).
+// date stored as "YYYY-MM-DD" string to avoid timezone edge cases.
+model DailyCounter {
+  userId     String
+  date       String                            // "YYYY-MM-DD"
+  counterKey String                            // "play_hours" | "share" | "login" | …
+  count      Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, date, counterKey])
+  @@index([userId])
+}
+
+// Hot-reloadable key-value config table — every §19 key lives here.
+// Engine reads this at request time (or via cached read) rather than env vars.
+model GamificationConfig {
+  key         String   @id                    // e.g. "level.step.base"
+  value       String                          // JSON-encoded (number, string, or object)
+  description String?
+  updatedBy   String?                         // admin userId
+  updatedAt   DateTime @updatedAt
+}
+
+// Snapshot of the level curve generated at boot from GamificationConfig.
+// Regenerated whenever level.step.* keys change (see lib/scoring/levelCurve.js).
+model LevelCurve {
+  level         Int @id
+  cumulativeXp  Int                           // total XP needed to reach this level
+  stepXp        Int                           // XP required from previous level
+}
+
+// Season metadata. id=0 is always "Preseason" (seeded in prisma/seed.js).
+model Season {
+  id       Int       @id
+  name     String
+  startsAt DateTime?
+  endsAt   DateTime?
+  isActive Boolean   @default(false)
+  metadata Json?
+  createdAt DateTime @default(now())
+
+  seasonScores SeasonScore[]
+}
+
+// Running SP total per user per season. Drives seasonal leaderboard + tier.
+model SeasonScore {
+  userId      String
+  seasonId    Int
+  spTotal     Int      @default(0)
+  tier        String   @default("bronze")     // "bronze" | "silver" | "gold" | "platinum" | "diamond"
+  lastUpdatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  season Season @relation(fields: [seasonId], references: [id])
+
+  @@id([userId, seasonId])
+  @@index([seasonId, spTotal])              // leaderboard queries
+  @@index([userId])
 }
 
 // ===========================================================================
