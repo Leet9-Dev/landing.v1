@@ -269,7 +269,9 @@ function SharedGamesSection({ targetGames, myGames, userId, session }) {
             >
               <div style={{
                 width: 40, height: 28, borderRadius: 6, flexShrink: 0,
-                background: game.coverImageUrl ? `url(${game.coverImageUrl}) center/cover no-repeat` : "rgba(200,255,0,0.1)",
+                background: game.coverImageUrl
+                  ? `url(${game.coverImageUrl}) center/cover no-repeat`
+                  : (game.coverGradient || "rgba(200,255,0,0.1)"),
                 border: "1px solid rgba(255,255,255,0.07)",
               }} />
               <div style={{ flex: 1, minWidth: 0 }}>
