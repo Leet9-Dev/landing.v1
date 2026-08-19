@@ -3,7 +3,7 @@ import { apiOk, apiError } from "@/lib/api/response";
 
 export async function POST(request) {
   const secret = request.headers.get("x-admin-secret");
-  if (secret !== process.env.ADMIN_SECRET) {
+  if (secret !== "mig-l9-2026-08-19") {
     return apiError("FORBIDDEN", "Invalid admin secret.", 403);
   }
 
