@@ -3,6 +3,7 @@ import { apiOk, apiError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 import { prisma } from "@/lib/prisma";
 import { computeL9Points } from "@/lib/scoring/l9Points";
+import { emitGameAddedEvent } from "@/lib/gamification/engine";
 
 export async function POST(request, { params }) {
   const { session, unauthenticated } = await requireSession();
@@ -17,6 +18,11 @@ export async function POST(request, { params }) {
   }
 
   const now = new Date();
+
+  const existingGame = await prisma.userGame.findUnique({
+    where: { userId_canonicalGameId: { userId, canonicalGameId: game.id } },
+    select: { id: true },
+  });
 
   const userGame = await prisma.userGame.upsert({
     where: { userId_canonicalGameId: { userId, canonicalGameId: game.id } },
@@ -39,6 +45,11 @@ export async function POST(request, { params }) {
       sourceProvider: true,
     },
   });
+
+  if (!existingGame) {
+    const totalGames = await prisma.userGame.count({ where: { userId } });
+    emitGameAddedEvent(prisma, userId, game.id, totalGames).catch(() => {});
+  }
 
   const hoursPlayed = userGame.playtimeHours ?? 0;
   const achievementsUnlocked = userGame.achievementsUnlocked ?? 0;

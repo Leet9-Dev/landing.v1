@@ -194,6 +194,7 @@ export async function PATCH(request) {
       return apiError("INVALID_DISPLAY_NAME", "Display name must be 1–32 characters.", 400);
     }
     updateData.name = displayName;
+    gamificationTriggers.push("displayName");
   }
 
   if (typeof body.bio === "string") {
