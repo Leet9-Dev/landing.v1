@@ -5,7 +5,7 @@ import { MOCK_GAMES } from "@/lib/mock/games";
 
 const ADMIN_EMAILS = ["palesamattia@gmail.com"];
 // Known admin userIds (used as fallback when email is null, e.g. Steam-only accounts)
-const ADMIN_USER_IDS = ["cmqtn7n0r00001e7zuylpd4zd"];
+const ADMIN_USER_IDS = ["cmqtn7n0r00001e7zuylpd4zd", "cmssou3qm000011gl5wk4ov3f"];
 
 export async function POST(request) {
   const { session, unauthenticated } = await requireSession();
