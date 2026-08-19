@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const KNOWN_USERS = [
   { label: "Seed my games", userId: null },
@@ -53,6 +53,11 @@ function SeedButton({ label, userId }) {
 }
 
 export default function AdminPage() {
+  const [myId, setMyId] = useState(null);
+  useEffect(() => {
+    fetch("/api/me").then(r => r.json()).then(j => { if (j.ok) setMyId(j.data?.id); }).catch(() => {});
+  }, []);
+
   return (
     <div style={{ padding: "36px 32px", fontFamily: "'Outfit', sans-serif", maxWidth: 480, margin: "0 auto" }}>
       <h1 style={{ fontSize: 20, fontWeight: 900, color: "#F1F3F9", letterSpacing: "-0.02em", margin: "0 0 8px" }}>
@@ -74,6 +79,13 @@ export default function AdminPage() {
       <p style={{ marginTop: 20, fontSize: 11, color: "rgba(241,243,249,0.2)", lineHeight: 1.6 }}>
         Seeds 8 mock games (Elden Ring, BG3, …) with random hours and achievements. Safe to run multiple times — uses upsert.
       </p>
+
+      {myId && (
+        <div style={{ marginTop: 28, padding: "12px 16px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(241,243,249,0.25)", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 6 }}>Your User ID</div>
+          <div style={{ fontSize: 12, fontFamily: "monospace", color: "rgba(241,243,249,0.5)", wordBreak: "break-all" }}>{myId}</div>
+        </div>
+      )}
     </div>
   );
 }
