@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "db:safety-check": "node scripts/check-db-migration-safety.js",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "db:backfill-xp": "node scripts/backfill_xp.js",
+    "db:backfill-xp:dry": "node scripts/backfill_xp.js --dry-run"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",
