@@ -10,6 +10,17 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ["@prisma/client"],
   },
+  async rewrites() {
+    return [
+      // Riot verification bot requests //riot.txt (double slash) when the
+      // registered home URL has a trailing slash. Rewrite transparently so the
+      // bot receives the file content without following a redirect.
+      {
+        source: "/:prefix*/riot.txt",
+        destination: "/riot.txt",
+      },
+    ];
+  },
   async headers() {
     return [
       {
