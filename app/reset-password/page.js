@@ -12,6 +12,7 @@ function ResetPasswordContent() {
   const [confirm, setConfirm] = useState("");
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
   const [error, setError] = useState(null);
+  const [showPw, setShowPw] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -63,14 +64,23 @@ function ResetPasswordContent() {
             </h1>
             <p style={{ fontSize: 13, color: "rgba(241,243,249,0.4)", marginBottom: 24 }}>Choose a new password for your account.</p>
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <input type="password" placeholder="New password (min 8 chars)" value={password} required minLength={8}
-                onChange={e => setPassword(e.target.value)} style={inputStyle}
-                onFocus={e => e.target.style.borderColor = "rgba(200,255,0,0.4)"}
-                onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
-              <input type="password" placeholder="Confirm new password" value={confirm} required
-                onChange={e => setConfirm(e.target.value)} style={inputStyle}
-                onFocus={e => e.target.style.borderColor = "rgba(200,255,0,0.4)"}
-                onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
+              <div style={{ position: "relative" }}>
+                <input type={showPw ? "text" : "password"} placeholder="New password (min 8 chars)" value={password} required minLength={8}
+                  onChange={e => setPassword(e.target.value)} style={{ ...inputStyle, paddingRight: 44 }}
+                  onFocus={e => e.target.style.borderColor = "rgba(200,255,0,0.4)"}
+                  onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
+                <button type="button" onClick={() => setShowPw(v => !v)} style={{
+                  position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+                  background: "none", border: "none", cursor: "pointer", padding: 0,
+                  color: "rgba(241,243,249,0.4)", fontSize: 13, fontFamily: "'Outfit', sans-serif",
+                }}>{showPw ? "Hide" : "Show"}</button>
+              </div>
+              <div style={{ position: "relative" }}>
+                <input type={showPw ? "text" : "password"} placeholder="Confirm new password" value={confirm} required
+                  onChange={e => setConfirm(e.target.value)} style={{ ...inputStyle, paddingRight: 44 }}
+                  onFocus={e => e.target.style.borderColor = "rgba(200,255,0,0.4)"}
+                  onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
+              </div>
               {error && (
                 <div style={{ fontSize: 12, color: "#f87171", padding: "6px 10px", borderRadius: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)" }}>
                   {error}

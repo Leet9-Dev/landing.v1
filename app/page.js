@@ -10,6 +10,7 @@ function EmailForm({ onBack }) {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPw, setShowPw] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -135,10 +136,17 @@ function EmailForm({ onBack }) {
             onChange={e => setEmail(e.target.value)} style={inputStyle}
             onFocus={e => e.target.style.borderColor = "rgba(200,255,0,0.4)"}
             onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
-          <input type="password" placeholder="Password" value={password} required
-            onChange={e => setPassword(e.target.value)} minLength={8} style={inputStyle}
-            onFocus={e => e.target.style.borderColor = "rgba(200,255,0,0.4)"}
-            onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
+          <div style={{ position: "relative" }}>
+            <input type={showPw ? "text" : "password"} placeholder="Password" value={password} required
+              onChange={e => setPassword(e.target.value)} minLength={8} style={{ ...inputStyle, paddingRight: 44 }}
+              onFocus={e => e.target.style.borderColor = "rgba(200,255,0,0.4)"}
+              onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
+            <button type="button" onClick={() => setShowPw(v => !v)} style={{
+              position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+              background: "none", border: "none", cursor: "pointer", padding: 0,
+              color: "rgba(255,255,255,0.4)", fontSize: 13, fontFamily: "'Outfit', sans-serif",
+            }}>{showPw ? "Hide" : "Show"}</button>
+          </div>
           {error && (
             <div style={{ fontSize: 12, color: "#f87171", padding: "6px 10px", borderRadius: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)" }}>
               {error}
