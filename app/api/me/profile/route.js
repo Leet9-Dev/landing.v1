@@ -30,7 +30,7 @@ export async function GET() {
   const userId = session.user.id;
 
   const [dbUser, platformRows, userGames, xpAgg, legacyPointsAgg, syncRuns, recentGameRows, allXpLedger, seasonScoreRow, levelCurve] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId }, select: { name: true } }).catch(() => null),
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true, image: true } }).catch(() => null),
     prisma.platformAccount.findMany({
       where: { userId, status: PLATFORM_ACCOUNT_STATUS.CONNECTED },
     }),
@@ -95,7 +95,7 @@ export async function GET() {
     id: userId,
     gamerTag: realName,
     displayName: realName,
-    avatarUrl: session.user.image || null,
+    avatarUrl: dbUser?.image || session.user.image || null,
     avatarInitials: realName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2),
     location: null,
     level,
@@ -187,7 +187,7 @@ export async function GET() {
         rank: baseRank + i + 1,
         isCurrentUser: isMe,
         gamerTag: name,
-        avatarUrl: isMe ? (session.user.image ?? null) : (u.image ?? null),
+        avatarUrl: isMe ? (dbUser?.image ?? session.user.image ?? null) : (u.image ?? null),
         l9Points: r.total,
         achievementsEarned: achieveMap[r.userId] ?? 0,
         trend: "flat",
