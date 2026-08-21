@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { PlatformSources } from "@/components/profile/PlatformSources";
 import { SignatureGames } from "@/components/profile/SignatureGames";
 import { TrophyCase } from "@/components/profile/TrophyCase";
 import { FriendsComparison } from "@/components/profile/FriendsComparison";
@@ -24,7 +23,6 @@ export function ProfileOverview() {
 
   return (
     <div>
-      <PlatformSources />
       <SignatureGames signatureGames={data.signatureGames} />
       <TrophyCase trophyCase={data.trophyCase} />
       <FriendsComparison friendsComparison={data.friendsComparison} />

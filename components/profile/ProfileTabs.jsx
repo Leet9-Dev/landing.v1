@@ -5,6 +5,7 @@ const TABS = [
   { id: "games", label: "Games" },
   { id: "stats", label: "Stats" },
   { id: "tribe", label: "Community" },
+  { id: "connect", label: "Leet9 Connect" },
 ];
 
 export function ProfileTabs({ active, onChange }) {
