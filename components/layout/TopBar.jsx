@@ -164,13 +164,21 @@ export function TopBar({ user }) {
     (n) => pathname === n.href || pathname.startsWith(n.href + "/")
   );
   const [totalPoints, setTotalPoints] = useState(null);
+  const [liveDisplayName, setLiveDisplayName] = useState(null);
+  const [liveAvatarUrl, setLiveAvatarUrl] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     fetch("/api/me/gamification")
       .then((r) => r.json())
-      .then((json) => { if (json.ok) setTotalPoints(json.data.totalPoints); })
+      .then((json) => {
+        if (json.ok) {
+          setTotalPoints(json.data.totalPoints);
+          if (json.data.displayName) setLiveDisplayName(json.data.displayName);
+          if (json.data.avatarUrl) setLiveAvatarUrl(json.data.avatarUrl);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -284,10 +292,10 @@ export function TopBar({ user }) {
           {totalPoints !== null ? `${totalPoints.toLocaleString()} L9` : "— L9"}
         </div>
 
-        {user?.image
+        {(liveAvatarUrl || user?.image)
           ? <img
-              src={user.image}
-              alt={user.name || ""}
+              src={liveAvatarUrl || user.image}
+              alt={liveDisplayName || user?.name || ""}
               style={{ width: 30, height: 30, borderRadius: "50%", border: "1.5px solid rgba(200,255,0,0.3)", flexShrink: 0 }}
             />
           : <div style={{
@@ -297,7 +305,7 @@ export function TopBar({ user }) {
               fontSize: 12, fontWeight: 800, color: "#000",
               fontFamily: "'Outfit', sans-serif", flexShrink: 0,
             }}>
-              {user?.name?.[0]?.toUpperCase() || "?"}
+              {(liveDisplayName || user?.name)?.[0]?.toUpperCase() || "?"}
             </div>
         }
 
@@ -308,7 +316,7 @@ export function TopBar({ user }) {
           color: "rgba(241,243,249,0.6)",
           whiteSpace: "nowrap",
         }}>
-          {user?.name || "Gamer"}
+          {liveDisplayName || user?.name || "Gamer"}
         </span>
 
         <button

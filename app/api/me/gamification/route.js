@@ -14,7 +14,8 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  const [ledgerAgg, xpAgg, recentLedger, brandPoints, badges, streaks] = await Promise.all([
+  const [dbUser, ledgerAgg, xpAgg, recentLedger, brandPoints, badges, streaks] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true, image: true } }).catch(() => null),
     prisma.pointsLedger.aggregate({
       where: { userId },
       _sum: { points: true },
@@ -63,6 +64,8 @@ export async function GET() {
 
   return apiOk({
     totalPoints,
+    displayName: dbUser?.name || session.user.name || null,
+    avatarUrl: dbUser?.image || session.user.image || null,
     recentAwards,
     brandPoints: brandPoints.map((b) => ({ brandedName: b.brandedName, totalPoints: b.totalPoints })),
     badges: badgesByBrand,
