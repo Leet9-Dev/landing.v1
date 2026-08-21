@@ -39,7 +39,17 @@ export async function POST(request) {
   if (!content || content.length < 10) return apiError("CONTENT_TOO_SHORT", "Review must be at least 10 characters.", 400);
   if (content.length > 5000) return apiError("CONTENT_TOO_LONG", "Review must be under 5000 characters.", 400);
 
-  const isNew = !(await prisma.gameReview.findUnique({ where: { userId_gameId: { userId, gameId } } }));
+  const existing = await prisma.gameReview.findUnique({ where: { userId_gameId: { userId, gameId } } });
+  const isNew = !existing;
+
+  // Enforce once-per-calendar-month limit on updates
+  if (existing) {
+    const updatedAt = new Date(existing.updatedAt);
+    const now = new Date();
+    if (updatedAt.getFullYear() === now.getFullYear() && updatedAt.getMonth() === now.getMonth()) {
+      return apiError("ALREADY_REVIEWED_THIS_MONTH", "You already reviewed this game this month.", 429);
+    }
+  }
 
   await prisma.gameReview.upsert({
     where: { userId_gameId: { userId, gameId } },

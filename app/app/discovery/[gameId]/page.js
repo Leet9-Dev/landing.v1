@@ -7,8 +7,6 @@ export default function GameDeepDivePage({ params }) {
   const router = useRouter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [inProfile, setInProfile] = useState(false);
-  const [adding, setAdding] = useState(false);
   const [toast, setToast] = useState(null);
   const [session, setSession] = useState(undefined); // undefined = loading, null = no session
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -18,7 +16,6 @@ export default function GameDeepDivePage({ params }) {
   const [reviewSaved, setReviewSaved] = useState(false);
 
   useEffect(() => {
-    // Fetch session and game data in parallel
     Promise.all([
       fetch(`/api/games/${gameId}`).then((r) => r.json()),
       fetch("/api/auth/session").then((r) => r.json()).catch(() => null),
@@ -26,7 +23,6 @@ export default function GameDeepDivePage({ params }) {
       setSession(sessionJson?.user ?? null);
       if (json.ok) {
         setData(json.data);
-        setInProfile(json.data.currentUserGame?.inProfile ?? false);
         if (json.data.userReview) {
           setRatingDraft(json.data.userReview.rating);
           setCommentDraft(json.data.userReview.content ?? "");
@@ -52,18 +48,6 @@ export default function GameDeepDivePage({ params }) {
     }
   }
 
-  async function handleAddToProfile() {
-    if (inProfile || adding) return;
-    setAdding(true);
-    const res = await fetch(`/api/me/games/${gameId}/add`, { method: "POST" });
-    const json = await res.json();
-    if (json.ok) {
-      setInProfile(true);
-      showToast(`${data.game.canonicalTitle} added to your Profile!`);
-    }
-    setAdding(false);
-  }
-
   function showToast(msg) {
     setToast(msg);
     setTimeout(() => setToast(null), 3500);
@@ -73,6 +57,15 @@ export default function GameDeepDivePage({ params }) {
   if (!data) return <NotFoundState onBack={() => router.push("/app/discovery")} />;
 
   const { game, externalSources, currentUserGame, userReview, hasPaid } = data;
+
+  // Check if user already reviewed this game this calendar month
+  const reviewedThisMonth = userReview
+    ? (() => {
+        const d = new Date(userReview.updatedAt);
+        const now = new Date();
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      })()
+    : false;
 
   async function handleSubmitReview() {
     if (!ratingDraft || reviewSaving) return;
@@ -295,6 +288,7 @@ export default function GameDeepDivePage({ params }) {
           <div className="gdp-your-stats-mobile" style={{ marginBottom: 24 }}>
             <ReviewSection
               existing={userReview}
+              reviewedThisMonth={reviewedThisMonth}
               rating={ratingDraft}
               comment={commentDraft}
               onRating={setRatingDraft}
@@ -305,44 +299,23 @@ export default function GameDeepDivePage({ params }) {
             />
           </div>
 
-          {/* Add to Profile CTA — mobile only */}
-          <div className="gdp-cta-mobile">
-            <AddToProfileButton inProfile={inProfile} adding={adding} onClick={handleAddToProfile} />
-            {!inProfile && (
-              <p style={{ fontSize: 11, color: "rgba(241,243,249,0.25)", textAlign: "center", marginTop: 10, lineHeight: 1.5 }}>
-                Adds this game to your public Leet9 profile
-              </p>
-            )}
-          </div>
-
         </div>
 
         {/* Sidebar — desktop only */}
         <div className="gdp-sidebar">
-
-          {/* Add to Profile CTA */}
-          <AddToProfileButton inProfile={inProfile} adding={adding} onClick={handleAddToProfile} />
-          {!inProfile && (
-            <p style={{ fontSize: 11, color: "rgba(241,243,249,0.25)", textAlign: "center", marginTop: 10, lineHeight: 1.5 }}>
-              Adds this game to your public Leet9 profile
-            </p>
-          )}
-
-          {/* Your Stats */}
-          <div style={{ marginTop: 24 }}>
-            <YourStatsSection
-              session={session}
-              currentUserGame={currentUserGame}
-              hasPaid={hasPaid}
-              onUnlock={handleUnlock}
-              unlockLoading={checkoutLoading}
-            />
-          </div>
+          <YourStatsSection
+            session={session}
+            currentUserGame={currentUserGame}
+            hasPaid={hasPaid}
+            onUnlock={handleUnlock}
+            unlockLoading={checkoutLoading}
+          />
 
           {/* Review */}
           <div style={{ marginTop: 24 }}>
             <ReviewSection
               existing={userReview}
+              reviewedThisMonth={reviewedThisMonth}
               rating={ratingDraft}
               comment={commentDraft}
               onRating={setRatingDraft}
@@ -357,32 +330,6 @@ export default function GameDeepDivePage({ params }) {
 
       </div>
     </div>
-  );
-}
-
-function AddToProfileButton({ inProfile, adding, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={inProfile || adding}
-      style={{
-        width: "100%",
-        padding: "14px 20px",
-        borderRadius: 12,
-        border: inProfile ? "1px solid rgba(200,255,0,0.25)" : "none",
-        background: inProfile ? "rgba(200,255,0,0.08)" : "linear-gradient(135deg, #C8FF00, #a3e600)",
-        color: inProfile ? "#C8FF00" : "#07080F",
-        fontFamily: "'Outfit', sans-serif",
-        fontSize: 15,
-        fontWeight: 800,
-        cursor: inProfile ? "default" : adding ? "wait" : "pointer",
-        letterSpacing: "-0.01em",
-        transition: "all 0.18s",
-        opacity: adding ? 0.7 : 1,
-      }}
-    >
-      {inProfile ? "✓ In Profile" : adding ? "Adding…" : "+ Add to Profile"}
-    </button>
   );
 }
 
@@ -503,7 +450,7 @@ function YourStatsSection({ session, currentUserGame, hasPaid, onUnlock, unlockL
             gap: 8,
           }}>
             <div style={{ fontSize: 11, color: "rgba(241,243,249,0.5)", textAlign: "center", lineHeight: 1.4 }}>
-              Sblocca le tue stats
+              Unlock your stats
             </div>
             <button
               onClick={onUnlock}
@@ -569,75 +516,105 @@ function YourStatsSection({ session, currentUserGame, hasPaid, onUnlock, unlockL
   );
 }
 
-function ReviewSection({ existing, rating, comment, onRating, onComment, onSubmit, saving, saved }) {
-  const canSubmit = rating && !saving;
+function ReviewSection({ existing, reviewedThisMonth, rating, comment, onRating, onComment, onSubmit, saving, saved }) {
+  const canSubmit = rating && !saving && !reviewedThisMonth;
+
+  // Compute "rated on" and "starting from" dates for the lock message
+  const lockMessage = (() => {
+    if (!existing || !reviewedThisMonth) return null;
+    const ratedOn = new Date(existing.updatedAt);
+    const nextMonth = new Date(ratedOn.getFullYear(), ratedOn.getMonth() + 1, 1);
+    const ratedOnStr = ratedOn.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const nextMonthStr = nextMonth.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return { ratedOn: ratedOnStr, nextMonth: nextMonthStr };
+  })();
+
   return (
     <div>
       <SectionLabel>{existing ? "Your Review" : "Rate this game"}</SectionLabel>
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10 }}>
-        {[1,2,3,4,5,6,7,8,9,10].map((n) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => onRating(n)}
+
+      {lockMessage ? (
+        <div style={{
+          padding: "12px 14px",
+          borderRadius: 9,
+          border: "1px solid rgba(255,255,255,0.07)",
+          background: "rgba(255,255,255,0.02)",
+          marginBottom: 8,
+        }}>
+          <div style={{ fontSize: 13, color: "rgba(241,243,249,0.55)", lineHeight: 1.6 }}>
+            You rated this game on <strong style={{ color: "#F1F3F9" }}>{lockMessage.ratedOn}</strong>.
+            <br />
+            You can update your review starting from <strong style={{ color: "#F1F3F9" }}>{lockMessage.nextMonth}</strong>.
+          </div>
+        </div>
+      ) : (
+        <>
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10 }}>
+            {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => onRating(n)}
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  border: rating === n ? "1px solid #C8FF00" : "1px solid rgba(255,255,255,0.1)",
+                  background: rating === n ? "rgba(200,255,0,0.15)" : "rgba(255,255,255,0.03)",
+                  color: rating === n ? "#C8FF00" : "rgba(241,243,249,0.45)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontFamily: "'Outfit', sans-serif",
+                  cursor: "pointer",
+                  transition: "all 0.12s",
+                }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={comment}
+            onChange={(e) => onComment(e.target.value)}
+            placeholder="Leave a comment (optional)"
+            rows={3}
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 6,
-              border: rating === n ? "1px solid #C8FF00" : "1px solid rgba(255,255,255,0.1)",
-              background: rating === n ? "rgba(200,255,0,0.15)" : "rgba(255,255,255,0.03)",
-              color: rating === n ? "#C8FF00" : "rgba(241,243,249,0.45)",
-              fontSize: 12,
-              fontWeight: 700,
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 9,
+              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(255,255,255,0.03)",
+              color: "#F1F3F9",
+              fontSize: 13,
               fontFamily: "'Outfit', sans-serif",
-              cursor: "pointer",
-              transition: "all 0.12s",
+              resize: "vertical",
+              outline: "none",
+              boxSizing: "border-box",
+              marginBottom: 8,
+            }}
+          />
+          <button
+            onClick={onSubmit}
+            disabled={!canSubmit}
+            style={{
+              width: "100%",
+              padding: "11px",
+              borderRadius: 9,
+              border: "none",
+              background: saved ? "rgba(200,255,0,0.12)" : canSubmit ? "linear-gradient(135deg, #C8FF00, #a3e600)" : "rgba(255,255,255,0.05)",
+              color: saved ? "#C8FF00" : canSubmit ? "#07080F" : "rgba(241,243,249,0.2)",
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: 14,
+              fontWeight: 800,
+              cursor: canSubmit ? "pointer" : "default",
+              transition: "all 0.15s",
+              letterSpacing: "-0.01em",
             }}
           >
-            {n}
+            {saving ? "Saving…" : saved ? "✓ Saved" : existing ? "Update Review" : "Save Review"}
           </button>
-        ))}
-      </div>
-      <textarea
-        value={comment}
-        onChange={(e) => onComment(e.target.value)}
-        placeholder="Leave a comment (optional)"
-        rows={3}
-        style={{
-          width: "100%",
-          padding: "10px 12px",
-          borderRadius: 9,
-          border: "1px solid rgba(255,255,255,0.08)",
-          background: "rgba(255,255,255,0.03)",
-          color: "#F1F3F9",
-          fontSize: 13,
-          fontFamily: "'Outfit', sans-serif",
-          resize: "vertical",
-          outline: "none",
-          boxSizing: "border-box",
-          marginBottom: 8,
-        }}
-      />
-      <button
-        onClick={onSubmit}
-        disabled={!canSubmit}
-        style={{
-          width: "100%",
-          padding: "11px",
-          borderRadius: 9,
-          border: "none",
-          background: saved ? "rgba(200,255,0,0.12)" : canSubmit ? "linear-gradient(135deg, #C8FF00, #a3e600)" : "rgba(255,255,255,0.05)",
-          color: saved ? "#C8FF00" : canSubmit ? "#07080F" : "rgba(241,243,249,0.2)",
-          fontFamily: "'Outfit', sans-serif",
-          fontSize: 14,
-          fontWeight: 800,
-          cursor: canSubmit ? "pointer" : "default",
-          transition: "all 0.15s",
-          letterSpacing: "-0.01em",
-        }}
-      >
-        {saving ? "Saving…" : saved ? "✓ Saved" : existing ? "Update Review" : "Save Review"}
-      </button>
+        </>
+      )}
     </div>
   );
 }
