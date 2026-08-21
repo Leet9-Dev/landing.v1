@@ -29,15 +29,13 @@ export default function DiscoveryPage() {
   const [q, setQ] = useState("");
   const [source, setSource] = useState("");
   const [sort, setSort] = useState("trending");
-  const [recentOnly, setRecentOnly] = useState(false);
 
   const buildParams = useCallback((pageNum) => {
     const params = new URLSearchParams({ sort, page: String(pageNum) });
     if (q) params.set("q", q);
     if (source) params.set("source", source);
-    if (recentOnly) params.set("recentOnly", "true");
     return params;
-  }, [q, source, sort, recentOnly]);
+  }, [q, source, sort]);
 
   const fetchGames = useCallback(async () => {
     setLoading(true);
@@ -75,10 +73,15 @@ export default function DiscoveryPage() {
     return () => clearTimeout(t);
   }, [fetchGames, q]);
 
-  const trending = games.filter((g) => g.trendingRank !== null);
-  const recent = games.filter((g) => g.recentlyDetected && g.trendingRank === null);
-  const rest = games.filter((g) => !g.recentlyDetected && g.trendingRank === null);
-  const isFiltered = !!(q || source || recentOnly);
+  const trending = games.filter((g) => g.trendingRank !== null).slice(0, 10);
+  const comingSoon = games.filter((g) => g.comingSoon);
+  const justAdded = games
+    .filter((g) => g.recentlyDetected && g.trendingRank === null && !g.comingSoon)
+    .sort((a, b) => (b.communityRating ?? 0) - (a.communityRating ?? 0));
+  const topRated = games
+    .filter((g) => g.trendingRank === null && !g.comingSoon && !g.recentlyDetected)
+    .sort((a, b) => (b.communityRating ?? 0) - (a.communityRating ?? 0));
+  const isFiltered = !!(q || source);
 
   return (
     <div style={{ padding: "36px 32px", fontFamily: "'Outfit', sans-serif" }}>
@@ -133,13 +136,6 @@ export default function DiscoveryPage() {
             {s.label}
           </FilterChip>
         ))}
-
-        <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.08)" }} />
-
-        {/* Just Added toggle */}
-        <FilterChip active={recentOnly} onClick={() => setRecentOnly((v) => !v)} accent={false} dot>
-          Just Added
-        </FilterChip>
       </div>
 
       {loading ? (
@@ -158,14 +154,19 @@ export default function DiscoveryPage() {
               <GameGrid games={trending} onSelect={(g) => router.push(`/app/discovery/${g.id}`)} />
             </Section>
           )}
-          {recent.length > 0 && (
-            <Section title="Just Added" badge="New">
-              <GameGrid games={recent} onSelect={(g) => router.push(`/app/discovery/${g.id}`)} />
+          {comingSoon.length > 0 && (
+            <Section title="Coming Soon" badge="Soon">
+              <GameGrid games={comingSoon} onSelect={(g) => router.push(`/app/discovery/${g.id}`)} />
             </Section>
           )}
-          {rest.length > 0 && (
-            <Section title="All Games">
-              <GameGrid games={rest} onSelect={(g) => router.push(`/app/discovery/${g.id}`)} />
+          {topRated.length > 0 && (
+            <Section title="Top Rated">
+              <GameGrid games={topRated} onSelect={(g) => router.push(`/app/discovery/${g.id}`)} />
+            </Section>
+          )}
+          {justAdded.length > 0 && (
+            <Section title="Just Added" badge="New">
+              <GameGrid games={justAdded} onSelect={(g) => router.push(`/app/discovery/${g.id}`)} />
             </Section>
           )}
           <LoadMoreButton hasMore={hasMore} loading={loadingMore} onClick={loadMore} />
