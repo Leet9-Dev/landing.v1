@@ -100,7 +100,7 @@ export default function LeaderboardView({ rows, myRank, sessionUserId }) {
             Leaderboard L9 Points
           </h1>
           <p style={{ fontSize: 14, color: "rgba(241,243,249,0.38)", fontWeight: 500 }}>
-            I migliori 100 gamer su Leet9. Aggiornata ogni 5 minuti.
+            Top 100 gamers on Leet9. Updated every 5 minutes.
           </p>
         </div>
 

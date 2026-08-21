@@ -54,10 +54,10 @@ function MagicLoginInner() {
         <>
           <Spinner />
           <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>
-            Accesso in corso…
+            Signing you in…
           </div>
           <div style={{ fontSize: 14, color: "rgba(241,243,249,0.4)" }}>
-            Stiamo aprendo il tuo account Leet9.
+            Opening your Leet9 account.
           </div>
         </>
       )}
@@ -66,10 +66,10 @@ function MagicLoginInner() {
         <>
           <div style={{ fontSize: 40 }}>🎮</div>
           <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>
-            Benvenuto su Leet9!
+            Welcome to Leet9!
           </div>
           <div style={{ fontSize: 14, color: "rgba(241,243,249,0.4)" }}>
-            Stai per vedere i dettagli del confronto…
+            Taking you to your account…
           </div>
         </>
       )}
@@ -77,13 +77,13 @@ function MagicLoginInner() {
       {status === "error" && (
         <>
           <div style={{ fontSize: 16, fontWeight: 600, color: "#fca5a5" }}>
-            Link scaduto o non valido.
+            Link expired or invalid.
           </div>
           <div style={{ fontSize: 13, color: "rgba(241,243,249,0.35)", maxWidth: 340 }}>
-            Il link magico è valido per 30 minuti. Torna sulla pagina 1v1 e completa di nuovo l'acquisto.
+            Login links are valid for 30 minutes. Request a new one from the sign-in page.
           </div>
           <a
-            href="/1v1"
+            href="/"
             style={{
               marginTop: 8,
               padding: "10px 24px",
@@ -95,7 +95,7 @@ function MagicLoginInner() {
               textDecoration: "none",
             }}
           >
-            Torna alla 1v1 →
+            Back to sign in →
           </a>
         </>
       )}
