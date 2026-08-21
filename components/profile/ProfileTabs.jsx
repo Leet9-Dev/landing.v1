@@ -3,7 +3,6 @@
 const TABS = [
   { id: "overview", label: "Overview" },
   { id: "games", label: "Games" },
-  { id: "stats", label: "Stats" },
   { id: "tribe", label: "Community" },
   { id: "connect", label: "Leet9 Connect" },
 ];

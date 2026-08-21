@@ -4,6 +4,7 @@ import { SignatureGames } from "@/components/profile/SignatureGames";
 import { TrophyCase } from "@/components/profile/TrophyCase";
 import { FriendsComparison } from "@/components/profile/FriendsComparison";
 import { RecentActivity } from "@/components/profile/RecentActivity";
+import { ProfileStats } from "@/components/profile/ProfileStats";
 
 export function ProfileOverview() {
   const [data, setData] = useState(null);
@@ -23,6 +24,7 @@ export function ProfileOverview() {
 
   return (
     <div>
+      <ProfileStats />
       <SignatureGames signatureGames={data.signatureGames} />
       <TrophyCase trophyCase={data.trophyCase} />
       <FriendsComparison friendsComparison={data.friendsComparison} />
