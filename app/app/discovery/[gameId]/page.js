@@ -303,8 +303,6 @@ export default function GameDeepDivePage({ params }) {
 
         {/* Sidebar — desktop only */}
         <div className="gdp-sidebar">
-
-          {/* Your Stats */}
           <YourStatsSection
             session={session}
             currentUserGame={currentUserGame}
