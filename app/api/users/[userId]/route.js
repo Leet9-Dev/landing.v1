@@ -16,8 +16,9 @@ export async function GET(request, { params }) {
 
   if (!user) return apiError("NOT_FOUND", "User not found.", 404);
 
-  const [ledgerAgg, gameRows, platformRows] = await Promise.all([
+  const [ledgerAgg, xpAgg, gameRows, platformRows] = await Promise.all([
     prisma.pointsLedger.aggregate({ where: { userId }, _sum: { points: true } }),
+    prisma.xpLedger.aggregate({ where: { userId }, _sum: { xpDelta: true } }).catch(() => ({ _sum: { xpDelta: null } })),
     prisma.userGame.findMany({
       where: { userId },
       select: {
@@ -34,7 +35,9 @@ export async function GET(request, { params }) {
     }),
   ]);
 
-  const l9Points = ledgerAgg._sum.points ?? 0;
+  const xpFromV2 = xpAgg._sum.xpDelta ?? 0;
+  const xpFromV1 = ledgerAgg._sum.points ?? 0;
+  const l9Points = xpFromV2 > 0 ? xpFromV2 : xpFromV1;
   const level = computeLevel(l9Points);
   const rankInfo = computeRankInfo(l9Points);
 
