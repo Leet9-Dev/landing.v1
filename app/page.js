@@ -4,7 +4,7 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 function EmailForm({ onBack }) {
-  const [mode, setMode] = useState("signin"); // "signin" | "signup" | "forgot" | "inbox"
+  const [mode, setMode] = useState("signin"); // "signin" | "signup" | "forgot" | "inbox" | "magic"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -59,6 +59,19 @@ function EmailForm({ onBack }) {
     setLoading(false);
   }
 
+  async function handleMagicLink(e) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    await fetch("/api/auth/request-magic-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, redirectPath: "/dashboard" }),
+    });
+    setMode("inbox");
+    setLoading(false);
+  }
+
   const inputStyle = {
     width: "100%", padding: "11px 14px", borderRadius: 10,
     border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
@@ -81,6 +94,38 @@ function EmailForm({ onBack }) {
           onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.5)"}
           onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.25)"}>
           ← Back to login
+        </button>
+      </div>
+    );
+  }
+
+  if (mode === "magic") {
+    return (
+      <div style={{ width: "100%", animation: "slideUp 0.35s ease forwards" }}>
+        <div style={{ marginBottom: 16, fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.35)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+          Login link
+        </div>
+        <form onSubmit={handleMagicLink}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: 16, backdropFilter: "blur(12px)" }}>
+            <input type="email" placeholder="Your email" value={email} required
+              onChange={e => setEmail(e.target.value)} style={inputStyle}
+              onFocus={e => e.target.style.borderColor = "rgba(200,255,0,0.4)"}
+              onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
+            <button type="submit" disabled={loading} style={{
+              width: "100%", padding: "13px 20px", borderRadius: 10, border: "none",
+              background: loading ? "rgba(200,255,0,0.4)" : "linear-gradient(135deg,#C8FF00,#AAEE00)",
+              color: "#07080F", fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 800,
+              cursor: loading ? "wait" : "pointer",
+            }}>
+              {loading ? "Sending…" : "Send Login Link"}
+            </button>
+          </div>
+        </form>
+        <button onClick={() => { setMode("signin"); setError(null); }}
+          style={{ marginTop: 14, background: "none", border: "none", color: "rgba(255,255,255,0.25)", fontSize: 12, cursor: "pointer", fontFamily: "'Outfit', sans-serif" }}
+          onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.5)"}
+          onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.25)"}>
+          ← Back to sign in
         </button>
       </div>
     );
@@ -172,12 +217,20 @@ function EmailForm({ onBack }) {
           </button>
         </span>
         {mode === "signin" && (
-          <button onClick={() => { setMode("forgot"); setError(null); }}
-            style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", fontFamily: "'Outfit', sans-serif", fontSize: 12, cursor: "pointer", padding: 0, textAlign: "left" }}
-            onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.8)"}
-            onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.5)"}>
-            Forgot password?
-          </button>
+          <>
+            <button onClick={() => { setMode("forgot"); setError(null); }}
+              style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)", fontFamily: "'Outfit', sans-serif", fontSize: 12, cursor: "pointer", padding: 0, textAlign: "left" }}
+              onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.8)"}
+              onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.5)"}>
+              Forgot password?
+            </button>
+            <button onClick={() => { setMode("magic"); setError(null); }}
+              style={{ background: "none", border: "none", color: "rgba(255,255,255,0.35)", fontFamily: "'Outfit', sans-serif", fontSize: 12, cursor: "pointer", padding: 0, textAlign: "left" }}
+              onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.6)"}
+              onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.35)"}>
+              Send me a login link instead →
+            </button>
+          </>
         )}
       </div>
 
