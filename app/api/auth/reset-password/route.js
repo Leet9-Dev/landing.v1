@@ -16,7 +16,10 @@ export async function POST(request) {
   if (!email) return apiError("INVALID_TOKEN", "This link is invalid or has expired.", 400);
 
   const hashed = await bcrypt.hash(password, 12);
-  await prisma.user.update({ where: { email }, data: { password: hashed } });
+  await prisma.user.update({
+    where: { email },
+    data: { password: hashed, emailVerified: new Date() },
+  });
 
   return apiOk({ email });
 }
