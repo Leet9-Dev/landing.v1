@@ -11,7 +11,6 @@ const SORTS = [
   { id: "players", label: "Players" },
   { id: "achievements", label: "Achievements" },
   { id: "hours", label: "Hours" },
-  { id: "trending", label: "Trending" },
 ];
 
 const SOURCES = [
