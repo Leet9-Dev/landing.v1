@@ -113,9 +113,9 @@ function OneVsOnePage() {
         window.location.href = json.url;
         return;
       }
-      setUnlockError(json.error?.message || "Qualcosa è andato storto. Riprova.");
+      setUnlockError(json.error?.message || "Something went wrong. Please try again.");
     } catch {
-      setUnlockError("Errore di rete. Riprova tra qualche secondo.");
+      setUnlockError("Network error. Please try again in a few seconds.");
     }
     setUnlockLoading(false);
   }
@@ -1180,10 +1180,10 @@ function PaidDetailsSection({ player1, player2, unlocked, onUnlock, unlockLoadin
             }}
           >
             <div style={{ fontSize: 15, fontWeight: 800, color: "#F1F3F9", letterSpacing: "-0.01em", textAlign: "center", maxWidth: 260 }}>
-              Sblocca l&apos;analisi completa
+              Unlock the full breakdown
             </div>
             <div style={{ fontSize: 13, color: "rgba(241,243,249,0.4)", textAlign: "center", maxWidth: 260, lineHeight: 1.5 }}>
-              L9 Score · Gaming Depth · Top 10 giochi.<br />Più 500 L9 Points di benvenuto.
+              L9 Score · Gaming Depth · Top 10 games.<br />Plus 500 welcome L9 Points.
             </div>
             <button
               onClick={onUnlock}
@@ -1204,7 +1204,7 @@ function PaidDetailsSection({ player1, player2, unlocked, onUnlock, unlockLoadin
                 width: isMobile ? "100%" : "auto",
               }}
             >
-              {unlockLoading ? "Caricamento…" : "Sblocca i dettagli — €1"}
+              {unlockLoading ? "Loading…" : "Unlock the details — €1"}
             </button>
             {unlockError && (
               <div style={{ fontSize: 12, color: "#fca5a5", textAlign: "center", maxWidth: 260 }}>

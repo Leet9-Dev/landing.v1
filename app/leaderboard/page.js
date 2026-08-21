@@ -50,7 +50,7 @@ export async function generateMetadata({ searchParams }) {
   if (!challengeUserId) {
     return {
       title: "Leaderboard L9 Points — Leet9",
-      description: "I migliori 100 gamer su Leet9 per L9 Points. Aggiornata ogni 5 minuti.",
+      description: "Top 100 gamers on Leet9 ranked by L9 Points. Updated every 5 minutes.",
       openGraph: {
         title: "Leaderboard L9 Points — Leet9",
         description: "I migliori 100 gamer su Leet9 per L9 Points.",
