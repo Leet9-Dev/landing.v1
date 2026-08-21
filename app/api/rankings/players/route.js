@@ -21,19 +21,27 @@ export async function GET(request) {
     friendIds.add(userId);
   }
 
-  // Aggregate real L9 Points from PointsLedger (source of truth).
-  const ledgerRows = await prisma.pointsLedger.groupBy({
-    by: ["userId"],
-    _sum: { points: true },
-  });
+  // Aggregate L9 Points: XpLedger is primary (v2.2), PointsLedger is fallback (v1).
+  const [xpRows, ledgerRows] = await Promise.all([
+    prisma.xpLedger.groupBy({ by: ["userId"], _sum: { xpDelta: true } }).catch(() => []),
+    prisma.pointsLedger.groupBy({ by: ["userId"], _sum: { points: true } }),
+  ]);
 
-  if (ledgerRows.length === 0) {
+  if (xpRows.length === 0 && ledgerRows.length === 0) {
     return apiOk({ rankings: [], currentUserRank: null });
   }
 
+  const xpMap = Object.fromEntries(xpRows.map((r) => [r.userId, r._sum.xpDelta ?? 0]));
+  const v1Map = Object.fromEntries(ledgerRows.map((r) => [r.userId, r._sum.points ?? 0]));
+  const allUserIds = new Set([...Object.keys(xpMap), ...Object.keys(v1Map)]);
+
   // Build scored list sorted by total points.
-  let scored = ledgerRows
-    .map((row) => ({ userId: row.userId, l9Points: row._sum.points ?? 0 }))
+  let scored = [...allUserIds]
+    .map((uid) => {
+      const xp = xpMap[uid] ?? 0;
+      const v1 = v1Map[uid] ?? 0;
+      return { userId: uid, l9Points: xp > 0 ? xp : v1 };
+    })
     .sort((a, b) => b.l9Points - a.l9Points);
 
   // Find global rank before filtering (used for currentUserRank).
@@ -93,7 +101,7 @@ export async function GET(request) {
   // Current user rank — use global position from unfiltered list.
   let currentUserRank = null;
   if (globalIndex !== -1) {
-    const cur = ledgerRows.find((r) => r.userId === userId);
+    const curRow = scored[globalIndex];
     const cu = userMap[userId] ?? {};
     const cg = gamesByUser[userId] ?? { totalHours: 0, totalAchievements: 0, gamesCount: 0, platforms: new Set() };
     const curName = cu.name || session.user.name || "Gamer";
@@ -104,8 +112,8 @@ export async function GET(request) {
       gamerTag: curName,
       avatarUrl: cu.image ?? session.user.image ?? null,
       avatarInitials: curName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2),
-      l9Points: cur?._sum.points ?? 0,
-      level: computeLevel(cur?._sum.points ?? 0),
+      l9Points: curRow?.l9Points ?? 0,
+      level: computeLevel(curRow?.l9Points ?? 0),
       totalHoursPlayed: Math.round(cg.totalHours * 10) / 10,
       achievementsCount: cg.totalAchievements,
       gamesCount: cg.gamesCount,
