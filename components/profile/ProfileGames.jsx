@@ -2,40 +2,21 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-const SORTS = [
-  { id: "lastPlayed", label: "Last Played" },
-  { id: "l9Points", label: "L9 Points" },
-  { id: "hoursPlayed", label: "Hours" },
-  { id: "mastery", label: "Mastery" },
-];
-
-const SOURCES = [
-  { id: "", label: "All Platforms" },
-  { id: "steam", label: "Steam" },
-  { id: "psn", label: "PSN" },
-  { id: "gog", label: "GOG" },
-  { id: "epic", label: "Epic" },
-  { id: "xbox", label: "Xbox" },
-];
-
 export function ProfileGames() {
   const router = useRouter();
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
-  const [source, setSource] = useState("");
-  const [sort, setSort] = useState("lastPlayed");
 
   const fetchGames = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams({ sort, inProfile: "true" });
+    const params = new URLSearchParams({ sort: "lastPlayed", inProfile: "true" });
     if (q) params.set("q", q);
-    if (source) params.set("source", source);
     const res = await fetch(`/api/me/games?${params}`);
     const json = await res.json();
     if (json.ok) setGames(json.data.games);
     setLoading(false);
-  }, [q, source, sort]);
+  }, [q]);
 
   useEffect(() => {
     const t = setTimeout(fetchGames, q ? 300 : 0);
@@ -44,9 +25,8 @@ export function ProfileGames() {
 
   return (
     <div>
-      {/* Filters */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ position: "relative", flex: "1 1 220px", maxWidth: 320 }}>
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ position: "relative", maxWidth: 320 }}>
           <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14, opacity: 0.3 }}>⌕</span>
           <input
             type="text"
@@ -66,20 +46,6 @@ export function ProfileGames() {
             }}
           />
         </div>
-
-        {SOURCES.map((s) => (
-          <FilterChip key={s.id} active={source === s.id} onClick={() => setSource(s.id)}>
-            {s.label}
-          </FilterChip>
-        ))}
-
-        <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.08)" }} />
-
-        {SORTS.map((s) => (
-          <FilterChip key={s.id} active={sort === s.id} onClick={() => setSort(s.id)}>
-            {s.label}
-          </FilterChip>
-        ))}
       </div>
 
       {loading ? (
@@ -201,27 +167,6 @@ function Stat({ label, value, accent }) {
   );
 }
 
-function FilterChip({ active, onClick, children }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: "7px 14px",
-        borderRadius: 99,
-        border: `1px solid ${active ? "rgba(200,255,0,0.4)" : "rgba(255,255,255,0.09)"}`,
-        background: active ? "rgba(200,255,0,0.08)" : "transparent",
-        color: active ? "#C8FF00" : "rgba(241,243,249,0.45)",
-        fontFamily: "'Outfit', sans-serif",
-        fontSize: 12,
-        fontWeight: active ? 700 : 500,
-        cursor: "pointer",
-        transition: "all 0.15s",
-      }}
-    >
-      {children}
-    </button>
-  );
-}
 
 function LoadingGrid() {
   return (
