@@ -14,11 +14,12 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  const [ledgerAgg, recentLedger, brandPoints, badges, streaks] = await Promise.all([
+  const [ledgerAgg, xpAgg, recentLedger, brandPoints, badges, streaks] = await Promise.all([
     prisma.pointsLedger.aggregate({
       where: { userId },
       _sum: { points: true },
     }),
+    prisma.xpLedger.aggregate({ where: { userId }, _sum: { xpDelta: true } }).catch(() => ({ _sum: { xpDelta: null } })),
     // Last 20 awards — each includes the "why" explanation in the note field.
     prisma.pointsLedger.findMany({
       where: { userId },
@@ -37,7 +38,9 @@ export async function GET() {
     prisma.userStreak.findMany({ where: { userId } }),
   ]);
 
-  const totalPoints = ledgerAgg._sum.points ?? 0;
+  const xpFromV2 = xpAgg._sum.xpDelta ?? 0;
+  const xpFromV1 = ledgerAgg._sum.points ?? 0;
+  const totalPoints = xpFromV2 > 0 ? xpFromV2 : xpFromV1;
 
   const recentAwards = recentLedger.map((entry) => ({
     id: entry.id,
