@@ -44,6 +44,9 @@ export async function GET(request) {
       })
     : [];
 
+  // Only show games that were actually detected from a connected platform ID.
+  const detectedGameIds = new Set(detectedGames.map((dg) => dg.canonicalGameId));
+
   // Build map: canonicalGameId → most recent lastPlayedAt across all platform accounts.
   const lastPlayedMap = new Map();
   for (const dg of detectedGames) {
@@ -78,7 +81,8 @@ export async function GET(request) {
     })
     .filter(Boolean);
 
-  // 4. Filters
+  // 4. Filters — only games detected from a connected platform ID.
+  games = games.filter((ug) => detectedGameIds.has(ug.gameId));
   if (q) {
     games = games.filter((ug) => ug.game.canonicalTitle.toLowerCase().includes(q));
   }
