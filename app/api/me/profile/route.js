@@ -30,7 +30,7 @@ export async function GET() {
   const userId = session.user.id;
 
   const [dbUser, platformRows, userGames, xpAgg, legacyPointsAgg, syncRuns, recentGameRows, allXpLedger, seasonScoreRow, levelCurve] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true } }).catch(() => null),
     prisma.platformAccount.findMany({
       where: { userId, status: PLATFORM_ACCOUNT_STATUS.CONNECTED },
     }),
