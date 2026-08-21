@@ -52,6 +52,7 @@ export async function POST(req) {
       const blob = await put(`avatars/${session.user.id}.${ext}`, file, {
         access: "public",
         addRandomSuffix: false,
+        allowOverwrite: true,
       });
       await prisma.user.update({ where: { id: session.user.id }, data: { image: blob.url } });
       emitProfileUpdatedEvent(prisma, session.user.id, "avatar").catch(() => {});
