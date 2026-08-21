@@ -36,8 +36,7 @@ export async function POST(request) {
 
   if (!gameId) return apiError("MISSING_GAME_ID", "gameId is required.", 400);
   if (!rating || rating < 1 || rating > 10) return apiError("INVALID_RATING", "Rating must be 1–10.", 400);
-  if (!content || content.length < 10) return apiError("CONTENT_TOO_SHORT", "Review must be at least 10 characters.", 400);
-  if (content.length > 5000) return apiError("CONTENT_TOO_LONG", "Review must be under 5000 characters.", 400);
+  if (content && content.length > 5000) return apiError("CONTENT_TOO_LONG", "Review must be under 5000 characters.", 400);
 
   const existing = await prisma.gameReview.findUnique({ where: { userId_gameId: { userId, gameId } } });
   const isNew = !existing;
