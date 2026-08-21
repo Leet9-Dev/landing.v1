@@ -64,6 +64,13 @@ export function PlayerRankings() {
       `}</style>
       <RankingFilters groups={[{ value: scope, onChange: setScope, options: SCOPES }]} />
 
+      {scope === "tribe" && (
+        <p style={{ fontSize: 12, color: "rgba(241,243,249,0.35)", marginBottom: 16, lineHeight: 1.6, maxWidth: 560 }}>
+          A preview of the Leet9 community layer. Full tribe profiles, membership, and
+          management are coming in a later phase.
+        </p>
+      )}
+
       <RankingPanel
         loading={loading}
         isEmpty={rankings.length === 0}
