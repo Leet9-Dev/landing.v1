@@ -292,32 +292,37 @@ export function TopBar({ user }) {
           {totalPoints !== null ? `${totalPoints.toLocaleString()} L9` : "— L9"}
         </div>
 
-        {(liveAvatarUrl || user?.image)
-          ? <img
-              src={liveAvatarUrl || user.image}
-              alt={liveDisplayName || user?.name || ""}
-              style={{ width: 30, height: 30, borderRadius: "50%", border: "1.5px solid rgba(200,255,0,0.3)", flexShrink: 0 }}
-            />
-          : <div style={{
-              width: 30, height: 30, borderRadius: "50%",
-              background: "linear-gradient(135deg,#C8FF00,#7C3AED)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 12, fontWeight: 800, color: "#000",
-              fontFamily: "'Outfit', sans-serif", flexShrink: 0,
-            }}>
-              {(liveDisplayName || user?.name)?.[0]?.toUpperCase() || "?"}
-            </div>
-        }
+        <div
+          onClick={() => router.push(`/app/profile/${user?.id}`)}
+          style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
+        >
+          {(liveAvatarUrl || user?.image)
+            ? <img
+                src={liveAvatarUrl || user.image}
+                alt={liveDisplayName || user?.name || ""}
+                style={{ width: 30, height: 30, borderRadius: "50%", border: "1.5px solid rgba(200,255,0,0.3)", flexShrink: 0 }}
+              />
+            : <div style={{
+                width: 30, height: 30, borderRadius: "50%",
+                background: "linear-gradient(135deg,#C8FF00,#7C3AED)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 12, fontWeight: 800, color: "#000",
+                fontFamily: "'Outfit', sans-serif", flexShrink: 0,
+              }}>
+                {(liveDisplayName || user?.name)?.[0]?.toUpperCase() || "?"}
+              </div>
+          }
 
-        <span className="l9-topbar-name" style={{
-          fontFamily: "'Outfit', sans-serif",
-          fontSize: 13,
-          fontWeight: 600,
-          color: "rgba(241,243,249,0.6)",
-          whiteSpace: "nowrap",
-        }}>
-          {liveDisplayName || user?.name || "Gamer"}
-        </span>
+          <span className="l9-topbar-name" style={{
+            fontFamily: "'Outfit', sans-serif",
+            fontSize: 13,
+            fontWeight: 600,
+            color: "rgba(241,243,249,0.6)",
+            whiteSpace: "nowrap",
+          }}>
+            {liveDisplayName || user?.name || "Gamer"}
+          </span>
+        </div>
 
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
