@@ -11,7 +11,7 @@ function MagicLoginInner() {
 
   useEffect(() => {
     const token = searchParams.get("token");
-    const redirect = searchParams.get("redirect") || "/1v1";
+    const redirect = searchParams.get("redirect") || "/dashboard";
 
     if (!token) {
       setStatus("error");
