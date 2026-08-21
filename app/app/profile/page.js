@@ -7,6 +7,7 @@ import { ProfileOverview } from "@/components/profile/ProfileOverview";
 import { ProfileGames } from "@/components/profile/ProfileGames";
 import { ProfileStats } from "@/components/profile/ProfileStats";
 import { ProfileTribe } from "@/components/profile/ProfileTribe";
+import { PlatformSources } from "@/components/profile/PlatformSources";
 
 function NoPlatformsBanner({ onConnect }) {
   return (
@@ -157,6 +158,7 @@ export default function ProfilePage() {
       {activeTab === "games" && <ProfileGames />}
       {activeTab === "stats" && <ProfileStats />}
       {activeTab === "tribe" && <ProfileTribe />}
+      {activeTab === "connect" && <PlatformSources />}
     </div>
   );
 }
