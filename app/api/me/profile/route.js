@@ -28,9 +28,9 @@ export async function GET() {
   if (unauthenticated) return unauthenticated;
 
   const userId = session.user.id;
-  const realName = session.user.name || "Gamer";
 
-  const [platformRows, userGames, xpAgg, legacyPointsAgg, syncRuns, recentGameRows, allXpLedger, seasonScoreRow, levelCurve] = await Promise.all([
+  const [dbUser, platformRows, userGames, xpAgg, legacyPointsAgg, syncRuns, recentGameRows, allXpLedger, seasonScoreRow, levelCurve] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
     prisma.platformAccount.findMany({
       where: { userId, status: PLATFORM_ACCOUNT_STATUS.CONNECTED },
     }),
@@ -65,6 +65,8 @@ export async function GET() {
     // Level curve for v2.2 level calculation
     loadCurve().catch(() => []),
   ]);
+
+  const realName = dbUser?.name || session.user.name || "Gamer";
 
   const platformsConnected = platformRows
     .map((r) => r.provider)
