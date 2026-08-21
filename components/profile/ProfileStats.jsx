@@ -68,7 +68,7 @@ export function ProfileStats() {
           Confidence: {stats.confidence}
         </span>
         <span>
-          These are estimated figures. Sync your Steam library in Profile → Platform Sources
+          These are estimated figures. Sync your Steam library in Profile → Leet9 Connect
           to start building real stats.
         </span>
         <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(241,243,249,0.25)" }}>
