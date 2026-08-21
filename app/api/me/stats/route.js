@@ -18,17 +18,19 @@ export async function GET() {
   sixMonthsAgo.setDate(1);
   sixMonthsAgo.setHours(0, 0, 0, 0);
 
-  const [userGames, ledgerAgg, recentLedger] = await Promise.all([
+  const [userGames, ledgerAgg, xpAgg, recentLedger] = await Promise.all([
     prisma.userGame.findMany({ where: { userId } }),
     prisma.pointsLedger.aggregate({ where: { userId }, _sum: { points: true } }),
+    prisma.xpLedger.aggregate({ where: { userId }, _sum: { xpDelta: true } }).catch(() => ({ _sum: { xpDelta: null } })),
     prisma.pointsLedger.findMany({
       where: { userId, awardedAt: { gte: sixMonthsAgo } },
       select: { points: true, awardedAt: true },
     }),
   ]);
 
-  // Total L9 Points always from PointsLedger (includes welcome bonus, streaks, etc.)
-  const totalL9Points = ledgerAgg._sum.points ?? 0;
+  const xpFromV2 = xpAgg._sum.xpDelta ?? 0;
+  const xpFromV1 = ledgerAgg._sum.points ?? 0;
+  const totalL9Points = xpFromV2 > 0 ? xpFromV2 : xpFromV1;
 
   // Monthly points breakdown (last 6 months).
   const byMonth = {};
