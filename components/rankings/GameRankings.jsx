@@ -96,9 +96,6 @@ function GameIdentity({ entry }) {
           <span style={{ fontSize: 13, fontWeight: 700, color: "#F1F3F9", letterSpacing: "-0.01em" }}>
             {game.canonicalTitle}
           </span>
-          {entry.trendingRank != null && (
-            <Tag color="lime">#{entry.trendingRank} Trending</Tag>
-          )}
           {entry.recentlyDetected && <Tag color="indigo">NEW</Tag>}
         </div>
         <div className="l9-player-meta" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>

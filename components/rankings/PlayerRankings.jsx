@@ -64,6 +64,13 @@ export function PlayerRankings() {
       `}</style>
       <RankingFilters groups={[{ value: scope, onChange: setScope, options: SCOPES }]} />
 
+      {scope === "tribe" && (
+        <p style={{ fontSize: 12, color: "rgba(241,243,249,0.35)", marginBottom: 16, lineHeight: 1.6, maxWidth: 560 }}>
+          A preview of the Leet9 community layer. Full tribe profiles, membership, and
+          management are coming in a later phase.
+        </p>
+      )}
+
       <RankingPanel
         loading={loading}
         isEmpty={rankings.length === 0}
@@ -195,28 +202,13 @@ function PlayerIdentity({ player }) {
             </span>
           )}
         </div>
-        <div className="l9-player-meta" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
-          {player.tribeTag && (
+        {player.tribeTag && (
+          <div className="l9-player-meta" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
             <span style={{ fontSize: 10, color: "rgba(241,243,249,0.4)", fontWeight: 600 }}>
               [{player.tribeTag}]
             </span>
-          )}
-          <div style={{ display: "flex", gap: 4 }}>
-            {player.platforms.map((p) => (
-              <span key={p} style={{
-                fontSize: 8,
-                fontWeight: 700,
-                padding: "1px 5px",
-                borderRadius: 3,
-                background: "rgba(255,255,255,0.05)",
-                color: p === "steam" ? "#b9d8f5" : "#c8aaff",
-                letterSpacing: "0.06em",
-              }}>
-                {p === "steam" ? "STEAM" : "PSN"}
-              </span>
-            ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
