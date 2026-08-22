@@ -45,7 +45,7 @@ export function AppShell({ user, children }) {
       </div>
 
       <BottomNav />
-      <OnboardingWizard />
+      <OnboardingWizard userId={user?.id} />
     </div>
   );
 }

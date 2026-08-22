@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const STORAGE_KEY = "l9_onboarding_v1";
+const storageKey = (userId) => userId ? `l9_onboarding_v1_${userId}` : "l9_onboarding_v1";
 
 const STEPS = ["welcome", "pick", "connect", "sync", "done"];
 
@@ -14,7 +14,7 @@ const PLATFORMS = [
   { id: "epic", label: "Epic Games", icon: "⚡", color: "#d4d4d4", desc: "Epic exclusives" },
 ];
 
-export function OnboardingWizard() {
+export function OnboardingWizard({ userId }) {
   const [step, setStep] = useState(null);
   const [picked, setPicked] = useState(null);
   const [steamId, setSteamId] = useState("");
@@ -26,7 +26,7 @@ export function OnboardingWizard() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (localStorage.getItem(STORAGE_KEY) === "done") return;
+    if (localStorage.getItem(storageKey(userId)) === "done") return;
     fetch("/api/me/platform-accounts")
       .then((r) => r.json())
       .then((json) => {
@@ -36,7 +36,7 @@ export function OnboardingWizard() {
   }, []);
 
   const dismiss = () => {
-    localStorage.setItem(STORAGE_KEY, "done");
+    localStorage.setItem(storageKey(userId), "done");
     setStep(null);
   };
 
