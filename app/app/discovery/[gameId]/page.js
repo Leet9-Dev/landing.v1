@@ -81,6 +81,10 @@ export default function GameDeepDivePage({ params }) {
         setReviewSaved(true);
         showToast("Review saved!");
         setTimeout(() => setReviewSaved(false), 3000);
+      } else if (json.error?.code === "ALREADY_REVIEWED_THIS_MONTH") {
+        showToast("You already reviewed this game this month.");
+      } else {
+        showToast("Couldn't save review. Try again.");
       }
     } finally {
       setReviewSaving(false);
