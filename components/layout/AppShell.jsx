@@ -3,6 +3,7 @@ import { Sidebar, SIDEBAR_W } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { NpsModal } from "@/components/nps/NpsModal";
 
 export function AppShell({ user, children }) {
   return (
@@ -45,7 +46,8 @@ export function AppShell({ user, children }) {
       </div>
 
       <BottomNav />
-      <OnboardingWizard />
+      <OnboardingWizard userId={user?.id} />
+      <NpsModal userId={user?.id} />
     </div>
   );
 }

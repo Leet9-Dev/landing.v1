@@ -81,6 +81,15 @@ export default function GameDeepDivePage({ params }) {
         setReviewSaved(true);
         showToast("Review saved!");
         setTimeout(() => setReviewSaved(false), 3000);
+        // Update local state so reviewedThisMonth recalculates and locks the form.
+        setData((prev) => ({
+          ...prev,
+          userReview: { rating: ratingDraft, content: commentDraft, updatedAt: new Date().toISOString() },
+        }));
+      } else if (json.error?.code === "ALREADY_REVIEWED_THIS_MONTH") {
+        showToast("You already reviewed this game this month.");
+      } else {
+        showToast("Couldn't save review. Try again.");
       }
     } finally {
       setReviewSaving(false);

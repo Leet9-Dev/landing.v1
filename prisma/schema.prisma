@@ -77,6 +77,7 @@ model User {
   // Billing
   stripeCustomerId    String?              @unique
   comparisonUnlocks   ComparisonUnlock[]
+  npsSurveys          NpsSurvey[]
 
   // 1v1 game challenges
   challengesIssued    GameChallenge[]      @relation("ChallengesIssued")
@@ -669,4 +670,22 @@ model ComparisonUnlock {
   @@unique([userId, comparisonKey])
   @@index([userId])
   @@index([comparisonKey])
+}
+
+// ===========================================================================
+// NPS — Net Promoter Score surveys (once per calendar month)
+// ===========================================================================
+
+model NpsSurvey {
+  id        String   @id @default(cuid())
+  userId    String
+  score     Int      // 0–10
+  comment   String?
+  channel   String   @default("in_app") // "in_app" | "email"
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
 }
