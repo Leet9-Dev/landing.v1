@@ -81,7 +81,7 @@ export default function GameDeepDivePage({ params }) {
         setReviewSaved(true);
         showToast("Review saved!");
         setTimeout(() => setReviewSaved(false), 3000);
-        // Update local data so reviewedThisMonth recalculates and locks the form.
+        // Update local state so reviewedThisMonth recalculates and locks the form.
         setData((prev) => ({
           ...prev,
           userReview: { rating: ratingDraft, content: commentDraft, updatedAt: new Date().toISOString() },
