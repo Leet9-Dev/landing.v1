@@ -3,10 +3,6 @@
     {
       "path": "/api/cron/resolve-challenges",
       "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/nps-email",
-      "schedule": "0 10 1 * *"
     }
   ]
 }
