@@ -7,10 +7,16 @@ const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const BASE_URL = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || "https://leet9.com";
 const CALLBACK_URL = `${BASE_URL}/api/integrations/discord/callback`;
 
-function redirect(path, clearStateCookie = false) {
+const CLEAR_COOKIES = [
+  "discord_oauth_state=; HttpOnly; SameSite=Lax; Max-Age=0; Path=/",
+  "discord_oauth_return=; HttpOnly; SameSite=Lax; Max-Age=0; Path=/",
+];
+
+function redirect(path, clearCookies = false) {
   const headers = new Headers({ "Location": `${BASE_URL}${path}` });
-  if (clearStateCookie) {
-    headers.set("Set-Cookie", "discord_oauth_state=; HttpOnly; SameSite=Lax; Max-Age=0; Path=/");
+  if (clearCookies) {
+    headers.append("Set-Cookie", CLEAR_COOKIES[0]);
+    headers.append("Set-Cookie", CLEAR_COOKIES[1]);
   }
   return new Response(null, { status: 302, headers });
 }
@@ -24,27 +30,34 @@ export async function GET(request) {
   const state = searchParams.get("state");
   const error = searchParams.get("error");
 
+  // Read state + return cookies from raw request headers.
+  const cookieHeader = request.headers.get("cookie") || "";
+  const parsedCookies = Object.fromEntries(
+    cookieHeader.split(";").map((c) => {
+      const idx = c.indexOf("=");
+      return [c.slice(0, idx).trim(), c.slice(idx + 1).trim()];
+    })
+  );
+  const ALLOWED_RETURN_PATHS = ["/app/settings/platforms", "/app/profile"];
+  const rawReturn = decodeURIComponent(parsedCookies["discord_oauth_return"] || "");
+  const returnBase = ALLOWED_RETURN_PATHS.includes(rawReturn) ? rawReturn : "/app/settings/platforms";
+
   if (error) {
-    return redirect("/app/settings/platforms?discord_error=cancelled", true);
+    return redirect(`${returnBase}?discord_error=cancelled`, true);
   }
 
-  // Read state cookie from raw request headers.
-  const cookieHeader = request.headers.get("cookie") || "";
-  const expectedState = cookieHeader
-    .split(";")
-    .map((c) => c.trim().split("="))
-    .find(([k]) => k === "discord_oauth_state")?.[1];
+  const expectedState = parsedCookies["discord_oauth_state"];
 
   if (!state || !expectedState || state !== expectedState) {
-    return redirect("/app/settings/platforms?discord_error=invalid_state", true);
+    return redirect(`${returnBase}?discord_error=invalid_state`, true);
   }
 
   if (!code) {
-    return redirect("/app/settings/platforms?discord_error=no_code", true);
+    return redirect(`${returnBase}?discord_error=no_code`, true);
   }
 
   if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
-    return redirect("/app/settings/platforms?discord_error=not_configured", true);
+    return redirect(`${returnBase}?discord_error=not_configured`, true);
   }
 
   // Exchange code for token.
@@ -61,7 +74,7 @@ export async function GET(request) {
   });
 
   if (!tokenRes.ok) {
-    return redirect("/app/settings/platforms?discord_error=token_exchange_failed", true);
+    return redirect(`${returnBase}?discord_error=token_exchange_failed`, true);
   }
 
   const tokenData = await tokenRes.json();
@@ -73,7 +86,7 @@ export async function GET(request) {
   });
 
   if (!userRes.ok) {
-    return redirect("/app/settings/platforms?discord_error=profile_fetch_failed", true);
+    return redirect(`${returnBase}?discord_error=profile_fetch_failed`, true);
   }
 
   const discordUser = await userRes.json();
@@ -122,5 +135,5 @@ export async function GET(request) {
     emitGamingAccountConnectedEvent(prisma, userId, "discord").catch(() => {});
   }
 
-  return redirect("/app/settings/platforms?discord_connected=1", true);
+  return redirect(`${returnBase}?discord_connected=1`, true);
 }
