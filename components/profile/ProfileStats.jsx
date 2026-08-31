@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { StatsSummaryCards } from "@/components/profile/StatsSummaryCards";
 import { PointsBreakdown } from "@/components/profile/PointsBreakdown";
-import { PlatformConfidence } from "@/components/profile/PlatformConfidence";
 import { GamerDNA } from "@/components/profile/GamerDNA";
 import { MomentumPanel } from "@/components/profile/MomentumPanel";
 import { MasterySummary } from "@/components/profile/MasterySummary";
@@ -86,11 +85,6 @@ export function ProfileStats() {
         alignItems: "start",
       }}>
         <PointsBreakdown pointsBreakdown={stats.pointsBreakdown} />
-        <PlatformConfidence
-          platformSplit={stats.platformSplit}
-          confidence={stats.confidence}
-          confidenceReason={stats.confidenceReason}
-        />
         <GamerDNA dna={stats.dna} />
         <MomentumPanel momentum={stats.momentum} monthly={stats.monthly} />
         <MasterySummary mastery={stats.mastery} />

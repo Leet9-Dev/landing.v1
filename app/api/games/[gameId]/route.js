@@ -19,6 +19,11 @@ export async function GET(request, { params }) {
 
   const externalSources = MOCK_EXTERNAL_SOURCES.filter((s) => s.gameId === game.id);
 
+  const realPlayerCount = await prisma.userGame.count({ where: { canonicalGameId: game.id } });
+  const displayGame = realPlayerCount >= 500
+    ? { ...game, communityPlayerCount: realPlayerCount }
+    : game;
+
   let currentUserGame = null;
   if (session?.user?.id) {
     const ug = await prisma.userGame.findUnique({
@@ -66,5 +71,5 @@ export async function GET(request, { params }) {
     if (rev) userReview = { rating: rev.rating, content: rev.content, updatedAt: rev.updatedAt.toISOString() };
   }
 
-  return apiOk({ game, externalSources, currentUserGame, userReview, hasPaid }, { _cacheSeconds: 0 });
+  return apiOk({ game: displayGame, externalSources, currentUserGame, userReview, hasPaid }, { _cacheSeconds: 0 });
 }

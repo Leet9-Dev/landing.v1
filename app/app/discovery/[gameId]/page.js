@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, use } from "react";
+import { getDisplayRating } from "@/lib/utils/gameRating";
 import { useRouter } from "next/navigation";
 
 export default function GameDeepDivePage({ params }) {
@@ -211,16 +212,22 @@ export default function GameDeepDivePage({ params }) {
           {externalSources.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
               {externalSources.map((s) => {
+                const BATTLENET_URLS = {
+                  diablo4:    "https://diablo.blizzard.com/en-us/",
+                  overwatch2: "https://overwatch.blizzard.com/en-us/",
+                  wow:        "https://worldofwarcraft.blizzard.com/en-us/",
+                  hearthstone:"https://hearthstone.blizzard.com/en-us/",
+                };
                 const PLATFORM_META = {
                   steam:     { label: "Play on Steam",           color: "#b9d8f5", url: `https://store.steampowered.com/app/${s.externalId}/` },
-                  psn:       { label: "Play on PlayStation",     color: "#c8aaff", url: `https://store.playstation.com/product/${s.externalId}` },
-                  xbox:      { label: "Play on Xbox",            color: "#90d890", url: `https://www.xbox.com/games/store/game/${s.externalId}` },
+                  psn:       { label: "Play on PlayStation",     color: "#c8aaff", url: `https://store.playstation.com/en-us/product/${s.externalId}` },
+                  xbox:      { label: "Play on Xbox",            color: "#90d890", url: `https://www.xbox.com/en-US/games/store/${s.externalTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}/${s.externalId}` },
                   epic:      { label: "Play on Epic Games",      color: "#d4d4d4", url: `https://store.epicgames.com/p/${s.externalId}` },
-                  gog:       { label: "Play on GOG",             color: "#9fc8f5", url: `https://www.gog.com/game/${s.externalId}` },
-                  battlenet: { label: "Play on Battle.net",      color: "#00aeff", url: `https://us.battle.net/` },
+                  gog:       { label: "Play on GOG",             color: "#9fc8f5", url: `https://www.gog.com/en/game/${s.externalId}` },
+                  battlenet: { label: "Play on Battle.net",      color: "#00aeff", url: BATTLENET_URLS[s.externalId] ?? "https://us.battle.net/" },
                   ea:        { label: "Play on EA App",          color: "#f4a720", url: `https://www.ea.com/games/${s.externalId}` },
-                  ubisoft:   { label: "Play on Ubisoft Connect", color: "#7fc0e0", url: `https://www.ubisoft.com/game/${s.externalId}` },
-                  itch:      { label: "Play on itch.io",         color: "#fa5c5c", url: `https://itch.io/game/${s.externalId}` },
+                  ubisoft:   { label: "Play on Ubisoft Connect", color: "#7fc0e0", url: `https://www.ubisoft.com/en-us/game/${s.externalId.replace(/_/g, "-")}` },
+                  itch:      { label: "Play on itch.io",         color: "#fa5c5c", url: `https://itch.io/search?q=${encodeURIComponent(s.externalTitle)}` },
                 };
                 const meta = PLATFORM_META[s.platform] ?? { label: `Play on ${s.platform}`, color: "rgba(241,243,249,0.6)", url: "#" };
                 return (
@@ -275,7 +282,7 @@ export default function GameDeepDivePage({ params }) {
           <div style={{ marginBottom: 28 }}>
             <SectionLabel>Community Stats</SectionLabel>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <StatBox label="Community Rating" value={`★ ${game.communityRating.toFixed(1)}`} accent />
+              <StatBox label="Community Rating" value={`★ ${getDisplayRating(game).toFixed(1)}`} accent />
               <StatBox label="Active Players" value={game.communityPlayerCount.toLocaleString()} />
               <StatBox label="Total Hours" value={`${(game.communityHours / 1000).toFixed(0)}K`} />
               <StatBox label="L9 Points Earned" value={(game.communityL9Points / 1000).toFixed(0) + "K"} />
