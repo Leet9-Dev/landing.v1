@@ -55,7 +55,11 @@ export function ProfileGames() {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
           {games.map((ug) => (
-            <ProfileGameCard key={ug.gameId} userGame={ug} onClick={() => router.push(`/app/discovery/${ug.gameId}`)} />
+            <ProfileGameCard
+              key={ug.gameId}
+              userGame={ug}
+              onClick={ug.unmatched ? undefined : () => router.push(`/app/discovery/${ug.gameId}`)}
+            />
           ))}
         </div>
       )}
@@ -65,18 +69,19 @@ export function ProfileGames() {
 
 function ProfileGameCard({ userGame, onClick }) {
   const { game } = userGame;
+  const clickable = Boolean(onClick);
   return (
     <div
       onClick={onClick}
       style={{
         borderRadius: 12,
         overflow: "hidden",
-        cursor: "pointer",
+        cursor: clickable ? "pointer" : "default",
         border: "1px solid rgba(255,255,255,0.07)",
         background: "#0A0C14",
         transition: "border-color 0.15s",
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(200,255,0,0.2)")}
+      onMouseEnter={(e) => { if (clickable) e.currentTarget.style.borderColor = "rgba(200,255,0,0.2)"; }}
       onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)")}
     >
       <div style={{
@@ -111,17 +116,21 @@ function ProfileGameCard({ userGame, onClick }) {
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
           <Stat label="L9 Points" value={userGame.l9Points != null ? userGame.l9Points.toLocaleString() : "—"} accent />
-          <Stat label="Hours" value={userGame.hoursPlayed.toFixed(0)} />
-          <Stat
-            label="Achievements"
-            value={
-              userGame.achievementsUnlocked != null && userGame.achievementsTotal != null
-                ? `${userGame.achievementsUnlocked}/${userGame.achievementsTotal}`
-                : userGame.achievementsUnlocked != null
-                ? `${userGame.achievementsUnlocked}`
-                : "—"
-            }
-          />
+          <Stat label="Hours" value={userGame.hoursPlayed != null ? userGame.hoursPlayed.toFixed(0) : "—"} />
+          {userGame.trophiesUnlocked != null ? (
+            <Stat label="Trophies" value={userGame.trophiesUnlocked.toString()} />
+          ) : (
+            <Stat
+              label="Achievements"
+              value={
+                userGame.achievementsUnlocked != null && userGame.achievementsTotal != null
+                  ? `${userGame.achievementsUnlocked}/${userGame.achievementsTotal}`
+                  : userGame.achievementsUnlocked != null
+                  ? `${userGame.achievementsUnlocked}`
+                  : "—"
+              }
+            />
+          )}
           <Stat label="Mastery" value={userGame.masteryPct != null ? `${userGame.masteryPct.toFixed(0)}%` : "—"} />
         </div>
 
@@ -135,8 +144,8 @@ function ProfileGameCard({ userGame, onClick }) {
   );
 }
 
-const PLATFORM_LABEL = { steam: "STEAM", psn: "PSN", gog: "GOG", epic: "EPIC", xbox: "XBOX" };
-const PLATFORM_COLOR = { steam: "#b9d8f5", psn: "#c8aaff", gog: "#9fc8f5", epic: "#d4d4d4", xbox: "#90d890" };
+const PLATFORM_LABEL = { steam: "STEAM", psn: "PSN", gog: "GOG", epic: "EPIC", xbox: "XBOX", riot: "RIOT", discord: "DISCORD" };
+const PLATFORM_COLOR = { steam: "#b9d8f5", psn: "#c8aaff", gog: "#9fc8f5", epic: "#d4d4d4", xbox: "#90d890", riot: "#FF4655", discord: "#5865F2" };
 
 function PlatformBadge({ platform }) {
   return (

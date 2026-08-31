@@ -94,11 +94,13 @@ export async function GET() {
   // Aggregates
   let totalHoursPlayed = 0;
   let totalAchievements = 0;
+  let totalTrophies = 0;
   const platformCounts = {};
 
   for (const ug of userGames) {
     totalHoursPlayed += ug.playtimeHours ?? 0;
     totalAchievements += ug.achievementsUnlocked ?? 0;
+    totalTrophies += ug.trophiesUnlocked ?? 0;
     const p = ug.sourceProvider || "unknown";
     platformCounts[p] = (platformCounts[p] || 0) + 1;
   }
@@ -152,6 +154,7 @@ export async function GET() {
     totalHoursPlayed,
     totalGames,
     totalAchievements,
+    totalTrophies,
     platformSplit,
     topGamesByHours,
     mastery: null,

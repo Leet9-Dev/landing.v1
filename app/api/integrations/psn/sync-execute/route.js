@@ -3,8 +3,9 @@ import { apiOk, apiError } from "@/lib/api/response";
 import { prisma } from "@/lib/prisma";
 import { fetchPsnTrophyTitles } from "@/lib/integrations/psn/psnClient";
 import { normalizePsnTitles } from "@/lib/integrations/psn/psnNormalizer";
-import { matchDetectedGameToCanonical } from "@/lib/platforms/canonicalMatching";
+import { matchDetectedGameToCanonical, matchDetectedGameByTitle } from "@/lib/platforms/canonicalMatching";
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
+import { MOCK_GAMES } from "@/lib/mock/games";
 import { emitGameAddedEvent } from "@/lib/gamification/engine";
 
 // PSN library execute sync.
@@ -107,10 +108,11 @@ export async function POST() {
 
     const normalized = normalizePsnTitles(rawTitles);
 
-    const resolved = normalized.map((g) => ({
-      ...g,
-      canonicalGameId: matchDetectedGameToCanonical("psn", g.externalId, MOCK_EXTERNAL_SOURCES),
-    }));
+    const resolved = normalized.map((g) => {
+      const byId = matchDetectedGameToCanonical("psn", g.externalId, MOCK_EXTERNAL_SOURCES);
+      const canonicalGameId = byId ?? matchDetectedGameByTitle(g.externalTitle, MOCK_GAMES);
+      return { ...g, canonicalGameId };
+    });
 
     const now = new Date();
     let userGamesCreated = 0;
@@ -171,6 +173,7 @@ export async function POST() {
           firstDetectedAt: now,
           lastDetectedAt: now,
           playtimeHours: null,
+          trophiesUnlocked: g.trophiesUnlocked ?? null,
           sourceConfidence: "high",
         },
         update: {
@@ -178,6 +181,7 @@ export async function POST() {
           sourceProvider: "psn",
           sourcePlatformAccountId: platformAccount.id,
           sourceConfidence: "high",
+          ...(g.trophiesUnlocked != null ? { trophiesUnlocked: g.trophiesUnlocked } : {}),
         },
       });
 
