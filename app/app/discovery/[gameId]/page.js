@@ -208,57 +208,34 @@ export default function GameDeepDivePage({ params }) {
             {game.description}
           </p>
 
-          {/* Store links — prominent, right after description */}
-          {externalSources.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
-              {externalSources.map((s) => {
-                const BATTLENET_URLS = {
-                  diablo4:    "https://diablo.blizzard.com/en-us/",
-                  overwatch2: "https://overwatch.blizzard.com/en-us/",
-                  wow:        "https://worldofwarcraft.blizzard.com/en-us/",
-                  hearthstone:"https://hearthstone.blizzard.com/en-us/",
-                };
-                const PLATFORM_META = {
-                  steam:     { label: "Play on Steam",           color: "#b9d8f5", url: `https://store.steampowered.com/app/${s.externalId}/` },
-                  psn:       { label: "Play on PlayStation",     color: "#c8aaff", url: `https://store.playstation.com/en-us/search/${encodeURIComponent(s.externalTitle)}` },
-                  xbox:      { label: "Play on Xbox",            color: "#90d890", url: `https://www.xbox.com/en-US/games/store/${s.externalId}` },
-                  epic:      { label: "Play on Epic Games",      color: "#d4d4d4", url: `https://store.epicgames.com/p/${s.externalId}` },
-                  gog:       { label: "Play on GOG",             color: "#9fc8f5", url: `https://www.gog.com/en/game/${s.externalId}` },
-                  battlenet: { label: "Play on Battle.net",      color: "#00aeff", url: BATTLENET_URLS[s.externalId] ?? "https://us.battle.net/" },
-                  ea:        { label: "Play on EA App",          color: "#f4a720", url: `https://www.ea.com/games/${s.externalId}` },
-                  ubisoft:   { label: "Play on Ubisoft Connect", color: "#7fc0e0", url: `https://www.ubisoft.com/en-us/game/${s.externalId.replace(/_/g, "-")}` },
-                  itch:      { label: "Play on itch.io",         color: "#fa5c5c", url: `https://itch.io/search?q=${encodeURIComponent(s.externalTitle)}` },
-                };
-                const meta = PLATFORM_META[s.platform] ?? { label: `Play on ${s.platform}`, color: "rgba(241,243,249,0.6)", url: "#" };
-                return (
-                  <a
-                    key={s.platform + s.externalId}
-                    href={meta.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      padding: "14px 20px",
-                      borderRadius: 12,
-                      border: `1px solid ${meta.color}4D`,
-                      background: `${meta.color}14`,
-                      color: meta.color,
-                      fontSize: 15,
-                      fontWeight: 800,
-                      textDecoration: "none",
-                      fontFamily: "'Outfit', sans-serif",
-                      letterSpacing: "-0.01em",
-                      textAlign: "center",
-                      boxSizing: "border-box",
-                    }}
-                  >
-                    {meta.label} →
-                  </a>
-                );
-              })}
-            </div>
-          )}
+          {/* Store links — Steam only */}
+          {externalSources.filter((s) => s.platform === "steam").map((s) => (
+            <a
+              key={s.externalId}
+              href={`https://store.steampowered.com/app/${s.externalId}/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "block",
+                width: "100%",
+                padding: "14px 20px",
+                borderRadius: 12,
+                border: "1px solid #b9d8f54D",
+                background: "#b9d8f514",
+                color: "#b9d8f5",
+                fontSize: 15,
+                fontWeight: 800,
+                textDecoration: "none",
+                fontFamily: "'Outfit', sans-serif",
+                letterSpacing: "-0.01em",
+                textAlign: "center",
+                boxSizing: "border-box",
+                marginBottom: 24,
+              }}
+            >
+              Play on Steam →
+            </a>
+          ))}
 
           {/* Genres + Tags */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 28 }}>
