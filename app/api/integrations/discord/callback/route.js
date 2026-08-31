@@ -74,6 +74,8 @@ export async function GET(request) {
   });
 
   if (!tokenRes.ok) {
+    const errBody = await tokenRes.text().catch(() => "(unreadable)");
+    console.error("[discord/callback] token_exchange_failed", tokenRes.status, errBody, "redirect_uri:", CALLBACK_URL);
     return redirect(`${returnBase}?discord_error=token_exchange_failed`, true);
   }
 
