@@ -104,35 +104,41 @@ export async function GET(request) {
   const userId = session.user.id;
   const now = new Date();
 
-  const existing = await prisma.platformAccount.findUnique({
-    where: { userId_provider: { userId, provider: "discord" } },
-  });
+  let existing;
+  try {
+    existing = await prisma.platformAccount.findUnique({
+      where: { userId_provider: { userId, provider: "discord" } },
+    });
 
-  await prisma.platformAccount.upsert({
-    where: { userId_provider: { userId, provider: "discord" } },
-    create: {
-      userId,
-      provider: "discord",
-      externalUserId: discordId,
-      username,
-      displayName,
-      status: "connected",
-      syncStatus: "idle",
-      connectedVia: "oauth_discord",
-      connectedAt: now,
-      capabilities: { presence: true, gameLibrary: false },
-      metadata: { avatarUrl },
-    },
-    update: {
-      externalUserId: discordId,
-      username,
-      displayName,
-      status: "connected",
-      connectedVia: "oauth_discord",
-      connectedAt: now,
-      metadata: { avatarUrl },
-    },
-  });
+    await prisma.platformAccount.upsert({
+      where: { userId_provider: { userId, provider: "discord" } },
+      create: {
+        userId,
+        provider: "discord",
+        externalUserId: discordId,
+        username,
+        displayName,
+        status: "connected",
+        syncStatus: "idle",
+        connectedVia: "oauth_discord",
+        connectedAt: now,
+        capabilities: { presence: true, gameLibrary: false },
+        metadata: { avatarUrl },
+      },
+      update: {
+        externalUserId: discordId,
+        username,
+        displayName,
+        status: "connected",
+        connectedVia: "oauth_discord",
+        connectedAt: now,
+        metadata: { avatarUrl },
+      },
+    });
+  } catch (dbErr) {
+    const detail = encodeURIComponent((dbErr?.message || "db_error").slice(0, 120));
+    return redirect(`${returnBase}?discord_error=db_failed&discord_detail=${detail}`, true);
+  }
 
   if (!existing || existing.status !== "connected") {
     emitGamingAccountConnectedEvent(prisma, userId, "discord").catch(() => {});
