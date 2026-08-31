@@ -74,9 +74,10 @@ export async function GET(request) {
   });
 
   if (!tokenRes.ok) {
-    const errBody = await tokenRes.text().catch(() => "(unreadable)");
-    console.error("[discord/callback] token_exchange_failed", tokenRes.status, errBody, "redirect_uri:", CALLBACK_URL);
-    return redirect(`${returnBase}?discord_error=token_exchange_failed`, true);
+    const errBody = await tokenRes.text().catch(() => "");
+    let discordErr = "";
+    try { discordErr = JSON.parse(errBody)?.error || ""; } catch {}
+    return redirect(`${returnBase}?discord_error=token_exchange_failed&discord_detail=${encodeURIComponent(discordErr || errBody.slice(0, 120))}`, true);
   }
 
   const tokenData = await tokenRes.json();
