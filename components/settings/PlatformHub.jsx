@@ -101,10 +101,11 @@ export function PlatformHub() {
       router.replace("/app/settings/platforms");
     } else if (searchParams.get("discord_error")) {
       const err = searchParams.get("discord_error");
+      const detail = searchParams.get("discord_detail");
       const msg = err === "cancelled" ? "Discord connection was cancelled."
         : err === "not_configured" ? "Discord integration is not yet configured."
         : "Discord connection failed. Please try again.";
-      setNotice({ tone: "error", text: msg });
+      setNotice({ tone: "error", text: detail ? `${msg} [${detail}]` : msg });
       router.replace("/app/settings/platforms");
     }
   }, [searchParams, router]);
