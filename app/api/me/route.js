@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { apiOk } from "@/lib/api/response";
+import { apiOk, apiError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 import { PLATFORM_ACCOUNT_STATUS } from "@/lib/platforms/platforms";
 import { computeLevel, computeRankInfo } from "@/lib/scoring/l9Points";
@@ -51,4 +51,45 @@ export async function GET() {
     platformsConnected,
     gamesCount,
   });
+}
+
+export async function DELETE(request) {
+  const { session, unauthenticated } = await requireSession();
+  if (unauthenticated) return unauthenticated;
+
+  const userId = session.user.id;
+
+  const body = await request.json().catch(() => ({}));
+  if (body.confirm !== "DELETE") {
+    return apiError("CONFIRM_REQUIRED", "Pass { confirm: 'DELETE' } to confirm account deletion.", 400);
+  }
+
+  // Delete in dependency order to avoid FK violations.
+  await prisma.$transaction([
+    prisma.gameListItem.deleteMany({ where: { list: { userId } } }),
+    prisma.gameList.deleteMany({ where: { userId } }),
+    prisma.gameReview.deleteMany({ where: { userId } }),
+    prisma.userBadge.deleteMany({ where: { userId } }),
+    prisma.userStreak.deleteMany({ where: { userId } }),
+    prisma.pointsLedger.deleteMany({ where: { userId } }),
+    prisma.xpLedger.deleteMany({ where: { userId } }).catch(() => {}),
+    prisma.userRuleState.deleteMany({ where: { userId } }),
+    prisma.gamificationEvent.deleteMany({ where: { userId } }),
+    prisma.userBrandPoints.deleteMany({ where: { userId } }),
+    prisma.notification.deleteMany({ where: { userId } }),
+    prisma.userFollow.deleteMany({ where: { OR: [{ followerId: userId }, { followingId: userId }] } }),
+    prisma.npsSurvey.deleteMany({ where: { userId } }),
+    prisma.seasonScore.deleteMany({ where: { userId } }),
+    prisma.dailyCounter.deleteMany({ where: { userId } }),
+    prisma.comparisonUnlock.deleteMany({ where: { OR: [{ userId }, { targetUserId: userId }] } }),
+    prisma.platformDetectedGame.deleteMany({ where: { platformAccount: { userId } } }),
+    prisma.platformSyncRun.deleteMany({ where: { platformAccount: { userId } } }),
+    prisma.platformAccount.deleteMany({ where: { userId } }),
+    prisma.userGame.deleteMany({ where: { userId } }),
+    prisma.session.deleteMany({ where: { userId } }),
+    prisma.account.deleteMany({ where: { userId } }),
+    prisma.user.delete({ where: { id: userId } }),
+  ]);
+
+  return apiOk({ deleted: true });
 }
