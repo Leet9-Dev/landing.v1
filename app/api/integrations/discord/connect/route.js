@@ -1,6 +1,5 @@
 import { requireSession } from "@/lib/api/auth";
 import { apiError } from "@/lib/api/response";
-import { cookies } from "next/headers";
 import crypto from "crypto";
 
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -18,15 +17,6 @@ export async function GET() {
 
   const state = crypto.randomBytes(16).toString("hex");
 
-  const cookieStore = await cookies();
-  cookieStore.set("discord_oauth_state", state, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 300,
-    path: "/",
-  });
-
   const params = new URLSearchParams({
     client_id: DISCORD_CLIENT_ID,
     redirect_uri: CALLBACK_URL,
@@ -36,5 +26,14 @@ export async function GET() {
     prompt: "consent",
   });
 
-  return Response.redirect(`https://discord.com/api/oauth2/authorize?${params}`);
+  const isProduction = process.env.NODE_ENV === "production";
+  const cookieHeader = `discord_oauth_state=${state}; HttpOnly; ${isProduction ? "Secure; " : ""}SameSite=Lax; Max-Age=300; Path=/`;
+
+  return new Response(null, {
+    status: 302,
+    headers: {
+      "Location": `https://discord.com/api/oauth2/authorize?${params}`,
+      "Set-Cookie": cookieHeader,
+    },
+  });
 }

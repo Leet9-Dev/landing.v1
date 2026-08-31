@@ -1,6 +1,5 @@
 import { requireSession } from "@/lib/api/auth";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
 import { emitGamingAccountConnectedEvent } from "@/lib/gamification/engine";
 
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -8,8 +7,12 @@ const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const BASE_URL = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || "https://leet9.com";
 const CALLBACK_URL = `${BASE_URL}/api/integrations/discord/callback`;
 
-function redirect(path) {
-  return Response.redirect(`${BASE_URL}${path}`);
+function redirect(path, clearStateCookie = false) {
+  const headers = new Headers({ "Location": `${BASE_URL}${path}` });
+  if (clearStateCookie) {
+    headers.set("Set-Cookie", "discord_oauth_state=; HttpOnly; SameSite=Lax; Max-Age=0; Path=/");
+  }
+  return new Response(null, { status: 302, headers });
 }
 
 export async function GET(request) {
@@ -22,23 +25,26 @@ export async function GET(request) {
   const error = searchParams.get("error");
 
   if (error) {
-    return redirect("/app/settings/platforms?discord_error=cancelled");
+    return redirect("/app/settings/platforms?discord_error=cancelled", true);
   }
 
-  const cookieStore = await cookies();
-  const expectedState = cookieStore.get("discord_oauth_state")?.value;
-  cookieStore.delete("discord_oauth_state");
+  // Read state cookie from raw request headers.
+  const cookieHeader = request.headers.get("cookie") || "";
+  const expectedState = cookieHeader
+    .split(";")
+    .map((c) => c.trim().split("="))
+    .find(([k]) => k === "discord_oauth_state")?.[1];
 
   if (!state || !expectedState || state !== expectedState) {
-    return redirect("/app/settings/platforms?discord_error=invalid_state");
+    return redirect("/app/settings/platforms?discord_error=invalid_state", true);
   }
 
   if (!code) {
-    return redirect("/app/settings/platforms?discord_error=no_code");
+    return redirect("/app/settings/platforms?discord_error=no_code", true);
   }
 
   if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
-    return redirect("/app/settings/platforms?discord_error=not_configured");
+    return redirect("/app/settings/platforms?discord_error=not_configured", true);
   }
 
   // Exchange code for token.
@@ -55,7 +61,7 @@ export async function GET(request) {
   });
 
   if (!tokenRes.ok) {
-    return redirect("/app/settings/platforms?discord_error=token_exchange_failed");
+    return redirect("/app/settings/platforms?discord_error=token_exchange_failed", true);
   }
 
   const tokenData = await tokenRes.json();
@@ -67,7 +73,7 @@ export async function GET(request) {
   });
 
   if (!userRes.ok) {
-    return redirect("/app/settings/platforms?discord_error=profile_fetch_failed");
+    return redirect("/app/settings/platforms?discord_error=profile_fetch_failed", true);
   }
 
   const discordUser = await userRes.json();
@@ -116,5 +122,5 @@ export async function GET(request) {
     emitGamingAccountConnectedEvent(prisma, userId, "discord").catch(() => {});
   }
 
-  return redirect("/app/settings/platforms?discord_connected=1");
+  return redirect("/app/settings/platforms?discord_connected=1", true);
 }
