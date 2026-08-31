@@ -1,5 +1,6 @@
 "use client";
 import { PlatformHub } from "@/components/settings/PlatformHub";
+import { SettingsNav } from "@/components/settings/SettingsNav";
 
 export default function PlatformHubPage() {
   return (
@@ -9,6 +10,7 @@ export default function PlatformHubPage() {
           .l9-settings-page { padding: 20px 16px !important; }
         }
       `}</style>
+      <SettingsNav />
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 22, fontWeight: 800, color: "#F1F3F9", letterSpacing: "-0.02em", marginBottom: 6 }}>
           Platform Hub
