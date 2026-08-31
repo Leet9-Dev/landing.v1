@@ -220,8 +220,8 @@ export default function GameDeepDivePage({ params }) {
                 };
                 const PLATFORM_META = {
                   steam:     { label: "Play on Steam",           color: "#b9d8f5", url: `https://store.steampowered.com/app/${s.externalId}/` },
-                  psn:       { label: "Play on PlayStation",     color: "#c8aaff", url: `https://store.playstation.com/en-us/product/${s.externalId}` },
-                  xbox:      { label: "Play on Xbox",            color: "#90d890", url: `https://www.xbox.com/en-US/games/store/${s.externalTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}/${s.externalId}` },
+                  psn:       { label: "Play on PlayStation",     color: "#c8aaff", url: `https://store.playstation.com/en-us/search/${encodeURIComponent(s.externalTitle)}` },
+                  xbox:      { label: "Play on Xbox",            color: "#90d890", url: `https://www.xbox.com/en-US/games/store/${s.externalId}` },
                   epic:      { label: "Play on Epic Games",      color: "#d4d4d4", url: `https://store.epicgames.com/p/${s.externalId}` },
                   gog:       { label: "Play on GOG",             color: "#9fc8f5", url: `https://www.gog.com/en/game/${s.externalId}` },
                   battlenet: { label: "Play on Battle.net",      color: "#00aeff", url: BATTLENET_URLS[s.externalId] ?? "https://us.battle.net/" },
