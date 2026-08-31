@@ -4,6 +4,7 @@ export function StatsSummaryCards({ stats }) {
     { label: "Hours Played", value: stats.totalHoursPlayed?.toLocaleString() ?? "—" },
     { label: "Games Tracked", value: stats.totalGames ?? "—" },
     { label: "Achievements", value: stats.totalAchievements ?? "—" },
+    ...(stats.totalTrophies > 0 ? [{ label: "PSN Trophies", value: stats.totalTrophies.toLocaleString(), psn: true }] : []),
   ];
 
   return (

@@ -73,8 +73,9 @@ export async function GET(request) {
         l9Points: computeL9Points({ playtimeHours: ug.playtimeHours, achievementsUnlocked: ug.achievementsUnlocked }),
         hoursPlayed: ug.playtimeHours ?? 0,
         achievementsUnlocked: ug.achievementsUnlocked ?? null,
-        achievementsTotal: null, // not tracked in DB or game catalogue yet
-        masteryPct: null,     // computed from unlocked/total once both exist
+        trophiesUnlocked: ug.trophiesUnlocked ?? null,
+        achievementsTotal: null,
+        masteryPct: null,
         lastPlayedAt: lastPlayedMap.get(ug.canonicalGameId) ?? ug.lastDetectedAt ?? null,
         game,
       };
@@ -90,19 +91,70 @@ export async function GET(request) {
     games = games.filter((ug) => ug.sourcePlatforms.includes(source));
   }
 
-  // 5. Sort
+  // 5. Include unmatched detected games from connected platforms (no canonical match yet).
+  // These appear as plain cards with just the platform title.
+  const matchedCanonicalIds = new Set(games.map((g) => g.gameId));
+  const unmatchedDetected = platformAccountIds.length > 0
+    ? await prisma.platformDetectedGame.findMany({
+        where: {
+          platformAccountId: { in: platformAccountIds },
+          canonicalGameId: null,
+        },
+        select: {
+          externalGameId: true,
+          externalTitle: true,
+          provider: true,
+          lastPlayedAt: true,
+          normalized: true,
+        },
+        orderBy: { lastPlayedAt: "desc" },
+      }).catch(() => [])
+    : [];
+
+  const seenUnmatched = new Set();
+  const unmatchedGames = unmatchedDetected
+    .filter((dg) => {
+      const key = `${dg.provider}:${dg.externalGameId}`;
+      if (seenUnmatched.has(key)) return false;
+      seenUnmatched.add(key);
+      if (q && !dg.externalTitle.toLowerCase().includes(q)) return false;
+      if (source && dg.provider !== source) return false;
+      return true;
+    })
+    .map((dg) => ({
+      gameId: `${dg.provider}:${dg.externalGameId}`,
+      inLibrary: false,
+      inProfile: true,
+      unmatched: true,
+      sourcePlatforms: [dg.provider],
+      l9Points: null,
+      hoursPlayed: 0,
+      achievementsUnlocked: null,
+      trophiesUnlocked: dg.normalized?.trophiesUnlocked ?? null,
+      achievementsTotal: null,
+      masteryPct: null,
+      lastPlayedAt: dg.lastPlayedAt ?? null,
+      game: {
+        canonicalTitle: dg.externalTitle,
+        coverImageUrl: null,
+        coverGradient: "#12141E",
+      },
+    }));
+
+  const allGames = [...games, ...unmatchedGames];
+
+  // 6. Sort
   if (sort === "l9Points") {
-    games = games.sort((a, b) => (b.l9Points ?? 0) - (a.l9Points ?? 0));
+    allGames.sort((a, b) => (b.l9Points ?? 0) - (a.l9Points ?? 0));
   } else if (sort === "hoursPlayed" || sort === "mastery") {
-    games = games.sort((a, b) => b.hoursPlayed - a.hoursPlayed);
+    allGames.sort((a, b) => (b.hoursPlayed ?? 0) - (a.hoursPlayed ?? 0));
   } else {
-    // lastPlayed (default)
-    games = games.sort((a, b) => {
+    allGames.sort((a, b) => {
       const aTime = a.lastPlayedAt ? new Date(a.lastPlayedAt).getTime() : 0;
       const bTime = b.lastPlayedAt ? new Date(b.lastPlayedAt).getTime() : 0;
       return bTime - aTime;
     });
   }
 
-  return apiOk({ games, total: games.length });
+  return apiOk({ games: allGames, total: allGames.length });
 }
