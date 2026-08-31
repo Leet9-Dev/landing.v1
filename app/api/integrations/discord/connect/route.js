@@ -35,14 +35,11 @@ export async function GET(request) {
   const isProduction = process.env.NODE_ENV === "production";
   const cookieOpts = `HttpOnly; ${isProduction ? "Secure; " : ""}SameSite=Lax; Max-Age=300; Path=/`;
 
-  return new Response(null, {
-    status: 302,
-    headers: {
-      "Location": `https://discord.com/api/oauth2/authorize?${params}`,
-      "Set-Cookie": [
-        `discord_oauth_state=${state}; ${cookieOpts}`,
-        `discord_oauth_return=${encodeURIComponent(returnTo)}; ${cookieOpts}`,
-      ],
-    },
+  const headers = new Headers({
+    "Location": `https://discord.com/api/oauth2/authorize?${params}`,
   });
+  headers.append("Set-Cookie", `discord_oauth_state=${state}; ${cookieOpts}`);
+  headers.append("Set-Cookie", `discord_oauth_return=${encodeURIComponent(returnTo)}; ${cookieOpts}`);
+
+  return new Response(null, { status: 302, headers });
 }
