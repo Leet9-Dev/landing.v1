@@ -30,24 +30,23 @@ export async function GET(request) {
   const state = searchParams.get("state");
   const error = searchParams.get("error");
 
-  // Read state + return cookies early so we can redirect to the right place on errors too.
-  const cookieHeader0 = request.headers.get("cookie") || "";
-  const parsedCookies0 = Object.fromEntries(
-    cookieHeader0.split(";").map((c) => {
+  // Read state + return cookies from raw request headers.
+  const cookieHeader = request.headers.get("cookie") || "";
+  const parsedCookies = Object.fromEntries(
+    cookieHeader.split(";").map((c) => {
       const idx = c.indexOf("=");
       return [c.slice(0, idx).trim(), c.slice(idx + 1).trim()];
     })
   );
   const ALLOWED_RETURN_PATHS = ["/app/settings/platforms", "/app/profile"];
-  const rawReturn0 = decodeURIComponent(parsedCookies0["discord_oauth_return"] || "");
-  const returnBase0 = ALLOWED_RETURN_PATHS.includes(rawReturn0) ? rawReturn0 : "/app/settings/platforms";
+  const rawReturn = decodeURIComponent(parsedCookies["discord_oauth_return"] || "");
+  const returnBase = ALLOWED_RETURN_PATHS.includes(rawReturn) ? rawReturn : "/app/settings/platforms";
 
   if (error) {
-    return redirect(`${returnBase0}?discord_error=cancelled`, true);
+    return redirect(`${returnBase}?discord_error=cancelled`, true);
   }
 
-  const expectedState = parsedCookies0["discord_oauth_state"];
-  const returnBase = returnBase0;
+  const expectedState = parsedCookies["discord_oauth_state"];
 
   if (!state || !expectedState || state !== expectedState) {
     return redirect(`${returnBase}?discord_error=invalid_state`, true);
