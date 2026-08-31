@@ -81,7 +81,7 @@ export async function GET(request) {
       return {
         ...g,
         sourcePlatforms: sourceMap.get(g.id) ?? g.sourcePlatforms,
-        communityPlayerCount: mockPlayerBase(g.id) + stats.playerCount,
+        communityPlayerCount: stats.playerCount >= 500 ? stats.playerCount : mockPlayerBase(g.id),
         communityHours: (g.communityHours ?? 0) + stats.totalHours,
       };
     }),

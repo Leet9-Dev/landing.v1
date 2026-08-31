@@ -1,6 +1,7 @@
 import { MOCK_GAMES } from "@/lib/mock/games";
 import { apiOk } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(request) {
   const { unauthenticated } = await requireSession();
@@ -11,7 +12,18 @@ export async function GET(request) {
   const source = searchParams.get("source") || "";
   const limit = Number(searchParams.get("limit")) || MOCK_GAMES.length;
 
-  let games = [...MOCK_GAMES];
+  const allIds = MOCK_GAMES.map((g) => g.id);
+  const playerCounts = await prisma.userGame.groupBy({
+    by: ["canonicalGameId"],
+    where: { canonicalGameId: { in: allIds } },
+    _count: { userId: true },
+  }).catch(() => []);
+  const playerCountMap = new Map(playerCounts.map((r) => [r.canonicalGameId, r._count.userId]));
+
+  let games = MOCK_GAMES.map((g) => {
+    const real = playerCountMap.get(g.id) ?? 0;
+    return { ...g, communityPlayerCount: real >= 500 ? real : g.communityPlayerCount };
+  });
 
   if (source) {
     games = games.filter((g) => g.sourcePlatforms.includes(source));
