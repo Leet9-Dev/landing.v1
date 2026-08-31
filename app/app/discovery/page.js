@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { getDisplayRating } from "@/lib/utils/gameRating";
 import { useRouter } from "next/navigation";
 
 const SORTS = [
@@ -345,7 +346,7 @@ function GameCard({ game, onClick }) {
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ fontSize: 11, color: "rgba(200,255,0,0.7)", fontWeight: 600 }}>
-            {game.communityRating != null ? `★ ${game.communityRating.toFixed(1)}` : "—"}
+            {`★ ${getDisplayRating(game).toFixed(1)}`}
           </div>
           <div style={{ fontSize: 11, color: "rgba(241,243,249,0.28)", fontWeight: 500 }}>
             {game.communityPlayerCount.toLocaleString()} players

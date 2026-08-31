@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, use } from "react";
+import { getDisplayRating } from "@/lib/utils/gameRating";
 import { useRouter } from "next/navigation";
 
 export default function GameDeepDivePage({ params }) {
@@ -275,7 +276,7 @@ export default function GameDeepDivePage({ params }) {
           <div style={{ marginBottom: 28 }}>
             <SectionLabel>Community Stats</SectionLabel>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <StatBox label="Community Rating" value={`★ ${game.communityRating.toFixed(1)}`} accent />
+              <StatBox label="Community Rating" value={`★ ${getDisplayRating(game).toFixed(1)}`} accent />
               <StatBox label="Active Players" value={game.communityPlayerCount.toLocaleString()} />
               <StatBox label="Total Hours" value={`${(game.communityHours / 1000).toFixed(0)}K`} />
               <StatBox label="L9 Points Earned" value={(game.communityL9Points / 1000).toFixed(0) + "K"} />

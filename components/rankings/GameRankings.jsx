@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { getDisplayRating } from "@/lib/utils/gameRating";
 import { useRouter } from "next/navigation";
 import { RankingFilters } from "@/components/rankings/RankingFilters";
 import { RankingRow } from "@/components/rankings/RankingRow";
@@ -99,9 +100,7 @@ function GameIdentity({ entry }) {
         </div>
         <div className="l9-player-meta" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
           <span style={{ fontSize: 10, color: "rgba(241,243,249,0.4)" }}>{game.studio}</span>
-          {entry.rating != null && (
-            <span style={{ fontSize: 10, color: "rgba(200,255,0,0.7)", fontWeight: 600 }}>★ {entry.rating.toFixed(1)}</span>
-          )}
+          <span style={{ fontSize: 10, color: "rgba(200,255,0,0.7)", fontWeight: 600 }}>★ {getDisplayRating(entry.game).toFixed(1)}</span>
           <div style={{ display: "flex", gap: 4 }}>
             {game.sourcePlatforms.map((p) => (
               <span key={p} style={{
