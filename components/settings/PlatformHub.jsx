@@ -177,7 +177,8 @@ export function PlatformHub() {
         const s = json.data.summary;
         setSyncSummaries((prev) => ({ ...prev, [provider]: s }));
         const trophyPart = provider === "psn" && s.trophiesDetected != null ? `, ${s.trophiesDetected} trophies` : "";
-        setNotice({ tone: "success", text: `Sync complete — ${s.rawGamesDetected} games detected, ${s.matchedCanonicalGames} matched${trophyPart}.` });
+        const achievementPart = provider === "steam" && s.achievementsUnlocked > 0 ? `, ${s.achievementsUnlocked} achievements` : "";
+        setNotice({ tone: "success", text: `Sync complete — ${s.rawGamesDetected} games detected, ${s.matchedCanonicalGames} matched${trophyPart}${achievementPart}.` });
         await load();
       } else {
         if (json.error?.code === "PSN_SESSION_EXPIRED") {
