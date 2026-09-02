@@ -97,15 +97,20 @@ export async function POST(request) {
       return apiError("PSN_AUTH_FAILED", "Could not validate NPSSO token. Make sure it is current and try again.", 401);
     }
 
-    // Extract PSN account ID from the access token JWT (sub claim) as a reliable fallback.
+    // Extract PSN account ID from the JWT sub claim.
+    // PSN uses OpenID Connect: the sub claim lives in the ID token, not the access token
+    // (the access token may be opaque). Try idToken first, fall back to accessToken.
     let accountId = null;
-    try {
-      const b64 = auth.accessToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-      const payload = JSON.parse(Buffer.from(b64, "base64").toString("utf8"));
-      accountId = payload.sub ?? null;
-    } catch {}
+    for (const token of [auth.idToken, auth.accessToken]) {
+      if (!token || accountId) continue;
+      try {
+        const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+        const payload = JSON.parse(Buffer.from(b64, "base64").toString("utf8"));
+        accountId = payload.sub ?? null;
+      } catch {}
+    }
 
-    // Fetch the PSN profile for the authenticated account to get the human-readable Online ID.
+    // Fetch the PSN profile for the human-readable Online ID.
     let onlineId = null;
     try {
       const res = await getProfileFromAccountId({ accessToken: auth.accessToken }, "me");
