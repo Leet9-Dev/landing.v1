@@ -2,6 +2,7 @@ import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { createMagicLoginToken } from "@/lib/tokens";
 import { sendMagicLoginEmail } from "@/lib/email";
+import { emitWelcomeEvent } from "@/lib/gamification/engine";
 
 const POINTS_RULE_ID = "comparison_unlock_purchase";
 const POINTS_AMOUNT = 500;
@@ -17,8 +18,8 @@ async function ensurePaymentRule() {
       objective: "comparison_unlock",
       type: "milestone",
       active: true,
-      label: "Confronto Sbloccato",
-      description: "Hai sbloccato un confronto dettagliato 1v1.",
+      label: "Comparison Unlocked",
+      description: "You unlocked a detailed 1v1 comparison.",
       looped: false,
       points: POINTS_AMOUNT,
       eventType: "comparison_unlock_purchase",
@@ -55,7 +56,7 @@ export async function POST(request) {
 
   if (!comparisonKey || !email) {
     console.error("[stripe-webhook] Missing comparisonKey or email", { comparisonKey, email });
-    return new Response("ok", { status: 200 });
+    return new Response("Missing required metadata", { status: 400 });
   }
 
   try {
@@ -72,6 +73,7 @@ export async function POST(request) {
           stripeCustomerId: session.customer ?? null,
         },
       });
+      emitWelcomeEvent(prisma, user.id).catch(() => {});
     } else if (session.customer && !user.stripeCustomerId) {
       await prisma.user.update({
         where: { id: user.id },
@@ -108,7 +110,7 @@ export async function POST(request) {
           ruleId: POINTS_RULE_ID,
           eventId: gamEvent.id,
           points: POINTS_AMOUNT,
-          note: `Confronto sbloccato: ${comparisonKey}`,
+          note: `Comparison unlocked: ${comparisonKey}`,
         },
       });
     }

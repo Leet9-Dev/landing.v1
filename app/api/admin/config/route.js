@@ -3,16 +3,24 @@ import { requireSession } from "@/lib/api/auth";
 import { getAllConfigs, setConfig, invalidateConfigCache } from "@/lib/gamification/config";
 import { invalidateCurveCache } from "@/lib/scoring/levelCurve";
 
-// Simple admin guard — must be authenticated. Extend to role check when roles land.
-async function requireAdmin() {
+async function requireAdmin(request) {
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (adminSecret) {
+    const auth = request?.headers?.get("authorization") ?? "";
+    if (auth === `Bearer ${adminSecret}`) return { session: null };
+  }
   const { session, unauthenticated } = await requireSession();
   if (unauthenticated) return { error: unauthenticated };
+  const allowedEmail = process.env.ADMIN_EMAIL;
+  if (allowedEmail && session.user.email !== allowedEmail) {
+    return { error: apiError("FORBIDDEN", "Admin access required.", 403) };
+  }
   return { session };
 }
 
 /** GET /api/admin/config — return all config keys with parsed values */
-export async function GET() {
-  const { error } = await requireAdmin();
+export async function GET(request) {
+  const { error } = await requireAdmin(request);
   if (error) return error;
 
   const configs = await getAllConfigs();
@@ -23,7 +31,7 @@ export async function GET() {
  *  Body: { "level.step.base": 300, "tier.diamond": 15000, … }
  */
 export async function PUT(request) {
-  const { error, session } = await requireAdmin();
+  const { error, session } = await requireAdmin(request);
   if (error) return error;
 
   const body = await request.json().catch(() => ({}));

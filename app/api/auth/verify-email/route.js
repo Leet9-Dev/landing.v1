@@ -10,10 +10,15 @@ export async function GET(request) {
   const email = await consumeVerificationToken(token);
   if (!email) return apiError("INVALID_TOKEN", "This link is invalid or has expired.", 400);
 
-  await prisma.user.update({
-    where: { email },
-    data: { emailVerified: new Date() },
-  });
+  try {
+    await prisma.user.update({
+      where: { email },
+      data: { emailVerified: new Date() },
+    });
+  } catch (e) {
+    if (e.code === "P2025") return apiError("USER_NOT_FOUND", "No account found for this email.", 404);
+    throw e;
+  }
 
   return apiOk({ email });
 }

@@ -21,14 +21,23 @@ import { requireSession } from "@/lib/api/auth";
 
 const BATCH_SIZE = 100;
 
-async function requireAdmin() {
+async function requireAdmin(request) {
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (adminSecret) {
+    const auth = request?.headers?.get("authorization") ?? "";
+    if (auth === `Bearer ${adminSecret}`) return { session: null };
+  }
   const { session, unauthenticated } = await requireSession();
   if (unauthenticated) return { error: unauthenticated };
+  const allowedEmail = process.env.ADMIN_EMAIL;
+  if (allowedEmail && session.user.email !== allowedEmail) {
+    return { error: apiError("FORBIDDEN", "Admin access required.", 403) };
+  }
   return { session };
 }
 
 export async function POST(request) {
-  const { error } = await requireAdmin();
+  const { error } = await requireAdmin(request);
   if (error) return error;
 
   const { searchParams } = new URL(request.url);

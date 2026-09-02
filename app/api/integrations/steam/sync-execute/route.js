@@ -25,6 +25,15 @@ import { awardHeritageXp, hasHeritageXp } from "@/lib/gamification/heritageEngin
 const syncCooldowns = new Map();
 const COOLDOWN_MS = 5 * 60 * 1000;
 
+function setCooldown(userId) {
+  const now = Date.now();
+  syncCooldowns.set(userId, now);
+  // Sweep expired entries to prevent unbounded growth.
+  for (const [key, ts] of syncCooldowns) {
+    if (now - ts >= COOLDOWN_MS) syncCooldowns.delete(key);
+  }
+}
+
 export async function POST() {
   const { session, unauthenticated } = await requireSession();
   if (unauthenticated) return unauthenticated;
@@ -197,7 +206,7 @@ export async function POST() {
         select: { playtimeHours: true },
       });
       const totalSteamHours = steamGames.reduce((sum, g) => sum + (g.playtimeHours ?? 0), 0);
-      awardHeritageXp(prisma, userId, "steam", totalSteamHours).catch(() => {});
+      awardHeritageXp(prisma, userId, "steam", totalSteamHours).catch((e) => console.warn("[steam-sync] heritage XP failed:", e.message));
     }
 
     // 6. Stamp the sync run as complete.
@@ -219,7 +228,7 @@ export async function POST() {
       data: { syncStatus: "success", lastSyncAt: new Date() },
     });
 
-    syncCooldowns.set(session.user.id, Date.now());
+    setCooldown(session.user.id);
 
     return apiOk({
       mode: "execute",
@@ -242,6 +251,6 @@ export async function POST() {
       where: { id: platformAccount.id },
       data: { syncStatus: "failed" },
     }).catch(() => {});
-    throw error;
+    return apiError("SYNC_FAILED", "An unexpected error occurred during sync.", 500);
   }
 }
