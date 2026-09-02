@@ -120,19 +120,17 @@ export async function GET(request) {
         displayName,
         status: "connected",
         syncStatus: "idle",
-        connectedVia: "oauth_discord",
         connectedAt: now,
         capabilities: { presence: true, gameLibrary: false },
-        metadata: { avatarUrl },
+        metadata: { avatarUrl, connectedVia: "oauth_discord" },
       },
       update: {
         externalUserId: discordId,
         username,
         displayName,
         status: "connected",
-        connectedVia: "oauth_discord",
         connectedAt: now,
-        metadata: { avatarUrl },
+        metadata: { avatarUrl, connectedVia: "oauth_discord" },
       },
     });
   } catch (dbErr) {
