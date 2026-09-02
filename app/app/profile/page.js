@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { ProfileHero } from "@/components/profile/ProfileHero";
 import { ProfileTabs } from "@/components/profile/ProfileTabs";
@@ -156,7 +156,7 @@ export default function ProfilePage() {
       {activeTab === "overview" && <ProfileOverview />}
       {activeTab === "games" && <ProfileGames />}
       {activeTab === "tribe" && <ProfileTribe />}
-      {activeTab === "connect" && <PlatformSources />}
+      {activeTab === "connect" && <Suspense><PlatformSources /></Suspense>}
     </div>
   );
 }

@@ -52,8 +52,10 @@ export async function GET(request) {
     scored = scored.filter((r) => friendIds.has(r.userId));
   }
 
-  // Fetch game stats per user for display columns.
+  // Fetch game stats for the users we'll display (top 100 + current user if outside top 100).
+  const displayUserIds = [...new Set([...top100.map((r) => r.userId), userId])];
   const allGameRows = await prisma.userGame.findMany({
+    where: { userId: { in: displayUserIds } },
     select: { userId: true, playtimeHours: true, achievementsUnlocked: true, sourceProvider: true },
   });
   const gamesByUser = {};

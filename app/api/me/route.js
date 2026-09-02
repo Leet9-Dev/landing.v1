@@ -81,7 +81,7 @@ export async function DELETE(request) {
     prisma.npsSurvey.deleteMany({ where: { userId } }),
     prisma.seasonScore.deleteMany({ where: { userId } }),
     prisma.dailyCounter.deleteMany({ where: { userId } }),
-    prisma.comparisonUnlock.deleteMany({ where: { OR: [{ userId }, { targetUserId: userId }] } }),
+    prisma.comparisonUnlock.deleteMany({ where: { userId } }),
     prisma.platformDetectedGame.deleteMany({ where: { platformAccount: { userId } } }),
     prisma.platformSyncRun.deleteMany({ where: { platformAccount: { userId } } }),
     prisma.platformAccount.deleteMany({ where: { userId } }),

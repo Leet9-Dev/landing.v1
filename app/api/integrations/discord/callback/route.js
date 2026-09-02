@@ -61,17 +61,22 @@ export async function GET(request) {
   }
 
   // Exchange code for token.
-  const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: DISCORD_CLIENT_ID,
-      client_secret: DISCORD_CLIENT_SECRET,
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: CALLBACK_URL,
-    }),
-  });
+  let tokenRes;
+  try {
+    tokenRes = await fetch("https://discord.com/api/oauth2/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: DISCORD_CLIENT_ID,
+        client_secret: DISCORD_CLIENT_SECRET,
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: CALLBACK_URL,
+      }),
+    });
+  } catch {
+    return redirect(`${returnBase}?discord_error=network_error`, true);
+  }
 
   if (!tokenRes.ok) {
     const errBody = await tokenRes.text().catch(() => "");
@@ -139,7 +144,10 @@ export async function GET(request) {
   }
 
   if (!existing || existing.status !== "connected") {
-    emitGamingAccountConnectedEvent(prisma, userId, "discord").catch(() => {});
+    const totalAccounts = await prisma.platformAccount.count({
+      where: { userId, status: "connected" },
+    }).catch(() => 1);
+    emitGamingAccountConnectedEvent(prisma, userId, "discord", totalAccounts).catch(() => {});
   }
 
   return redirect(`${returnBase}?discord_connected=1`, true);

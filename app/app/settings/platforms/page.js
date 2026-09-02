@@ -1,4 +1,5 @@
 "use client";
+import { Suspense } from "react";
 import { PlatformHub } from "@/components/settings/PlatformHub";
 import { SettingsNav } from "@/components/settings/SettingsNav";
 
@@ -20,7 +21,9 @@ export default function PlatformHubPage() {
           All platforms feed the same unified game catalogue.
         </div>
       </div>
-      <PlatformHub />
+      <Suspense>
+        <PlatformHub />
+      </Suspense>
     </div>
   );
 }

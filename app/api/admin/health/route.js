@@ -11,9 +11,24 @@ export const dynamic = "force-dynamic";
  * Verifies that all v2.2 migrations have been applied and seed data is present.
  * Returns { ready: boolean, checks: { [name]: { ok, detail } } }.
  */
-export async function GET() {
-  const { unauthenticated } = await requireSession();
+async function requireAdmin(request) {
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (adminSecret) {
+    const auth = request?.headers?.get("authorization") ?? "";
+    if (auth === `Bearer ${adminSecret}`) return null;
+  }
+  const { session, unauthenticated } = await requireSession();
   if (unauthenticated) return unauthenticated;
+  const allowedEmail = process.env.ADMIN_EMAIL;
+  if (allowedEmail && session.user.email !== allowedEmail) {
+    return apiError("FORBIDDEN", "Admin access required.", 403);
+  }
+  return null;
+}
+
+export async function GET(request) {
+  const authError = await requireAdmin(request);
+  if (authError) return authError;
 
   const checks = {};
 
