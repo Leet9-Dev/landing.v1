@@ -101,11 +101,10 @@ export function PlatformHub() {
       router.replace("/app/settings/platforms");
     } else if (searchParams.get("discord_error")) {
       const err = searchParams.get("discord_error");
-      const detail = searchParams.get("discord_detail");
       const msg = err === "cancelled" ? "Discord connection was cancelled."
         : err === "not_configured" ? "Discord integration is not yet configured."
         : "Discord connection failed. Please try again.";
-      setNotice({ tone: "error", text: detail ? `${msg} [${detail}]` : msg });
+      setNotice({ tone: "error", text: msg });
       router.replace("/app/settings/platforms");
     }
   }, [searchParams, router]);
@@ -178,7 +177,8 @@ export function PlatformHub() {
         const s = json.data.summary;
         setSyncSummaries((prev) => ({ ...prev, [provider]: s }));
         const trophyPart = provider === "psn" && s.trophiesDetected != null ? `, ${s.trophiesDetected} trophies` : "";
-        setNotice({ tone: "success", text: `Sync complete — ${s.rawGamesDetected} games detected, ${s.matchedCanonicalGames} matched${trophyPart}.` });
+        const achievementPart = provider === "steam" && s.achievementsUnlocked > 0 ? `, ${s.achievementsUnlocked} achievements` : "";
+        setNotice({ tone: "success", text: `Sync complete — ${s.rawGamesDetected} games detected, ${s.matchedCanonicalGames} matched${trophyPart}${achievementPart}.` });
         await load();
       } else {
         if (json.error?.code === "PSN_SESSION_EXPIRED") {

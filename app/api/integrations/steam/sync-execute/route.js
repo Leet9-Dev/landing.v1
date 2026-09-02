@@ -1,12 +1,12 @@
 import { requireSession } from "@/lib/api/auth";
 import { apiOk, apiError } from "@/lib/api/response";
 import { prisma } from "@/lib/prisma";
-import { fetchSteamOwnedGames, hasSteamApiKey } from "@/lib/integrations/steam/steamClient";
+import { fetchSteamOwnedGames, fetchSteamAchievements, hasSteamApiKey } from "@/lib/integrations/steam/steamClient";
 import { normalizeSteamGames } from "@/lib/integrations/steam/steamNormalizer";
 import { matchDetectedGameToCanonical } from "@/lib/platforms/canonicalMatching";
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
 import { batchMatchToIgdb } from "@/lib/integrations/igdb/igdbMatcher";
-import { emitGameAddedEvent } from "@/lib/gamification/engine";
+import { emitGameAddedEvent, emitAchievementUnlockedEvent } from "@/lib/gamification/engine";
 import { awardHeritageXp, hasHeritageXp } from "@/lib/gamification/heritageEngine";
 
 // Steam library execute sync (Phase 17).
@@ -155,6 +155,39 @@ export async function POST() {
       }
     }
 
+    // 5b-2. Achievement sync — fetch unlocked achievements for played games.
+    // Capped at 150 games per sync; runs at concurrency 5 to respect rate limits.
+    const playedMatched = resolved.filter((g) => g.canonicalGameId && (g.playtimeHours ?? 0) > 0);
+    const achievementTargets = playedMatched.slice(0, 150);
+    let achievementsAdded = 0;
+
+    if (achievementTargets.length > 0) {
+      const CONCURRENCY = 5;
+      for (let i = 0; i < achievementTargets.length; i += CONCURRENCY) {
+        const batch = achievementTargets.slice(i, i + CONCURRENCY);
+        await Promise.all(batch.map(async (g) => {
+          const stats = await fetchSteamAchievements(steamId64, g.externalId).catch(() => null);
+          if (!stats?.achievements) return;
+          const unlocked = stats.achievements.filter((a) => a.achieved === 1).length;
+          if (unlocked === 0) return;
+          await prisma.userGame.update({
+            where: { userId_canonicalGameId: { userId, canonicalGameId: g.canonicalGameId } },
+            data: { achievementsUnlocked: unlocked },
+          }).catch(() => {});
+          achievementsAdded += unlocked;
+        }));
+      }
+
+      if (achievementsAdded > 0) {
+        const agg = await prisma.userGame.aggregate({
+          where: { userId },
+          _sum: { achievementsUnlocked: true },
+        });
+        const grandTotal = agg._sum.achievementsUnlocked ?? 0;
+        emitAchievementUnlockedEvent(prisma, userId, grandTotal).catch(() => {});
+      }
+    }
+
     // 5c. Heritage XP — fires once on first successful Steam sync.
     // Compute total imported hours from all matched UserGame rows for this user/steam.
     const alreadyHasHeritage = await hasHeritageXp(prisma, userId, "steam");
@@ -197,6 +230,7 @@ export async function POST() {
         unmatchedGames: unmatchedCount,
         userGamesCreated,
         userGamesUpdated,
+        achievementsUnlocked: achievementsAdded,
       },
     });
   } catch (error) {

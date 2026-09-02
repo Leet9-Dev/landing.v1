@@ -54,9 +54,8 @@ export function PlatformSources() {
       setNotice({ tone: "success", text: "Discord connected successfully!" });
       router.replace(window.location.pathname, { scroll: false });
     } else if (error) {
-      const detail = searchParams.get("discord_detail");
       const base = DISCORD_ERROR_MESSAGES[error] || "Discord connection failed. Please try again.";
-      setNotice({ tone: "error", text: detail ? `${base} [${detail}]` : base });
+      setNotice({ tone: "error", text: base });
       router.replace(window.location.pathname, { scroll: false });
     }
   }, [searchParams, router]);
