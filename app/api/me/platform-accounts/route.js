@@ -97,15 +97,26 @@ export async function POST(request) {
       return apiError("PSN_AUTH_FAILED", "Could not validate NPSSO token. Make sure it is current and try again.", 401);
     }
 
-    // Fetch the PSN profile for the authenticated account to get the Online ID.
+    // Extract PSN account ID from the access token JWT (sub claim) as a reliable fallback.
+    let accountId = null;
+    try {
+      const b64 = auth.accessToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      const payload = JSON.parse(Buffer.from(b64, "base64").toString("utf8"));
+      accountId = payload.sub ?? null;
+    } catch {}
+
+    // Fetch the PSN profile for the authenticated account to get the human-readable Online ID.
     let onlineId = null;
     try {
       const res = await getProfileFromAccountId({ accessToken: auth.accessToken }, "me");
-      onlineId = res?.onlineId ?? null;
+      onlineId = res?.profile?.onlineId ?? res?.onlineId ?? null;
     } catch {
-      // Non-fatal — handled below.
+      // Non-fatal — fall back to accountId from JWT.
     }
-    if (!onlineId) {
+
+    // Use onlineId when available; fall back to accountId from the JWT sub claim.
+    const identity = onlineId ?? accountId;
+    if (!identity) {
       return apiError("PSN_PROFILE_NOT_FOUND", "Could not fetch your PSN profile. Try again shortly.", 502);
     }
 
@@ -113,9 +124,9 @@ export async function POST(request) {
     const encryptedNpsso = encryptNpsso(rawNpsso);
 
     const connectedFields = {
-      externalUserId: onlineId,
-      username: onlineId,
-      displayName: onlineId,
+      externalUserId: identity,
+      username: onlineId ?? identity,
+      displayName: onlineId ?? identity,
       status: PLATFORM_ACCOUNT_STATUS.CONNECTED,
       syncStatus: PLATFORM_SYNC_STATUS.IDLE,
       connectedAt: new Date(),
@@ -143,7 +154,7 @@ export async function POST(request) {
     return apiOk(
       {
         account: toSafeAccountDto(row),
-        message: `PSN account ${onlineId} connected with live sync enabled.`,
+        message: `PSN account ${onlineId ?? identity} connected with live sync enabled.`,
       },
       DB_META,
     );
