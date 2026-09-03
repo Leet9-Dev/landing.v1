@@ -55,7 +55,7 @@ export default function GameDeepDivePage({ params }) {
   }
 
   if (loading) return <LoadingState />;
-  if (!data) return <NotFoundState onBack={() => router.push("/app/discovery")} />;
+  if (!data) return <NotFoundState onBack={() => router.back()} />;
 
   const { game, externalSources, currentUserGame, userReview, hasPaid } = data;
 
@@ -160,7 +160,7 @@ export default function GameDeepDivePage({ params }) {
           background: "linear-gradient(to top, rgba(7,8,15,0.92) 0%, rgba(7,8,15,0.3) 60%, rgba(7,8,15,0.1) 100%)",
         }} />
         <button
-          onClick={() => router.push("/app/discovery")}
+          onClick={() => router.back()}
           style={{
             position: "absolute",
             top: 16,

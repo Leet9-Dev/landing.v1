@@ -96,16 +96,30 @@ export function PlatformHub() {
   const router = useRouter();
 
   useEffect(() => {
-    if (searchParams.get("discord_connected")) {
-      setNotice({ tone: "success", text: "Discord account connected successfully." });
-      router.replace("/app/settings/platforms");
-    } else if (searchParams.get("discord_error")) {
-      const err = searchParams.get("discord_error");
-      const msg = err === "cancelled" ? "Discord connection was cancelled."
-        : err === "not_configured" ? "Discord integration is not yet configured."
-        : "Discord connection failed. Please try again.";
-      setNotice({ tone: "error", text: msg });
-      router.replace("/app/settings/platforms");
+    const oauthPlatforms = [
+      { key: "discord", label: "Discord" },
+      { key: "xbox",    label: "Xbox" },
+      { key: "riot",    label: "Riot" },
+      { key: "twitch",  label: "Twitch" },
+    ];
+    for (const { key, label } of oauthPlatforms) {
+      if (searchParams.get(`${key}_connected`)) {
+        setNotice({ tone: "success", text: `${label} account connected successfully.` });
+        router.replace("/app/settings/platforms");
+        return;
+      }
+      if (searchParams.get(`${key}_error`)) {
+        const err = searchParams.get(`${key}_error`);
+        const msg = err === "cancelled"      ? `${label} connection was cancelled.`
+          : err === "not_configured"         ? `${label} integration is not yet configured.`
+          : err === "no_xbox_account"        ? "No Xbox account is linked to that Microsoft account."
+          : err === "token_exchange_failed"  ? `${label} authentication failed. Please try again.`
+          : err === "profile_fetch_failed"   ? `Could not fetch your ${label} profile. Please try again.`
+          : `${label} connection failed. Please try again.`;
+        setNotice({ tone: "error", text: msg });
+        router.replace("/app/settings/platforms");
+        return;
+      }
     }
   }, [searchParams, router]);
 
@@ -269,6 +283,9 @@ function ActivePlatformCard({ provider, value, onChange, onConnect, onDisconnect
   const hint = IDENTITY_HINT[provider.id] || { placeholder: "Account identifier", help: "" };
   const isPsn = provider.id === "psn";
   const isDiscord = provider.id === "discord";
+  const isXbox = provider.id === "xbox";
+  const isRiot = provider.id === "riot";
+  const isTwitch = provider.id === "twitch";
 
   const dotColor = isConnected ? "#C8FF00" : isNeedsReauth ? "#fb923c" : "rgba(241,243,249,0.2)";
   const statusLabel = isConnected ? "Connected" : isNeedsReauth ? "Session expired" : "Not connected";
@@ -343,6 +360,12 @@ function ActivePlatformCard({ provider, value, onChange, onConnect, onDisconnect
           />
         ) : isDiscord ? (
           <DiscordOAuthButton wasConnected={wasConnected} accentColor={provider.accentColor} />
+        ) : isXbox ? (
+          <OAuthButton platform="xbox" label="Xbox" connectPath="/api/integrations/xbox/connect" wasConnected={wasConnected} accentColor={provider.accentColor} description="Sign in with your Microsoft account to link your Xbox Gamertag. No password stored." />
+        ) : isRiot ? (
+          <OAuthButton platform="riot" label="Riot" connectPath="/api/integrations/riot/connect" wasConnected={wasConnected} accentColor={provider.accentColor} description="Sign in with Riot Games to link your Riot ID. No password stored." />
+        ) : isTwitch ? (
+          <OAuthButton platform="twitch" label="Twitch" connectPath="/api/integrations/twitch/connect" wasConnected={wasConnected} accentColor={provider.accentColor} description="Authenticate with Twitch to link your streaming activity. No password stored." />
         ) : (
           <ConnectForm
             hint={hint}
@@ -724,6 +747,41 @@ function DiscordOAuthButton({ wasConnected, accentColor }) {
           <path d="M13.552 1.029A13.24 13.24 0 0 0 10.27.003a.05.05 0 0 0-.052.025c-.141.25-.297.577-.406.833a12.22 12.22 0 0 0-3.623 0A8.467 8.467 0 0 0 5.78.028a.051.051 0 0 0-.052-.025A13.205 13.205 0 0 0 2.447 1.03a.046.046 0 0 0-.021.018C.356 4.292-.213 7.454.066 10.577a.054.054 0 0 0 .021.037 13.33 13.33 0 0 0 3.995 2.02.053.053 0 0 0 .057-.019c.308-.42.582-.862.818-1.329a.05.05 0 0 0-.028-.07 8.775 8.775 0 0 1-1.248-.595.051.051 0 0 1-.005-.084c.084-.063.168-.128.248-.194a.05.05 0 0 1 .051-.007c2.619 1.196 5.454 1.196 8.041 0a.05.05 0 0 1 .053.007c.08.066.164.131.248.194a.051.051 0 0 1-.004.084 8.19 8.19 0 0 1-1.249.594.05.05 0 0 0-.027.071c.24.467.514.908.817 1.328a.052.052 0 0 0 .056.02 13.292 13.292 0 0 0 4.001-2.02.052.052 0 0 0 .021-.036c.334-3.451-.559-6.449-2.366-9.53a.041.041 0 0 0-.02-.019ZM5.347 8.67c-.781 0-1.424-.717-1.424-1.598 0-.88.631-1.598 1.424-1.598.799 0 1.435.724 1.424 1.598 0 .88-.631 1.598-1.424 1.598Zm5.263 0c-.781 0-1.424-.717-1.424-1.598 0-.88.631-1.598 1.424-1.598.799 0 1.435.724 1.424 1.598 0 .88-.625 1.598-1.424 1.598Z" fill="currentColor"/>
         </svg>
         Connect with Discord
+      </a>
+    </div>
+  );
+}
+
+function OAuthButton({ platform, label, connectPath, wasConnected, accentColor, description }) {
+  return (
+    <div>
+      {wasConnected && (
+        <div style={{ fontSize: 11, color: "rgba(241,243,249,0.35)", marginBottom: 10 }}>
+          Previously connected — reconnect below.
+        </div>
+      )}
+      <div style={{ fontSize: 11, color: "rgba(241,243,249,0.4)", lineHeight: 1.6, marginBottom: 14 }}>
+        {description}
+      </div>
+      <a
+        href={connectPath}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          fontSize: 12,
+          fontWeight: 700,
+          padding: "9px 18px",
+          borderRadius: 8,
+          border: "none",
+          background: accentColor,
+          color: "#07080F",
+          cursor: "pointer",
+          fontFamily: "'Outfit', sans-serif",
+          textDecoration: "none",
+        }}
+      >
+        Connect with {label}
       </a>
     </div>
   );

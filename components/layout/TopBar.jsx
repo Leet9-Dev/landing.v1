@@ -180,7 +180,7 @@ export function TopBar({ user }) {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     fetch("/api/notifications")
