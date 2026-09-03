@@ -42,7 +42,7 @@ export async function PUT(request) {
   const updated = [];
   for (const [key, value] of Object.entries(body)) {
     if (typeof key !== "string" || key.length === 0) continue;
-    await setConfig(key, value, session.user.id);
+    await setConfig(key, value, session?.user?.id ?? null);
     updated.push(key);
   }
 

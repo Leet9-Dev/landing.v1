@@ -23,15 +23,15 @@ export async function GET() {
     }),
     prisma.gameReview.findMany({
       where: { userId },
-      select: { canonicalGameId: true, rating: true, body: true, createdAt: true },
+      select: { gameId: true, rating: true, content: true, createdAt: true },
     }),
     prisma.userBadge.findMany({
       where: { userId },
-      select: { badgeId: true, awardedAt: true },
+      select: { brandedName: true, tier: true, unlockedAt: true },
     }),
     prisma.pointsLedger.findMany({
       where: { userId },
-      select: { points: true, reason: true, awardedAt: true },
+      select: { points: true, note: true, createdAt: true },
     }),
   ]);
 
