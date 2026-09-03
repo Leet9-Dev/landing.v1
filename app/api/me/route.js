@@ -72,7 +72,7 @@ export async function DELETE(request) {
     prisma.userBadge.deleteMany({ where: { userId } }),
     prisma.userStreak.deleteMany({ where: { userId } }),
     prisma.pointsLedger.deleteMany({ where: { userId } }),
-    prisma.xpLedger.deleteMany({ where: { userId } }).catch(() => {}),
+    prisma.xpLedger.deleteMany({ where: { userId } }),
     prisma.userRuleState.deleteMany({ where: { userId } }),
     prisma.gamificationEvent.deleteMany({ where: { userId } }),
     prisma.userBrandPoints.deleteMany({ where: { userId } }),

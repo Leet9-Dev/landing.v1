@@ -56,12 +56,12 @@ export async function POST() {
     return apiError("TOO_MANY_INVITES", "You have too many unused invite codes. Share existing ones first.", 429);
   }
 
-  let code;
+  let code = null;
   let attempts = 0;
   while (attempts < 5) {
-    code = generateCode();
-    const existing = await prisma.inviteCode.findUnique({ where: { code } });
-    if (!existing) break;
+    const candidate = generateCode();
+    const existing = await prisma.inviteCode.findUnique({ where: { code: candidate } });
+    if (!existing) { code = candidate; break; }
     attempts++;
   }
   if (!code) return apiError("CODE_GENERATION_FAILED", "Could not generate a unique code. Try again.", 500);
