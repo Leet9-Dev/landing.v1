@@ -52,6 +52,10 @@ export async function GET(request) {
     scored = scored.filter((r) => friendIds.has(r.userId));
   }
 
+  // Fetch user display info for top 100.
+  const top100 = scored.slice(0, 100);
+  const userIds = top100.map((r) => r.userId);
+
   // Fetch game stats for the users we'll display (top 100 + current user if outside top 100).
   const displayUserIds = [...new Set([...top100.map((r) => r.userId), userId])];
   const allGameRows = await prisma.userGame.findMany({
@@ -68,10 +72,6 @@ export async function GET(request) {
     gamesByUser[row.userId].gamesCount += 1;
     if (row.sourceProvider) gamesByUser[row.userId].platforms.add(row.sourceProvider);
   }
-
-  // Fetch user display info for top 100.
-  const top100 = scored.slice(0, 100);
-  const userIds = top100.map((r) => r.userId);
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
     select: { id: true, name: true, image: true },
