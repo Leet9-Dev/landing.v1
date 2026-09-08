@@ -31,7 +31,18 @@ export async function POST() {
     return apiError("PLATFORM_ACCOUNT_NOT_CONNECTED", "Connect your Epic Games account before syncing.", 400);
   }
 
-  const username = platformAccount.externalUserId;
+  const meta = platformAccount.metadata ?? {};
+  const accessToken = meta.access_token ?? null;
+  const accountId = meta.accountId ?? null;
+
+  // Token expiry check — direct user to reconnect.
+  if (accessToken && meta.expires_at && Date.now() > meta.expires_at) {
+    await prisma.platformAccount.update({
+      where: { id: platformAccount.id },
+      data: { status: "needs_reauth", syncStatus: "failed" },
+    });
+    return apiError("EPIC_TOKEN_EXPIRED", "Your Epic Games session has expired. Reconnect your account to continue syncing.", 401);
+  }
 
   const syncRun = await prisma.platformSyncRun.create({
     data: { platformAccountId: platformAccount.id, provider: "epic", mode: "execute", status: "syncing", startedAt: new Date() },
@@ -40,7 +51,7 @@ export async function POST() {
   await prisma.platformAccount.update({ where: { id: platformAccount.id }, data: { syncStatus: "syncing" } });
 
   try {
-    const rawGames = await fetchEpicGames(username ?? "fixture");
+    const rawGames = await fetchEpicGames({ accountId, accessToken });
     const normalized = normalizeEpicGames(rawGames);
     const mockResolved = normalized.map((g) => ({ ...g, canonicalGameId: matchDetectedGameToCanonical("epic", g.externalId, MOCK_EXTERNAL_SOURCES) }));
     const unmatchedForIgdb = mockResolved.filter((g) => !g.canonicalGameId).map((g) => g.externalId);

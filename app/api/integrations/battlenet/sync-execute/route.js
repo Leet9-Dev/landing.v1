@@ -31,6 +31,19 @@ export async function POST() {
   }
 
   const battletag = platformAccount.externalUserId;
+  const meta = platformAccount.metadata ?? {};
+  const accessToken = meta.access_token ?? null;
+  const accountId = meta.accountId ?? null;
+  const region = meta.region ?? null;
+
+  // Token expiry check — direct user to reconnect.
+  if (accessToken && meta.expires_at && Date.now() > meta.expires_at) {
+    await prisma.platformAccount.update({
+      where: { id: platformAccount.id },
+      data: { status: "needs_reauth", syncStatus: "failed" },
+    });
+    return apiError("BATTLENET_TOKEN_EXPIRED", "Your Battle.net session has expired. Reconnect your account to continue syncing.", 401);
+  }
 
   const syncRun = await prisma.platformSyncRun.create({
     data: { platformAccountId: platformAccount.id, provider: "battlenet", mode: "execute", status: "syncing", startedAt: new Date() },
@@ -39,7 +52,7 @@ export async function POST() {
   await prisma.platformAccount.update({ where: { id: platformAccount.id }, data: { syncStatus: "syncing" } });
 
   try {
-    const rawGames = await fetchBattlenetGames(battletag ?? "fixture");
+    const rawGames = await fetchBattlenetGames({ battletag, accountId, accessToken, region });
     const normalized = normalizeBattlenetGames(rawGames);
 
     const resolved = normalized.map((g) => ({
