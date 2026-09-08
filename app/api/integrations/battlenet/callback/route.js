@@ -54,7 +54,7 @@ export async function GET(request) {
   }
 
   // 1. Exchange authorization code for tokens.
-  let accessToken, sub;
+  let accessToken, sub, expiresAt;
   try {
     const credentials = Buffer.from(`${BATTLENET_CLIENT_ID}:${BATTLENET_CLIENT_SECRET}`).toString("base64");
     const tokenRes = await fetch("https://oauth.battle.net/token", {
@@ -76,6 +76,8 @@ export async function GET(request) {
     const tokenData = await tokenRes.json();
     accessToken = tokenData.access_token;
     sub = tokenData.sub ?? null;
+    const expiresIn = tokenData.expires_in ?? 86400;
+    expiresAt = Date.now() + expiresIn * 1000;
   } catch {
     return redirect(`${returnBase}?battlenet_error=network_error`, true);
   }
@@ -124,8 +126,15 @@ export async function GET(request) {
         status: "connected",
         syncStatus: "idle",
         connectedAt: now,
-        capabilities: { diablo: true, overwatch: true, hearthstone: true },
-        metadata: { battletag: battletag ?? null, accountId: accountId ? String(accountId) : null, connectedVia: "oauth" },
+        capabilities: { diablo: true, overwatch: true, wow: true, starcraft: true },
+        metadata: {
+          battletag: battletag ?? null,
+          accountId: accountId ? String(accountId) : null,
+          access_token: accessToken,
+          expires_at: expiresAt,
+          region: process.env.BATTLENET_REGION || "eu",
+          connectedVia: "oauth",
+        },
       },
       update: {
         externalUserId,
@@ -133,7 +142,14 @@ export async function GET(request) {
         displayName,
         status: "connected",
         connectedAt: now,
-        metadata: { battletag: battletag ?? null, accountId: accountId ? String(accountId) : null, connectedVia: "oauth" },
+        metadata: {
+          battletag: battletag ?? null,
+          accountId: accountId ? String(accountId) : null,
+          access_token: accessToken,
+          expires_at: expiresAt,
+          region: process.env.BATTLENET_REGION || "eu",
+          connectedVia: "oauth",
+        },
       },
     });
   } catch (dbErr) {

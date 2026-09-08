@@ -199,6 +199,9 @@ export function PlatformHub() {
         if (json.error?.code === "PSN_SESSION_EXPIRED") {
           setNotice({ tone: "error", text: "Your PSN session has expired. Reconnect with a fresh NPSSO token." });
           await load();
+        } else if (json.error?.code === "BATTLENET_TOKEN_EXPIRED") {
+          setNotice({ tone: "error", text: "Your Battle.net session has expired. Click Connect again to reauthorize." });
+          await load();
         } else {
           setNotice({ tone: "error", text: json.error?.message || "Sync failed. Try again." });
         }

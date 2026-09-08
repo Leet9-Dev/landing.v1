@@ -5,7 +5,7 @@ import crypto from "crypto";
 const BATTLENET_CLIENT_ID = process.env.BATTLENET_CLIENT_ID;
 const BASE_URL = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || "https://leet9.com";
 const CALLBACK_URL = `${BASE_URL}/api/integrations/battlenet/callback`;
-const SCOPES = "openid";
+const SCOPES = "openid wow.profile sc2.profile";
 
 const ALLOWED_RETURN_PATHS = ["/app/settings/platforms", "/app/profile"];
 
