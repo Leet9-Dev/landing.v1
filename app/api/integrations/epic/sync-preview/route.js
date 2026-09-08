@@ -1,7 +1,7 @@
 import { requireSession } from "@/lib/api/auth";
 import { apiOk, apiError } from "@/lib/api/response";
 import { prisma } from "@/lib/prisma";
-import { fetchEpicGames, hasEpicCredentials } from "@/lib/integrations/epic/epicClient";
+import { fetchEpicGames } from "@/lib/integrations/epic/epicClient";
 import { planEpicSync } from "@/lib/integrations/epic/epicSyncPlanner";
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
 
@@ -10,22 +10,23 @@ export async function GET() {
   if (unauthenticated) return unauthenticated;
 
   const userId = session.user.id;
-  let username = null;
+  let accountId = null;
+  let accessToken = null;
   let live = false;
 
-  if (hasEpicCredentials()) {
-    const account = await prisma.platformAccount.findUnique({
-      where: { userId_provider: { userId, provider: "epic" } },
-    });
-    if (account?.status === "connected" && account.externalUserId) {
-      username = account.externalUserId;
-      live = true;
-    }
+  const account = await prisma.platformAccount.findUnique({
+    where: { userId_provider: { userId, provider: "epic" } },
+  });
+  if (account?.status === "connected") {
+    const meta = account.metadata ?? {};
+    accessToken = meta.access_token ?? null;
+    accountId = meta.accountId ?? null;
+    live = Boolean(accessToken);
   }
 
   let rawEpicGames;
   try {
-    rawEpicGames = await fetchEpicGames(username ?? "fixture");
+    rawEpicGames = await fetchEpicGames({ accountId, accessToken });
   } catch {
     return apiError("EPIC_API_ERROR", "Could not fetch Epic Games library. Try again shortly.", 502);
   }
@@ -42,7 +43,7 @@ export async function GET() {
 
   const dryRunNote = live
     ? "No data was persisted. Real Epic account used."
-    : "No data was persisted. No real Epic API was called (no credentials or no connected account).";
+    : "No data was persisted. No Epic access token available — showing fixture data.";
 
   return apiOk({ ...plan, dryRunNote }, { live, provider: "epic" });
 }
