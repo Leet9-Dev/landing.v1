@@ -97,10 +97,11 @@ export function PlatformHub() {
 
   useEffect(() => {
     const oauthPlatforms = [
-      { key: "discord", label: "Discord" },
-      { key: "xbox",    label: "Xbox" },
-      { key: "riot",    label: "Riot" },
-      { key: "twitch",  label: "Twitch" },
+      { key: "discord",  label: "Discord" },
+      { key: "xbox",     label: "Xbox" },
+      { key: "riot",     label: "Riot" },
+      { key: "twitch",   label: "Twitch" },
+      { key: "battlenet", label: "Battle.net" },
     ];
     for (const { key, label } of oauthPlatforms) {
       if (searchParams.get(`${key}_connected`)) {
@@ -286,6 +287,7 @@ function ActivePlatformCard({ provider, value, onChange, onConnect, onDisconnect
   const isXbox = provider.id === "xbox";
   const isRiot = provider.id === "riot";
   const isTwitch = provider.id === "twitch";
+  const isBattlenet = provider.id === "battlenet";
 
   const dotColor = isConnected ? "#C8FF00" : isNeedsReauth ? "#fb923c" : "rgba(241,243,249,0.2)";
   const statusLabel = isConnected ? "Connected" : isNeedsReauth ? "Session expired" : "Not connected";
@@ -366,6 +368,8 @@ function ActivePlatformCard({ provider, value, onChange, onConnect, onDisconnect
           <OAuthButton platform="riot" label="Riot" connectPath="/api/integrations/riot/connect" wasConnected={wasConnected} accentColor={provider.accentColor} description="Sign in with Riot Games to link your Riot ID. No password stored." />
         ) : isTwitch ? (
           <OAuthButton platform="twitch" label="Twitch" connectPath="/api/integrations/twitch/connect" wasConnected={wasConnected} accentColor={provider.accentColor} description="Authenticate with Twitch to link your streaming activity. No password stored." />
+        ) : isBattlenet ? (
+          <OAuthButton platform="battlenet" label="Battle.net" connectPath="/api/integrations/battlenet/connect" wasConnected={wasConnected} accentColor={provider.accentColor} description="Sign in with Battle.net to link Diablo IV, Overwatch 2 and other Blizzard titles. No password stored." />
         ) : (
           <ConnectForm
             hint={hint}
