@@ -1,6 +1,10 @@
 import { requireSession } from "@/lib/api/auth";
 import { prisma } from "@/lib/prisma";
-import { emitGamingAccountConnectedEvent } from "@/lib/gamification/engine";
+import { emitGamingAccountConnectedEvent, emitGameAddedEvent } from "@/lib/gamification/engine";
+import { fetchBattlenetGames } from "@/lib/integrations/battlenet/battlenetClient";
+import { normalizeBattlenetGames } from "@/lib/integrations/battlenet/battlenetNormalizer";
+import { matchDetectedGameToCanonical } from "@/lib/platforms/canonicalMatching";
+import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
 
 const BATTLENET_CLIENT_ID = process.env.BATTLENET_CLIENT_ID;
 const BATTLENET_CLIENT_SECRET = process.env.BATTLENET_CLIENT_SECRET;
@@ -104,18 +108,27 @@ export async function GET(request) {
 
   const externalUserId = battletag ?? String(accountId);
   const displayName = battletag ?? String(accountId);
+  const region = process.env.BATTLENET_REGION || "eu";
 
   // 3. Upsert PlatformAccount.
   const userId = session.user.id;
   const now = new Date();
+  const meta = {
+    battletag: battletag ?? null,
+    accountId: accountId ? String(accountId) : null,
+    access_token: accessToken,
+    expires_at: expiresAt,
+    region,
+    connectedVia: "oauth",
+  };
 
-  let existing;
+  let existing, platformAccount;
   try {
     existing = await prisma.platformAccount.findUnique({
       where: { userId_provider: { userId, provider: "battlenet" } },
     });
 
-    await prisma.platformAccount.upsert({
+    platformAccount = await prisma.platformAccount.upsert({
       where: { userId_provider: { userId, provider: "battlenet" } },
       create: {
         userId,
@@ -124,32 +137,19 @@ export async function GET(request) {
         username: externalUserId,
         displayName,
         status: "connected",
-        syncStatus: "idle",
+        syncStatus: "syncing",
         connectedAt: now,
         capabilities: { diablo: true, overwatch: true, wow: true, starcraft: true },
-        metadata: {
-          battletag: battletag ?? null,
-          accountId: accountId ? String(accountId) : null,
-          access_token: accessToken,
-          expires_at: expiresAt,
-          region: process.env.BATTLENET_REGION || "eu",
-          connectedVia: "oauth",
-        },
+        metadata: meta,
       },
       update: {
         externalUserId,
         username: externalUserId,
         displayName,
         status: "connected",
+        syncStatus: "syncing",
         connectedAt: now,
-        metadata: {
-          battletag: battletag ?? null,
-          accountId: accountId ? String(accountId) : null,
-          access_token: accessToken,
-          expires_at: expiresAt,
-          region: process.env.BATTLENET_REGION || "eu",
-          connectedVia: "oauth",
-        },
+        metadata: meta,
       },
     });
   } catch (dbErr) {
@@ -162,6 +162,67 @@ export async function GET(request) {
       where: { userId, status: "connected" },
     }).catch(() => 1);
     emitGamingAccountConnectedEvent(prisma, userId, "battlenet", totalAccounts).catch(() => {});
+  }
+
+  // 4. Auto-sync: import games immediately while token is fresh.
+  //    Runs before redirect so games land in the DB on first connect.
+  try {
+    const rawGames = await fetchBattlenetGames({
+      battletag: externalUserId,
+      accountId: accountId ? String(accountId) : null,
+      accessToken,
+      region,
+    });
+    const normalized = normalizeBattlenetGames(rawGames);
+    const newGameIds = [];
+
+    for (const g of normalized) {
+      const canonicalGameId = matchDetectedGameToCanonical("battlenet", g.externalId, MOCK_EXTERNAL_SOURCES);
+      if (!canonicalGameId) continue;
+      const existingGame = await prisma.userGame.findUnique({
+        where: { userId_canonicalGameId: { userId, canonicalGameId } },
+        select: { id: true },
+      });
+      await prisma.userGame.upsert({
+        where: { userId_canonicalGameId: { userId, canonicalGameId } },
+        create: {
+          userId,
+          canonicalGameId,
+          sourceProvider: "battlenet",
+          sourcePlatformAccountId: platformAccount.id,
+          firstDetectedAt: now,
+          lastDetectedAt: now,
+          playtimeHours: null,
+          sourceConfidence: "high",
+        },
+        update: {
+          lastDetectedAt: now,
+          sourceProvider: "battlenet",
+          sourcePlatformAccountId: platformAccount.id,
+          sourceConfidence: "high",
+        },
+      });
+      if (!existingGame) newGameIds.push(canonicalGameId);
+    }
+
+    if (newGameIds.length > 0) {
+      const totalGamesRow = await prisma.userGame.count({ where: { userId } });
+      for (let i = 0; i < newGameIds.length; i++) {
+        const runningTotal = totalGamesRow - newGameIds.length + i + 1;
+        emitGameAddedEvent(prisma, userId, newGameIds[i], runningTotal).catch(() => {});
+      }
+    }
+
+    await prisma.platformAccount.update({
+      where: { id: platformAccount.id },
+      data: { syncStatus: "success", lastSyncAt: now },
+    });
+  } catch {
+    // Non-fatal — account is connected, sync can be retried manually.
+    await prisma.platformAccount.update({
+      where: { id: platformAccount.id },
+      data: { syncStatus: "failed" },
+    }).catch(() => {});
   }
 
   return redirect(`${returnBase}?battlenet_connected=1`, true);
