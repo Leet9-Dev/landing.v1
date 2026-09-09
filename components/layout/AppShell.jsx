@@ -4,6 +4,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { NpsModal } from "@/components/nps/NpsModal";
+import { MissingEmailBanner } from "@/components/MissingEmailBanner";
 
 export function AppShell({ user, children }) {
   return (
@@ -39,6 +40,7 @@ export function AppShell({ user, children }) {
         minHeight: "100vh",
       }}>
         <TopBar user={user} />
+        <MissingEmailBanner />
 
         <main style={{ flex: 1 }}>
           {children}
