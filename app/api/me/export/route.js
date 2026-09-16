@@ -34,7 +34,18 @@ export async function GET() {
     }),
     prisma.pointsLedger.findMany({
       where: { userId },
-      select: { points: true, note: true, createdAt: true },
+      select: { points: true, note: true, awardedAt: true },
+    }),
+    // Discord NextAuth Account row (sign-in credential).
+    // access_token and refresh_token are omitted — they are API credentials, not personal data.
+    prisma.account.findFirst({
+      where: { userId, provider: "discord" },
+      select: { providerAccountId: true, discordVerified: true, scope: true },
+    }),
+    // Discord PlatformAccount row (gaming identity used by Leet9 Connect).
+    prisma.platformAccount.findFirst({
+      where: { userId, provider: "discord" },
+      select: { externalUserId: true, username: true, displayName: true, status: true, connectedAt: true },
     }),
     // Discord NextAuth Account row (sign-in credential).
     // access_token and refresh_token are omitted — they are API credentials, not personal data.

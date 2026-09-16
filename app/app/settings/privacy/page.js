@@ -5,13 +5,15 @@ import { SettingsNav } from "@/components/settings/SettingsNav";
 
 export default function PrivacySettingsPage() {
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
-  const [error, setError] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
 
   async function handleExport() {
     setExporting(true);
+    setExportError(null);
     try {
       const res = await fetch("/api/me/export");
       if (!res.ok) throw new Error("Export failed");
@@ -25,7 +27,7 @@ export default function PrivacySettingsPage() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      setError("Export failed. Please try again.");
+      setExportError("Export failed. Please try again.");
     } finally {
       setExporting(false);
     }
@@ -45,7 +47,7 @@ export default function PrivacySettingsPage() {
       if (!json.ok) throw new Error(json.error || "Deletion failed");
       await signOut({ callbackUrl: "/" });
     } catch (e) {
-      setError(e.message || "Deletion failed. Please try again.");
+      setDeleteError(e.message || "Deletion failed. Please try again.");
       setDeleting(false);
     }
   }
@@ -103,6 +105,7 @@ export default function PrivacySettingsPage() {
           <button style={s.btn("primary")} onClick={handleExport} disabled={exporting}>
             {exporting ? "Preparing export…" : "Download my data"}
           </button>
+          {exportError && <div style={s.error}>{exportError}</div>}
         </div>
       </div>
 
@@ -146,7 +149,7 @@ export default function PrivacySettingsPage() {
               </div>
             </div>
           )}
-          {error && <div style={s.error}>{error}</div>}
+          {deleteError && <div style={s.error}>{deleteError}</div>}
         </div>
       </div>
 

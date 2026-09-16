@@ -29,7 +29,7 @@ export async function GET() {
       where: { userId, provider: "discord" },
       select: { displayName: true, username: true },
     }).catch(() => null);
-    discordDisplayName = pa?.displayName ?? pa?.username ?? discordAccount.providerAccountId;
+    discordDisplayName = pa?.displayName ?? pa?.username ?? user?.name ?? discordAccount.providerAccountId;
   }
 
   return apiOk({
