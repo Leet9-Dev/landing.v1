@@ -21,6 +21,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
+  discordVerified   Boolean?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
