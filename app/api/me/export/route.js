@@ -7,10 +7,13 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  const [user, userGames, platformAccounts, follows, reviews, badges, pointsLedger] = await Promise.all([
+  const [user, userGames, platformAccounts, follows, reviews, badges, pointsLedger, discordAuthAccount, discordPlatformAccount] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, email: true, image: true, createdAt: true },
+      select: {
+        id: true, name: true, email: true, image: true, createdAt: true,
+        leet9Confirmed: true, pendingEmail: true, leet9ConfirmSentCount: true,
+      },
     }),
     prisma.userGame.findMany({ where: { userId } }),
     prisma.platformAccount.findMany({
@@ -33,11 +36,41 @@ export async function GET() {
       where: { userId },
       select: { points: true, note: true, createdAt: true },
     }),
+    // Discord NextAuth Account row (sign-in credential).
+    // access_token and refresh_token are omitted — they are API credentials, not personal data.
+    prisma.account.findFirst({
+      where: { userId, provider: "discord" },
+      select: { providerAccountId: true, discordVerified: true, scope: true },
+    }),
+    // Discord PlatformAccount row (gaming identity used by Leet9 Connect).
+    prisma.platformAccount.findFirst({
+      where: { userId, provider: "discord" },
+      select: { externalUserId: true, username: true, displayName: true, status: true, connectedAt: true },
+    }),
   ]);
+
+  const discordData = discordAuthAccount
+    ? {
+        discordId: discordAuthAccount.providerAccountId,
+        discordVerified: discordAuthAccount.discordVerified ?? false,
+        scope: discordAuthAccount.scope ?? null,
+        discordAccessTokenStored: true,
+        note: "Revoked and deleted when you delete your account.",
+        gaming: discordPlatformAccount
+          ? {
+              username: discordPlatformAccount.username,
+              displayName: discordPlatformAccount.displayName,
+              status: discordPlatformAccount.status,
+              connectedAt: discordPlatformAccount.connectedAt,
+            }
+          : null,
+      }
+    : null;
 
   const payload = {
     exportedAt: new Date().toISOString(),
     profile: user,
+    discord: discordData,
     games: userGames,
     platforms: platformAccounts,
     follows,

@@ -3,6 +3,7 @@ import { apiOk, apiError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth";
 import { PLATFORM_ACCOUNT_STATUS } from "@/lib/platforms/platforms";
 import { computeLevel, computeRankInfo } from "@/lib/scoring/l9Points";
+import { revokeDiscordToken } from "@/lib/discord";
 
 const GAME_PLATFORMS = ["steam", "psn", "xbox", "epic"];
 
@@ -64,7 +65,29 @@ export async function DELETE(request) {
     return apiError("CONFIRM_REQUIRED", "Pass { confirm: 'DELETE' } to confirm account deletion.", 400);
   }
 
+  // Fetch pre-deletion data needed for cleanup that can't run inside the transaction.
+  const [discordAccount, userRecord] = await Promise.all([
+    prisma.account.findFirst({
+      where: { userId, provider: "discord" },
+      select: { access_token: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, pendingEmail: true },
+    }),
+  ]);
+
+  // VerificationToken has no FK to User, so orphan leet9-confirm tokens must be
+  // deleted explicitly. Collect the identifiers for both confirmed and pending addresses.
+  const leet9ConfirmIdentifiers = [
+    userRecord?.email       ? `leet9-confirm:${userRecord.email}`       : null,
+    userRecord?.pendingEmail ? `leet9-confirm:${userRecord.pendingEmail}` : null,
+  ].filter(Boolean);
+
   // Delete in dependency order to avoid FK violations.
+  // Token revocation happens AFTER the transaction so a failed transaction
+  // never leaves the user unable to delete (a still-valid token at Discord
+  // expires naturally within 7 days).
   await prisma.$transaction([
     prisma.gameListItem.deleteMany({ where: { list: { userId } } }),
     prisma.gameList.deleteMany({ where: { userId } }),
@@ -88,8 +111,19 @@ export async function DELETE(request) {
     prisma.userGame.deleteMany({ where: { userId } }),
     prisma.session.deleteMany({ where: { userId } }),
     prisma.account.deleteMany({ where: { userId } }),
+    ...(leet9ConfirmIdentifiers.length > 0
+      ? [prisma.verificationToken.deleteMany({ where: { identifier: { in: leet9ConfirmIdentifiers } } })]
+      : []),
     prisma.user.delete({ where: { id: userId } }),
   ]);
+
+  // Revoke the Discord access token now that the DB row is gone.
+  // Non-fatal: log failures, never surface them to the user.
+  if (discordAccount?.access_token) {
+    revokeDiscordToken(discordAccount.access_token).catch(err =>
+      console.error("[me DELETE] Discord token revocation failed:", err.message)
+    );
+  }
 
   return apiOk({ deleted: true });
 }
