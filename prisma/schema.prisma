@@ -75,6 +75,11 @@ model User {
   reviews           GameReview[]
   gameLists         GameList[]
 
+  // Email state model (Story 5 & 6)
+  leet9Confirmed        Boolean  @default(false)
+  pendingEmail          String?
+  leet9ConfirmSentCount Int      @default(0)
+
   // Billing
   stripeCustomerId    String?              @unique
   comparisonUnlocks   ComparisonUnlock[]

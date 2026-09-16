@@ -120,6 +120,160 @@ function MethodRow({ icon, label, sublabel, connected, onConnect, onDisconnect, 
   );
 }
 
+// Banner shown when the user has not yet confirmed their email with Leet9.
+// Two modes:
+//   "confirm"  — email is present (User.email or pendingEmail); nudges user to check inbox.
+//   "add"      — no email at all; shows an input form to add one.
+function EmailConfirmBanner({ accounts, onDismiss }) {
+  const emailToConfirm = accounts.pendingEmail ?? accounts.email;
+  const mode = emailToConfirm ? "confirm" : "add";
+
+  const [emailInput, setEmailInput] = useState("");
+  const [addState, setAddState] = useState("idle"); // "idle" | "submitting" | "sent"
+  const [resendState, setResendState] = useState("idle"); // "idle" | "sending" | "sent"
+  const [addError, setAddError] = useState(null);
+
+  async function handleAdd(e) {
+    e.preventDefault();
+    setAddError(null);
+    setAddState("submitting");
+    try {
+      const res = await fetch("/api/user/email", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailInput }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setAddError(body?.error?.message ?? "Could not save email. Please try again.");
+        setAddState("idle");
+      } else {
+        setAddState("sent");
+      }
+    } catch {
+      setAddError("Network error. Please try again.");
+      setAddState("idle");
+    }
+  }
+
+  async function handleResend() {
+    setResendState("sending");
+    try {
+      await fetch("/api/auth/send-confirmation", { method: "POST" });
+    } catch {
+      // Non-fatal
+    }
+    setResendState("sent");
+  }
+
+  return (
+    <div style={{
+      padding: "16px 20px", borderRadius: 12,
+      background: "rgba(200,255,0,0.04)",
+      border: "1px solid rgba(200,255,0,0.12)",
+      display: "flex", gap: 12, alignItems: "flex-start",
+    }}>
+      <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>✉</span>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {mode === "confirm" && (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 4 }}>
+              Confirm your email address
+            </div>
+            <div style={{ fontSize: 12, color: T.textSec, lineHeight: 1.6, marginBottom: 12 }}>
+              We sent a confirmation link to <strong style={{ color: T.text }}>{emailToConfirm}</strong>.
+              Click it to enable account recovery and security notifications.
+            </div>
+            <button
+              onClick={handleResend}
+              disabled={resendState !== "idle"}
+              style={{
+                padding: "5px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
+                fontFamily: "'Outfit', sans-serif",
+                background: "rgba(255,255,255,0.06)", border: `1px solid ${T.borderHi}`,
+                color: resendState === "sent" ? T.green : T.text,
+                cursor: resendState !== "idle" ? "default" : "pointer",
+                transition: "all 0.15s",
+              }}
+            >
+              {resendState === "sending" ? "Sending…" : resendState === "sent" ? "Sent!" : "Resend"}
+            </button>
+          </>
+        )}
+
+        {mode === "add" && addState !== "sent" && (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 4 }}>
+              Add an email address
+            </div>
+            <div style={{ fontSize: 12, color: T.textSec, lineHeight: 1.6, marginBottom: 12 }}>
+              Add an email to enable account recovery and security notifications.
+            </div>
+            <form onSubmit={handleAdd} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <input
+                type="email"
+                value={emailInput}
+                onChange={e => setEmailInput(e.target.value)}
+                placeholder="you@example.com"
+                required
+                style={{
+                  flex: "1 1 180px", padding: "6px 12px", borderRadius: 7,
+                  fontSize: 13, fontFamily: "'Outfit', sans-serif",
+                  background: "rgba(255,255,255,0.05)", border: `1px solid ${T.borderHi}`,
+                  color: T.text, outline: "none",
+                }}
+              />
+              <button
+                type="submit"
+                disabled={addState === "submitting"}
+                style={{
+                  padding: "6px 14px", borderRadius: 7, fontSize: 12, fontWeight: 600,
+                  fontFamily: "'Outfit', sans-serif",
+                  background: "rgba(255,255,255,0.06)", border: `1px solid ${T.borderHi}`,
+                  color: T.text,
+                  cursor: addState === "submitting" ? "wait" : "pointer",
+                  opacity: addState === "submitting" ? 0.5 : 1,
+                  transition: "all 0.15s",
+                }}
+              >
+                {addState === "submitting" ? "Saving…" : "Send confirmation"}
+              </button>
+            </form>
+            {addError && (
+              <div style={{ marginTop: 8, fontSize: 12, color: "#FFB3B3" }}>{addError}</div>
+            )}
+          </>
+        )}
+
+        {mode === "add" && addState === "sent" && (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.green, marginBottom: 4 }}>
+              Check your inbox
+            </div>
+            <div style={{ fontSize: 12, color: T.textSec, lineHeight: 1.6 }}>
+              We sent a confirmation link to <strong style={{ color: T.text }}>{emailInput}</strong>.
+              Click it to confirm your address.
+            </div>
+          </>
+        )}
+      </div>
+
+      <button
+        onClick={onDismiss}
+        aria-label="Dismiss"
+        style={{
+          flexShrink: 0, background: "none", border: "none",
+          color: T.textMut, fontSize: 16, cursor: "pointer",
+          padding: "2px 4px", lineHeight: 1,
+        }}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 export function AccountSettings() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
@@ -127,6 +281,8 @@ export function AccountSettings() {
   const highlightDiscord = searchParams.get("discord_connect") === "1";
   const justLinked = searchParams.get("discord_linked") === "1";
   const linkError = searchParams.get("discord_link_error");
+  const emailConfirmed = searchParams.get("email_confirmed") === "1";
+  const confirmError = searchParams.get("confirm_error");
 
   const [accounts, setAccounts] = useState(null);
   const [loadError, setLoadError] = useState(null);
@@ -134,9 +290,34 @@ export function AccountSettings() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [banner, setBanner] = useState(null);
 
+  // Dismissal state for the email confirmation nudge (persisted in localStorage).
+  const [confirmNudgeDismissed, setConfirmNudgeDismissed] = useState(() => {
+    try { return localStorage.getItem("l9_confirm_nudge_dismissed") === "1"; }
+    catch { return false; }
+  });
+
+  function dismissConfirmNudge() {
+    setConfirmNudgeDismissed(true);
+    try { localStorage.setItem("l9_confirm_nudge_dismissed", "1"); } catch {}
+  }
+
   useEffect(() => {
-    if (justLinked) setBanner({ type: "success", msg: "Discord connected successfully." });
-    else if (linkError) {
+    if (emailConfirmed) {
+      setBanner({ type: "success", msg: "Email confirmed — your address is now verified." });
+      // Clear dismissed flag: the user has confirmed, banner won't show anyway,
+      // but clean up localStorage to avoid stale state.
+      try { localStorage.removeItem("l9_confirm_nudge_dismissed"); } catch {}
+    } else if (confirmError) {
+      const messages = {
+        expired: "That confirmation link has expired. Use the Resend button below to get a new one.",
+        email_taken: "That email address is already linked to another account. Please try a different address.",
+        not_found: "Could not find an account for that confirmation link. Please try again.",
+        invalid: "Invalid confirmation link.",
+      };
+      setBanner({ type: "error", msg: messages[confirmError] ?? "Confirmation failed. Please try again." });
+    } else if (justLinked) {
+      setBanner({ type: "success", msg: "Discord connected successfully." });
+    } else if (linkError) {
       const messages = {
         already_linked_to_another_account: "This Discord account is already linked to another Leet9 user.",
         cancelled: "Discord connection was cancelled.",
@@ -148,7 +329,7 @@ export function AccountSettings() {
       };
       setBanner({ type: "error", msg: messages[linkError] ?? "Connection failed. Please try again." });
     }
-  }, [justLinked, linkError]);
+  }, [justLinked, linkError, emailConfirmed, confirmError]);
 
   useEffect(() => {
     fetch("/api/auth/discord/link/status")
@@ -190,6 +371,10 @@ export function AccountSettings() {
     ? !accounts.google && !accounts.hasPassword && !accounts.hasEmail && !!accounts.discord
     : false;
 
+  // Show email confirmation nudge when: loaded, not confirmed, not dismissed by user.
+  const showConfirmNudge = accounts && !accounts.leet9Confirmed && !confirmNudgeDismissed;
+
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {banner && (
@@ -209,6 +394,14 @@ export function AccountSettings() {
           {loadError}
         </div>
       )}
+
+      {showConfirmNudge && (
+        <EmailConfirmBanner
+          accounts={accounts}
+          onDismiss={dismissConfirmNudge}
+        />
+      )}
+
 
       <div style={{ fontSize: 11, fontWeight: 700, color: T.textMut, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4, fontFamily: "'JetBrains Mono', monospace" }}>
         Sign-in methods

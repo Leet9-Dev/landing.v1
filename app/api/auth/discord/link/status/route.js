@@ -15,7 +15,7 @@ export async function GET() {
     }),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { email: true, password: true, name: true },
+      select: { email: true, password: true, name: true, leet9Confirmed: true, pendingEmail: true },
     }),
   ]);
 
@@ -37,5 +37,8 @@ export async function GET() {
     discord: discordDisplayName,
     hasPassword: Boolean(user?.password),
     hasEmail: Boolean(user?.email),
+    leet9Confirmed: Boolean(user?.leet9Confirmed),
+    email: user?.email ?? null,
+    pendingEmail: user?.pendingEmail ?? null,
   });
 }
