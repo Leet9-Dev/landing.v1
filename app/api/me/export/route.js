@@ -34,7 +34,7 @@ export async function GET() {
     }),
     prisma.pointsLedger.findMany({
       where: { userId },
-      select: { points: true, note: true, createdAt: true },
+      select: { points: true, note: true, awardedAt: true },
     }),
     // Discord NextAuth Account row (sign-in credential).
     // access_token and refresh_token are omitted — they are API credentials, not personal data.
