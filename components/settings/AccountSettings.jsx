@@ -374,6 +374,7 @@ export function AccountSettings() {
   // Show email confirmation nudge when: loaded, not confirmed, not dismissed by user.
   const showConfirmNudge = accounts && !accounts.leet9Confirmed && !confirmNudgeDismissed;
 
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {banner && (
@@ -400,6 +401,7 @@ export function AccountSettings() {
           onDismiss={dismissConfirmNudge}
         />
       )}
+
 
       <div style={{ fontSize: 11, fontWeight: 700, color: T.textMut, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4, fontFamily: "'JetBrains Mono', monospace" }}>
         Sign-in methods
