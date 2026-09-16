@@ -13,7 +13,7 @@ export async function GET(request) {
   try {
     await prisma.user.update({
       where: { email },
-      data: { emailVerified: new Date() },
+      data: { emailVerified: new Date(), leet9Confirmed: true },
     });
   } catch (e) {
     if (e.code === "P2025") return apiError("USER_NOT_FOUND", "No account found for this email.", 404);
