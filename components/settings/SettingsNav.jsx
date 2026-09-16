@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { label: "Platform Hub", href: "/app/settings/platforms" },
+  { label: "Account", href: "/app/settings/account" },
   { label: "Privacy & Data", href: "/app/settings/privacy" },
 ];
 
