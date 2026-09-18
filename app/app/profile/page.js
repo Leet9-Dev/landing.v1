@@ -7,6 +7,8 @@ import { ProfileOverview } from "@/components/profile/ProfileOverview";
 import { ProfileGames } from "@/components/profile/ProfileGames";
 import { ProfileTribe } from "@/components/profile/ProfileTribe";
 import { PlatformSources } from "@/components/profile/PlatformSources";
+import { NextRewards } from "@/components/profile/NextRewards";
+import { EarnGuide } from "@/components/profile/EarnGuide";
 
 function NoPlatformsBanner({ onConnect }) {
   return (
@@ -151,12 +153,17 @@ export default function ProfilePage() {
         <NoGamesBanner onSync={() => router.push("/app/settings/platforms")} />
       )}
 
+      {activeTab !== "earn" && (
+        <NextRewards onSeeAll={() => setActiveTab("earn")} />
+      )}
+
       <ProfileTabs active={activeTab} onChange={setActiveTab} />
 
       {activeTab === "overview" && <ProfileOverview />}
       {activeTab === "games" && <ProfileGames />}
       {activeTab === "tribe" && <ProfileTribe />}
       {activeTab === "connect" && <Suspense><PlatformSources /></Suspense>}
+      {activeTab === "earn" && <EarnGuide isOwn={true} />}
     </div>
   );
 }
