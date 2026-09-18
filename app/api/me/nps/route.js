@@ -29,12 +29,13 @@ export async function GET() {
     return apiOk({ eligible: false, reason: "already_answered" });
   }
 
-  // Count active sessions as a proxy for recent logins (one session = one login).
-  const activeSessions = await prisma.session.count({
-    where: { userId, expires: { gte: now } },
+  // Require at least 2 logins in the last 60 days (sessions created, not currently active).
+  const since60Days = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+  const recentLogins = await prisma.session.count({
+    where: { userId, createdAt: { gte: since60Days } },
   });
 
-  if (activeSessions < 2) {
+  if (recentLogins < 2) {
     return apiOk({ eligible: false, reason: "not_enough_logins" });
   }
 
