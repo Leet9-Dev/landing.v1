@@ -11,7 +11,6 @@ const PLATFORMS = [
   { id: "psn", label: "PlayStation", icon: "🕹", color: "#c8aaff", desc: "PS4 & PS5 trophies" },
   { id: "xbox", label: "Xbox", icon: "🟩", color: "#90d890", desc: "Xbox & Game Pass" },
   { id: "gog", label: "GOG", icon: "📚", color: "#9fc8f5", desc: "DRM-free library" },
-  { id: "epic", label: "Epic Games", icon: "⚡", color: "#d4d4d4", desc: "Epic exclusives" },
 ];
 
 export function OnboardingWizard({ userId }) {

@@ -21,7 +21,7 @@ function relativeTime(date) {
   return new Date(date).toLocaleDateString();
 }
 
-const GAME_PLATFORMS = ["steam", "psn", "xbox", "epic"];
+const GAME_PLATFORMS = ["steam", "psn", "xbox"];
 
 export async function GET() {
   const { session, unauthenticated } = await requireSession();

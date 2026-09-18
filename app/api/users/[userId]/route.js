@@ -41,7 +41,7 @@ export async function GET(request, { params }) {
   const level = computeLevel(l9Points);
   const rankInfo = computeRankInfo(l9Points);
 
-  const GAME_PLATFORMS = ["steam", "psn", "xbox", "epic"];
+  const GAME_PLATFORMS = ["steam", "psn", "xbox"];
   const platforms = [...new Set(
     platformRows.map((r) => r.provider).filter((p) => GAME_PLATFORMS.includes(p))
   )];

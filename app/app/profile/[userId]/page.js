@@ -2,8 +2,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-const PLATFORM_COLORS = { steam: "#b9d8f5", psn: "#c8aaff", xbox: "#7bcb80", epic: "#d4c4ff" };
-const PLATFORM_LABELS = { steam: "Steam", psn: "PSN", xbox: "Xbox", epic: "Epic" };
+const PLATFORM_COLORS = { steam: "#b9d8f5", psn: "#c8aaff", xbox: "#7bcb80" };
+const PLATFORM_LABELS = { steam: "Steam", psn: "PSN", xbox: "Xbox" };
 
 function getRankColor(rankTier) {
   if (!rankTier) return "#C8FF00";

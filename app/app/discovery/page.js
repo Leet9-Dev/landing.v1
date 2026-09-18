@@ -15,7 +15,6 @@ const SOURCES = [
   { id: "steam", label: "Steam" },
   { id: "psn", label: "PSN" },
   { id: "gog", label: "GOG" },
-  { id: "epic", label: "Epic" },
   { id: "xbox", label: "Xbox" },
 ];
 
@@ -357,8 +356,8 @@ function GameCard({ game, onClick }) {
   );
 }
 
-const PLATFORM_LABEL = { steam: "STEAM", psn: "PSN", gog: "GOG", epic: "EPIC", xbox: "XBOX" };
-const PLATFORM_COLOR = { steam: "#b9d8f5", psn: "#c8aaff", gog: "#9fc8f5", epic: "#d4d4d4", xbox: "#90d890" };
+const PLATFORM_LABEL = { steam: "STEAM", psn: "PSN", gog: "GOG", xbox: "XBOX" };
+const PLATFORM_COLOR = { steam: "#b9d8f5", psn: "#c8aaff", gog: "#9fc8f5", xbox: "#90d890" };
 
 function PlatformBadge({ platform }) {
   return (
