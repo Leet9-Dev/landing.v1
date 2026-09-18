@@ -172,6 +172,30 @@ export async function POST(request) {
   let { provider, externalUserId, username, displayName } = parsed.value;
   const platform = getPlatform(provider);
 
+  // When RIOT_API_KEY is present, verify the Riot ID exists and resolve the PUUID.
+  if (provider === "riot" && process.env.RIOT_API_KEY) {
+    const [gameName, tagLine] = externalUserId.split("#");
+    const riotRegion = process.env.RIOT_REGION || "europe";
+    try {
+      const res = await fetch(
+        `https://${riotRegion}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
+        { headers: { "X-Riot-Token": process.env.RIOT_API_KEY } }
+      );
+      if (res.status === 404) {
+        return apiError("RIOT_ACCOUNT_NOT_FOUND", "No Riot account found for that Riot ID. Double-check the ID and tag.", 404);
+      }
+      if (!res.ok) {
+        return apiError("RIOT_API_ERROR", "Could not reach Riot API. Try again shortly.", 502);
+      }
+      const { puuid } = await res.json();
+      // Store PUUID in metadata for sync use.
+      // connectedFields.metadata is set below — we'll inject the puuid there.
+      Object.assign(parsed.value, { _riotPuuid: puuid });
+    } catch {
+      return apiError("RIOT_API_ERROR", "Could not reach Riot API. Try again shortly.", 502);
+    }
+  }
+
   // When STEAM_API_KEY is present, validate the steamid64 against the real
   // Steam API and pull the persona name so we store an accurate display name.
   if (provider === "steam" && hasSteamApiKey()) {
@@ -200,10 +224,9 @@ export async function POST(request) {
     disconnectedAt: null,
     needsReauthAt: null,
     capabilities: platform?.capabilities ?? undefined,
-    metadata: {
-      connectedVia: "manual_identity",
-      note: "Identity record only. No platform API auth or library sync performed.",
-    },
+    metadata: provider === "riot" && parsed.value._riotPuuid
+      ? { connectedVia: "manual_identity", puuid: parsed.value._riotPuuid }
+      : { connectedVia: "manual_identity", note: "Identity record only. No platform API auth or library sync performed." },
   };
 
   const row = await prisma.platformAccount.upsert({
