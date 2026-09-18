@@ -196,6 +196,42 @@ export async function POST(request) {
     }
   }
 
+  // When XBOX_API_KEY is present, validate the Gamertag via OpenXBL and
+  // fetch the XUID so we store an accurate identifier.
+  if (provider === "xbox" && process.env.XBOX_API_KEY) {
+    try {
+      const res = await fetch(
+        `https://xbl.io/api/v2/friends/search?gt=${encodeURIComponent(externalUserId)}`,
+        {
+          headers: {
+            "x-authorization": process.env.XBOX_API_KEY,
+            "Accept-Language": "en-US",
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (res.status === 404) {
+        return apiError("XBOX_ACCOUNT_NOT_FOUND", "No Xbox account found for that Gamertag. Double-check the spelling.", 404);
+      }
+      if (!res.ok) {
+        return apiError("XBOX_API_ERROR", "Could not reach Xbox API. Try again shortly.", 502);
+      }
+      const data = await res.json();
+      const profile = data.profileUsers?.[0];
+      if (!profile) {
+        return apiError("XBOX_ACCOUNT_NOT_FOUND", "No Xbox account found for that Gamertag. Double-check the spelling.", 404);
+      }
+      const resolvedGamertag = profile.settings?.find((s) => s.id === "Gamertag")?.value ?? externalUserId;
+      const xuid = profile.id ?? null;
+      Object.assign(parsed.value, { _xuid: xuid, _resolvedGamertag: resolvedGamertag });
+      externalUserId = resolvedGamertag;
+      username = resolvedGamertag;
+      displayName = resolvedGamertag;
+    } catch {
+      return apiError("XBOX_API_ERROR", "Could not reach Xbox API. Try again shortly.", 502);
+    }
+  }
+
   // When STEAM_API_KEY is present, validate the steamid64 against the real
   // Steam API and pull the persona name so we store an accurate display name.
   if (provider === "steam" && hasSteamApiKey()) {
@@ -226,6 +262,8 @@ export async function POST(request) {
     capabilities: platform?.capabilities ?? undefined,
     metadata: provider === "riot" && parsed.value._riotPuuid
       ? { connectedVia: "manual_identity", puuid: parsed.value._riotPuuid }
+      : provider === "xbox" && parsed.value._xuid
+      ? { connectedVia: "manual_identity", xuid: parsed.value._xuid }
       : { connectedVia: "manual_identity", note: "Identity record only. No platform API auth or library sync performed." },
   };
 

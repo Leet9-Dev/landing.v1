@@ -371,7 +371,16 @@ function ActivePlatformCard({ provider, value, onChange, onConnect, onDisconnect
         ) : isDiscord ? (
           <DiscordOAuthButton wasConnected={wasConnected} accentColor={provider.accentColor} />
         ) : isXbox ? (
-          <OAuthButton platform="xbox" label="Xbox" connectPath="/api/integrations/xbox/connect" wasConnected={wasConnected} accentColor={provider.accentColor} description="Sign in with your Microsoft account to link your Xbox Gamertag. No password stored." />
+          <ConnectForm
+            hint={hint}
+            value={value}
+            onChange={onChange}
+            onConnect={onConnect}
+            busy={busy}
+            wasConnected={wasConnected}
+            label={provider.label}
+            accentColor={provider.accentColor}
+          />
         ) : isRiot ? (
           <ConnectForm
             hint={hint}
