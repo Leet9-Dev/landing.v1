@@ -59,7 +59,7 @@ function ActionRow({ action }) {
 
 function FamilyCard({ family, isOwn }) {
   const [open, setOpen] = useState(false);
-  const { brandedName, label, description, actions, progress } = family;
+  const { brandedName, label, description, actions, progress, comingSoon } = family;
 
   const unlockedSet = new Set(
     isOwn && progress
@@ -103,8 +103,20 @@ function FamilyCard({ family, isOwn }) {
           </div>
         </div>
 
+        {/* Coming Soon badge */}
+        {comingSoon && (
+          <span style={{
+            fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 5,
+            background: "rgba(255,255,255,0.05)", color: "rgba(241,243,249,0.35)",
+            border: "1px solid rgba(255,255,255,0.1)", letterSpacing: "0.05em",
+            flexShrink: 0,
+          }}>
+            🔒 Coming Soon
+          </span>
+        )}
+
         {/* Progress info (own profile only) */}
-        {isOwn && progress && !allUnlocked && (
+        {!comingSoon && isOwn && progress && !allUnlocked && (
           <div style={{ textAlign: "right", flexShrink: 0 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: TIER_COLORS[progress.nextTier] ?? "#C8FF00" }}>
               {TIER_LABELS[progress.nextTier]} · {progress.progressPct}%
@@ -114,7 +126,7 @@ function FamilyCard({ family, isOwn }) {
             </div>
           </div>
         )}
-        {isOwn && allUnlocked && (
+        {!comingSoon && isOwn && allUnlocked && (
           <span style={{ fontSize: 11, fontWeight: 800, color: TIER_COLORS.gold, flexShrink: 0 }}>
             ✓ Max Tier
           </span>
@@ -140,7 +152,7 @@ function FamilyCard({ family, isOwn }) {
       </button>
 
       {/* Progress bar (own profile only) */}
-      {isOwn && progress && !allUnlocked && (
+      {!comingSoon && isOwn && progress && !allUnlocked && (
         <div style={{ height: 3, background: "rgba(255,255,255,0.05)", margin: "0 20px" }}>
           <div style={{
             height: "100%",
