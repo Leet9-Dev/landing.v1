@@ -373,7 +373,16 @@ function ActivePlatformCard({ provider, value, onChange, onConnect, onDisconnect
         ) : isXbox ? (
           <OAuthButton platform="xbox" label="Xbox" connectPath="/api/integrations/xbox/connect" wasConnected={wasConnected} accentColor={provider.accentColor} description="Sign in with your Microsoft account to link your Xbox Gamertag. No password stored." />
         ) : isRiot ? (
-          <OAuthButton platform="riot" label="Riot" connectPath="/api/integrations/riot/connect" wasConnected={wasConnected} accentColor={provider.accentColor} description="Sign in with Riot Games to link your Riot ID. No password stored." />
+          <ConnectForm
+            hint={hint}
+            value={value}
+            onChange={onChange}
+            onConnect={onConnect}
+            busy={busy}
+            wasConnected={wasConnected}
+            label={provider.label}
+            accentColor={provider.accentColor}
+          />
         ) : isTwitch ? (
           <OAuthButton platform="twitch" label="Twitch" connectPath="/api/integrations/twitch/connect" wasConnected={wasConnected} accentColor={provider.accentColor} description="Authenticate with Twitch to link your streaming activity. No password stored." />
         ) : isBattlenet ? (
