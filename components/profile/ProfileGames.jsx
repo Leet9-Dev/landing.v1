@@ -144,8 +144,8 @@ function ProfileGameCard({ userGame, onClick }) {
   );
 }
 
-const PLATFORM_LABEL = { steam: "STEAM", psn: "PSN", gog: "GOG", epic: "EPIC", xbox: "XBOX", riot: "RIOT", discord: "DISCORD" };
-const PLATFORM_COLOR = { steam: "#b9d8f5", psn: "#c8aaff", gog: "#9fc8f5", epic: "#d4d4d4", xbox: "#90d890", riot: "#FF4655", discord: "#5865F2" };
+const PLATFORM_LABEL = { steam: "STEAM", psn: "PSN", gog: "GOG", xbox: "XBOX", riot: "RIOT", discord: "DISCORD" };
+const PLATFORM_COLOR = { steam: "#b9d8f5", psn: "#c8aaff", gog: "#9fc8f5", xbox: "#90d890", riot: "#FF4655", discord: "#5865F2" };
 
 function PlatformBadge({ platform }) {
   return (
@@ -208,7 +208,7 @@ function EmptyState({ query }) {
         No games in your profile yet
       </div>
       <div style={{ fontSize: 13, color: "rgba(241,243,249,0.25)" }}>
-        {query ? `No results for "${query}"` : "Connect a platform (Steam, GOG, Epic, Xbox) and run a sync to see your library here."}
+        {query ? `No results for "${query}"` : "Connect a platform (Steam, GOG, Xbox) and run a sync to see your library here."}
       </div>
     </div>
   );

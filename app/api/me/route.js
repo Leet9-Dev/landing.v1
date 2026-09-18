@@ -5,7 +5,7 @@ import { PLATFORM_ACCOUNT_STATUS } from "@/lib/platforms/platforms";
 import { computeLevel, computeRankInfo } from "@/lib/scoring/l9Points";
 import { revokeDiscordToken } from "@/lib/discord";
 
-const GAME_PLATFORMS = ["steam", "psn", "xbox", "epic"];
+const GAME_PLATFORMS = ["steam", "psn", "xbox"];
 
 export async function GET() {
   const { session, unauthenticated } = await requireSession();
