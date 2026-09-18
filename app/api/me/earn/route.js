@@ -121,6 +121,7 @@ export async function GET() {
     const earned = earnedByFamily[brandedName] ?? 0;
     const unlocked = unlockedByFamily[brandedName] ?? [];
     const progress = computeFamilyProgress(brandedName, earned, unlocked);
+    const comingSoon = meta.actions.length > 0 && meta.actions.every((a) => a.active === false);
 
     return {
       brandedName,
@@ -128,12 +129,13 @@ export async function GET() {
       description: meta.description,
       actions: meta.actions,
       hasBadge: !!BADGE_THRESHOLDS[brandedName],
-      progress: progress ?? null,
+      progress: comingSoon ? null : (progress ?? null),
+      comingSoon,
     };
   });
 
-  // Next rewards — only families with badges and a next tier to unlock
-  const withNextTier = families.filter((f) => f.progress && f.progress.nextTier);
+  // Next rewards — only families with badges, a next tier, and not coming soon
+  const withNextTier = families.filter((f) => f.progress && f.progress.nextTier && !f.comingSoon);
 
   const byClosest = [...withNextTier]
     .sort((a, b) => b.progress.progressPct - a.progress.progressPct)
