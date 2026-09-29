@@ -101,7 +101,7 @@ function NoGamesBanner({ onSync }) {
   );
 }
 
-function ProfileHeroSection({ onUserUpdate }) {
+function ProfileHeroSection({ onUserUpdate, onShareCard }) {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -126,7 +126,7 @@ function ProfileHeroSection({ onUserUpdate }) {
     </div>
   );
 
-  return <ProfileHero user={user} onUserUpdate={handleUpdate} />;
+  return <ProfileHero user={user} onUserUpdate={handleUpdate} onShareCard={() => onShareCard?.(user)} />;
 }
 
 export default function ProfilePage() {
@@ -148,6 +148,25 @@ export default function ProfilePage() {
     setShowShareToast(true);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setShowShareToast(false), 6000);
+  }
+
+  async function handleHeroShare(profileUser) {
+    try {
+      const res = await fetch("/api/me/rank");
+      const json = await res.json();
+      if (json.ok) {
+        triggerShareToast("rank-up", { rank: json.data.rank, delta: 0, platform: "" });
+        setShowShareToast(false);
+        setShareCardType("rank-up");
+        setShareCardData({ rank: json.data.rank, delta: 0, platform: "" });
+        setShowShareModal(true);
+        return;
+      }
+    } catch {}
+    // Fallback: open modal with tier-level info even without a numeric rank.
+    setShareCardType("rank-up");
+    setShareCardData({ rank: "?", delta: 0, platform: "" });
+    setShowShareModal(true);
   }
 
   async function handleSyncComplete({ provider, summary }) {
@@ -188,7 +207,7 @@ export default function ProfilePage() {
         }
       `}</style>
 
-      <ProfileHeroSection onUserUpdate={setUser} />
+      <ProfileHeroSection onUserUpdate={setUser} onShareCard={handleHeroShare} />
 
       {noPlatforms && (
         <NoPlatformsBanner onConnect={() => router.push("/app/settings/platforms")} />
