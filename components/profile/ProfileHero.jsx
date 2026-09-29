@@ -26,7 +26,7 @@ function getRankColor(rankTier) {
   return "#C8FF00";
 }
 
-export function ProfileHero({ user, onUserUpdate }) {
+export function ProfileHero({ user, onUserUpdate, onShareCard }) {
   const router = useRouter();
   const rankColor = getRankColor(user.rankTier);
   const platforms = user.platformsConnected || [];
@@ -247,13 +247,18 @@ export function ProfileHero({ user, onUserUpdate }) {
             >
               ✎ Edit Profile
             </button>
-            <button disabled style={{
-              fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 9,
-              border: "1px solid rgba(200,255,0,0.12)", background: "rgba(200,255,0,0.03)",
-              color: "rgba(200,255,0,0.35)", cursor: "not-allowed", fontFamily: "'Outfit', sans-serif",
-              whiteSpace: "nowrap",
-            }}>
-              Share Card · Soon
+            <button
+              onClick={onShareCard}
+              style={{
+                fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 9,
+                border: "1px solid rgba(200,255,0,0.3)", background: "rgba(200,255,0,0.07)",
+                color: "#C8FF00", cursor: "pointer", fontFamily: "'Outfit', sans-serif",
+                whiteSpace: "nowrap", transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(200,255,0,0.13)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(200,255,0,0.07)"; }}
+            >
+              Share Card
             </button>
           </div>
         </div>
