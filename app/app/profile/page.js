@@ -135,6 +135,7 @@ export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [shareCardData, setShareCardData] = useState(null);
   const [shareCardType, setShareCardType] = useState("rank-up");
+  const [shareCardUsername, setShareCardUsername] = useState(null);
   const [showShareToast, setShowShareToast] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const toastTimer = useRef(null);
@@ -151,12 +152,12 @@ export default function ProfilePage() {
   }
 
   async function handleHeroShare(profileUser) {
+    const uname = profileUser?.username || profileUser?.displayName || profileUser?.gamerTag || "Gamer";
+    setShareCardUsername(uname);
     try {
       const res = await fetch("/api/me/rank");
       const json = await res.json();
       if (json.ok) {
-        triggerShareToast("rank-up", { rank: json.data.rank, delta: 0, platform: "" });
-        setShowShareToast(false);
         setShareCardType("rank-up");
         setShareCardData({ rank: json.data.rank, delta: 0, platform: "" });
         setShowShareModal(true);
@@ -301,7 +302,7 @@ export default function ProfilePage() {
       )}
 
       {/* Share card modal */}
-      {showShareModal && shareCardData && user && (
+      {showShareModal && shareCardData && (
         <ShareCardModal
           type={shareCardType}
           cardParams={
@@ -309,7 +310,7 @@ export default function ProfilePage() {
               ? { badgeName: shareCardData.badgeName, tier: shareCardData.tier, game: shareCardData.game || "", icon: shareCardData.icon || "🏆" }
               : { rank: shareCardData.rank, delta: shareCardData.delta > 0 ? shareCardData.delta : undefined, platform: shareCardData.platform }
           }
-          username={user.username || user.displayName || "Gamer"}
+          username={shareCardUsername || user?.username || user?.displayName || "Gamer"}
           onClose={() => setShowShareModal(false)}
         />
       )}
