@@ -10,7 +10,7 @@ export async function GET(request) {
   const rank = searchParams.get("rank") || "?";
   const delta = searchParams.get("delta") || null;
   const username = searchParams.get("username") || "Gamer";
-  const platform = searchParams.get("platform") || "Steam";
+  const platform = searchParams.get("platform") || "";
 
   // Load fonts and logo in parallel.
   const [bebasFont, outfitFont, logoData] = await Promise.all([
@@ -110,7 +110,7 @@ export async function GET(request) {
             marginTop: 4,
           }}
         >
-          {`worldwide · ${platform}`}
+          {platform ? `worldwide · ${platform}` : "worldwide"}
         </div>
         {delta && (
           <div
