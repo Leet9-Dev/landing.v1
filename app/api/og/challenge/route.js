@@ -195,7 +195,7 @@ export async function GET(request) {
             {username}
           </div>
           <div style={{ fontFamily: "Outfit", fontSize: 13, color: "rgba(241,243,249,0.3)" }}>
-            leet9.com/{username}
+            {`leet9.com/${username}`}
           </div>
         </div>
         <div style={{ fontFamily: "Outfit", fontSize: 12, color: "rgba(241,243,249,0.2)", letterSpacing: "0.04em" }}>
