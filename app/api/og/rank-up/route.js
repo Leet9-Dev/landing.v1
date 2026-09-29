@@ -98,7 +98,7 @@ export async function GET(request) {
             letterSpacing: "-0.02em",
           }}
         >
-          #{rank}
+          {`#${rank}`}
         </div>
         <div
           style={{
@@ -110,7 +110,7 @@ export async function GET(request) {
             marginTop: 4,
           }}
         >
-          worldwide · {platform}
+          {`worldwide · ${platform}`}
         </div>
         {delta && (
           <div
@@ -126,7 +126,7 @@ export async function GET(request) {
               fontWeight: 700,
             }}
           >
-            ↑ {delta} places
+            {`↑ ${delta} places`}
           </div>
         )}
       </div>
@@ -151,7 +151,7 @@ export async function GET(request) {
               color: "rgba(241,243,249,0.3)",
             }}
           >
-            leet9.com/{username}
+            {`leet9.com/${username}`}
           </div>
         </div>
         <div
