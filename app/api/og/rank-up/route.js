@@ -2,7 +2,6 @@ import { ImageResponse } from "@vercel/og";
 
 export const runtime = "edge";
 
-// Cache for 1 hour — cards are tied to a specific rank snapshot, so params are unique.
 export const revalidate = 3600;
 
 export async function GET(request) {
@@ -12,7 +11,6 @@ export async function GET(request) {
   const username = searchParams.get("username") || "Gamer";
   const platform = searchParams.get("platform") || "";
 
-  // Load fonts and logo in parallel.
   const [bebasFont, outfitFont, logoData] = await Promise.all([
     fetch(new URL("/fonts/BebasNeue-Regular.ttf", request.url)).then((r) =>
       r.arrayBuffer()
@@ -42,7 +40,7 @@ export async function GET(request) {
         flexDirection: "column",
         justifyContent: "space-between",
         background: "#090A12",
-        padding: "44px 52px",
+        padding: "88px 104px",
         position: "relative",
         overflow: "hidden",
       }}
@@ -54,8 +52,8 @@ export async function GET(request) {
           top: "30%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: 480,
-          height: 320,
+          width: 960,
+          height: 640,
           background:
             "radial-gradient(ellipse, rgba(200,255,0,0.13) 0%, transparent 70%)",
           pointerEvents: "none",
@@ -65,19 +63,19 @@ export async function GET(request) {
       {/* Top row: logo + tag */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         {logoSrc ? (
-          <img src={logoSrc} width={36} height={36} style={{ objectFit: "contain" }} />
+          <img src={logoSrc} width={72} height={72} style={{ objectFit: "contain" }} />
         ) : (
-          <div style={{ width: 36, height: 36 }} />
+          <div style={{ width: 72, height: 72 }} />
         )}
         <div
           style={{
             background: "rgba(200,255,0,0.1)",
             border: "1px solid rgba(200,255,0,0.3)",
-            borderRadius: 8,
-            padding: "5px 14px",
+            borderRadius: 16,
+            padding: "10px 28px",
             color: "#C8FF00",
             fontFamily: "Outfit",
-            fontSize: 13,
+            fontSize: 26,
             fontWeight: 700,
             letterSpacing: "0.06em",
             textTransform: "uppercase",
@@ -92,7 +90,7 @@ export async function GET(request) {
         <div
           style={{
             fontFamily: "BebasNeue",
-            fontSize: 140,
+            fontSize: 280,
             color: "#F1F3F9",
             lineHeight: 1,
             letterSpacing: "-0.02em",
@@ -103,11 +101,11 @@ export async function GET(request) {
         <div
           style={{
             fontFamily: "Outfit",
-            fontSize: 16,
+            fontSize: 32,
             color: "rgba(241,243,249,0.45)",
             letterSpacing: "0.04em",
             textTransform: "uppercase",
-            marginTop: 4,
+            marginTop: 8,
           }}
         >
           {platform ? `worldwide · ${platform}` : "worldwide"}
@@ -115,14 +113,14 @@ export async function GET(request) {
         {delta && (
           <div
             style={{
-              marginTop: 16,
+              marginTop: 32,
               background: "rgba(200,255,0,0.12)",
               border: "1px solid rgba(200,255,0,0.2)",
-              borderRadius: 8,
-              padding: "6px 18px",
+              borderRadius: 16,
+              padding: "12px 36px",
               color: "#C8FF00",
               fontFamily: "Outfit",
-              fontSize: 15,
+              fontSize: 30,
               fontWeight: 700,
             }}
           >
@@ -133,11 +131,11 @@ export async function GET(request) {
 
       {/* Bottom row: username + URL */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <div
             style={{
               fontFamily: "Outfit",
-              fontSize: 18,
+              fontSize: 36,
               fontWeight: 700,
               color: "#F1F3F9",
             }}
@@ -147,7 +145,7 @@ export async function GET(request) {
           <div
             style={{
               fontFamily: "Outfit",
-              fontSize: 13,
+              fontSize: 26,
               color: "rgba(241,243,249,0.3)",
             }}
           >
@@ -157,7 +155,7 @@ export async function GET(request) {
         <div
           style={{
             fontFamily: "Outfit",
-            fontSize: 12,
+            fontSize: 24,
             color: "rgba(241,243,249,0.2)",
             letterSpacing: "0.04em",
           }}
@@ -167,8 +165,8 @@ export async function GET(request) {
       </div>
     </div>,
     {
-      width: 800,
-      height: 418,
+      width: 1600,
+      height: 836,
       fonts,
     }
   );

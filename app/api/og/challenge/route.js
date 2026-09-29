@@ -34,7 +34,7 @@ export async function GET(request) {
         flexDirection: "column",
         justifyContent: "space-between",
         background: "#090A12",
-        padding: "44px 52px",
+        padding: "88px 104px",
         position: "relative",
         overflow: "hidden",
       }}
@@ -46,8 +46,8 @@ export async function GET(request) {
           top: "38%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: 520,
-          height: 340,
+          width: 1040,
+          height: 680,
           background: "radial-gradient(ellipse, rgba(200,255,0,0.12) 0%, transparent 70%)",
           pointerEvents: "none",
         }}
@@ -56,19 +56,19 @@ export async function GET(request) {
       {/* Top row: logo + eyebrow chip */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         {logoSrc ? (
-          <img src={logoSrc} width={36} height={36} style={{ objectFit: "contain" }} />
+          <img src={logoSrc} width={72} height={72} style={{ objectFit: "contain" }} />
         ) : (
-          <div style={{ width: 36, height: 36 }} />
+          <div style={{ width: 72, height: 72 }} />
         )}
         <div
           style={{
             background: "rgba(200,255,0,0.1)",
             border: "1px solid rgba(200,255,0,0.3)",
-            borderRadius: 8,
-            padding: "5px 14px",
+            borderRadius: 16,
+            padding: "10px 28px",
             color: "#C8FF00",
             fontFamily: "Outfit",
-            fontSize: 13,
+            fontSize: 26,
             fontWeight: 700,
             letterSpacing: "0.06em",
             textTransform: "uppercase",
@@ -85,7 +85,7 @@ export async function GET(request) {
           <div
             style={{
               fontFamily: "BebasNeue",
-              fontSize: 100,
+              fontSize: 200,
               color: "#C8FF00",
               lineHeight: 1,
               letterSpacing: "-0.01em",
@@ -96,24 +96,24 @@ export async function GET(request) {
           <div
             style={{
               fontFamily: "Outfit",
-              fontSize: 15,
+              fontSize: 30,
               fontWeight: 700,
               color: "#F1F3F9",
-              marginTop: 6,
+              marginTop: 12,
             }}
           >
             {username}
           </div>
           <div
             style={{
-              marginTop: 8,
+              marginTop: 16,
               background: "rgba(200,255,0,0.12)",
               border: "1px solid rgba(200,255,0,0.25)",
-              borderRadius: 6,
-              padding: "4px 12px",
+              borderRadius: 12,
+              padding: "8px 24px",
               color: "#C8FF00",
               fontFamily: "Outfit",
-              fontSize: 12,
+              fontSize: 24,
               fontWeight: 700,
               letterSpacing: "0.05em",
               textTransform: "uppercase",
@@ -129,13 +129,13 @@ export async function GET(request) {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            padding: "0 28px",
+            padding: "0 56px",
           }}
         >
           <div
             style={{
               fontFamily: "BebasNeue",
-              fontSize: 44,
+              fontSize: 88,
               color: "rgba(241,243,249,0.2)",
               lineHeight: 1,
               letterSpacing: "0.04em",
@@ -147,13 +147,13 @@ export async function GET(request) {
             <div
               style={{
                 fontFamily: "Outfit",
-                fontSize: 11,
+                fontSize: 22,
                 color: "rgba(241,243,249,0.3)",
                 letterSpacing: "0.06em",
                 textTransform: "uppercase",
-                marginTop: 8,
+                marginTop: 16,
                 textAlign: "center",
-                maxWidth: 100,
+                maxWidth: 200,
               }}
             >
               {game}
@@ -166,7 +166,7 @@ export async function GET(request) {
           <div
             style={{
               fontFamily: "BebasNeue",
-              fontSize: 100,
+              fontSize: 200,
               color: "rgba(241,243,249,0.25)",
               lineHeight: 1,
               letterSpacing: "-0.01em",
@@ -177,10 +177,10 @@ export async function GET(request) {
           <div
             style={{
               fontFamily: "Outfit",
-              fontSize: 15,
+              fontSize: 30,
               fontWeight: 700,
               color: "rgba(241,243,249,0.5)",
-              marginTop: 6,
+              marginTop: 12,
             }}
           >
             {opponentName}
@@ -190,19 +190,19 @@ export async function GET(request) {
 
       {/* Bottom row: username + URL */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          <div style={{ fontFamily: "Outfit", fontSize: 18, fontWeight: 700, color: "#F1F3F9" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ fontFamily: "Outfit", fontSize: 36, fontWeight: 700, color: "#F1F3F9" }}>
             {username}
           </div>
-          <div style={{ fontFamily: "Outfit", fontSize: 13, color: "rgba(241,243,249,0.3)" }}>
+          <div style={{ fontFamily: "Outfit", fontSize: 26, color: "rgba(241,243,249,0.3)" }}>
             {`leet9.com/${username}`}
           </div>
         </div>
-        <div style={{ fontFamily: "Outfit", fontSize: 12, color: "rgba(241,243,249,0.2)", letterSpacing: "0.04em" }}>
+        <div style={{ fontFamily: "Outfit", fontSize: 24, color: "rgba(241,243,249,0.2)", letterSpacing: "0.04em" }}>
           LEET9.COM
         </div>
       </div>
     </div>,
-    { width: 800, height: 418, fonts }
+    { width: 1600, height: 836, fonts }
   );
 }
