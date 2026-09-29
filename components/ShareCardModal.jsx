@@ -16,6 +16,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://leet9.com";
 export function ShareCardModal({ type = "rank-up", cardParams = {}, username, onClose }) {
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const ogRoute =
     type === "badge"
@@ -24,7 +26,7 @@ export function ShareCardModal({ type = "rank-up", cardParams = {}, username, on
       ? "/api/og/challenge"
       : "/api/og/rank-up";
   const qs = new URLSearchParams({ username, ...cardParams }).toString();
-  const imageUrl = `${BASE_URL}${ogRoute}?${qs}`;
+  const imageUrl = `${ogRoute}?${qs}`;
   const shareUrl = `${BASE_URL}/app/profile?utm_source=sharecard&utm_medium=social`;
 
   const shareTitle =
@@ -109,7 +111,9 @@ export function ShareCardModal({ type = "rank-up", cardParams = {}, username, on
             borderBottom: "1px solid rgba(255,255,255,0.06)",
           }}
         >
-          <span style={{ color: "#F1F3F9", fontSize: 15, fontWeight: 700 }}>Your card</span>
+          <span style={{ color: "#F1F3F9", fontSize: 15, fontWeight: 700 }}>
+            {type === "badge" ? "Badge unlocked" : type === "challenge" ? "You won!" : "Your rank card"}
+          </span>
           <button
             onClick={onClose}
             style={{
@@ -127,14 +131,48 @@ export function ShareCardModal({ type = "rank-up", cardParams = {}, username, on
         </div>
 
         {/* Card image */}
-        <div style={{ padding: "20px 20px 0" }}>
+        <div style={{ padding: "20px 20px 0", position: "relative" }}>
+          {!imgLoaded && !imgError && (
+            <div style={{
+              width: "100%",
+              aspectRatio: "800 / 418",
+              borderRadius: 12,
+              background: "rgba(255,255,255,0.03)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              color: "rgba(241,243,249,0.25)",
+              animation: "pulse 1.4s ease infinite",
+            }}>
+              <style>{`@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}`}</style>
+              Generating card…
+            </div>
+          )}
+          {imgError && (
+            <div style={{
+              width: "100%",
+              aspectRatio: "800 / 418",
+              borderRadius: 12,
+              background: "rgba(255,255,255,0.03)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              color: "rgba(241,243,249,0.25)",
+            }}>
+              Could not load card preview
+            </div>
+          )}
           <img
             src={imageUrl}
-            alt="Share card"
+            alt=""
+            onLoad={() => setImgLoaded(true)}
+            onError={() => setImgError(true)}
             style={{
               width: "100%",
               borderRadius: 12,
-              display: "block",
+              display: imgLoaded ? "block" : "none",
               border: "1px solid rgba(255,255,255,0.06)",
             }}
           />
