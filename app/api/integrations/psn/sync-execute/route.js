@@ -1,3 +1,4 @@
+import { captureRankSnapshot } from "@/lib/scoring/rankSnapshot";
 import { requireSession } from "@/lib/api/auth";
 import { apiOk, apiError } from "@/lib/api/response";
 import { prisma } from "@/lib/prisma";
@@ -67,6 +68,8 @@ export async function POST() {
     where: { id: platformAccount.id },
     data: { syncStatus: "syncing" },
   });
+
+  const snapshotBefore = await captureRankSnapshot(prisma, userId).catch(() => null);
 
   try {
     const encryptedNpsso = platformAccount.metadata?.npsso ?? null;
@@ -234,6 +237,19 @@ export async function POST() {
 
     setCooldown(session.user.id);
 
+    const snapshotAfter = await captureRankSnapshot(prisma, userId).catch(() => null);
+    if (snapshotBefore && snapshotAfter) {
+      await prisma.platformSyncRun.update({
+        where: { id: syncRun.id },
+        data: {
+          l9PointsBefore: snapshotBefore.l9Points,
+          l9PointsAfter: snapshotAfter.l9Points,
+          rankBefore: snapshotBefore.rank,
+          rankAfter: snapshotAfter.rank,
+        },
+      }).catch(() => {});
+    }
+
     const warnings = encryptedNpsso
       ? []
       : ["No NPSSO token stored — fixture data was used. Reconnect your PSN account with your NPSSO token for live sync."];
@@ -248,6 +264,10 @@ export async function POST() {
         userGamesCreated,
         userGamesUpdated,
         trophiesDetected: totalTrophies,
+        rankBefore: snapshotBefore?.rank ?? null,
+        rankAfter: snapshotAfter?.rank ?? null,
+        l9PointsBefore: snapshotBefore?.l9Points ?? null,
+        l9PointsAfter: snapshotAfter?.l9Points ?? null,
       },
       warnings,
     });

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { ProfileHero } from "@/components/profile/ProfileHero";
 import { ProfileTabs } from "@/components/profile/ProfileTabs";
@@ -9,6 +9,7 @@ import { ProfileTribe } from "@/components/profile/ProfileTribe";
 import { PlatformSources } from "@/components/profile/PlatformSources";
 import { NextRewards } from "@/components/profile/NextRewards";
 import { EarnGuide } from "@/components/profile/EarnGuide";
+import { ShareCardModal } from "@/components/ShareCardModal";
 
 function NoPlatformsBanner({ onConnect }) {
   return (
@@ -132,15 +133,34 @@ export default function ProfilePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
   const [user, setUser] = useState(null);
+  const [shareCardData, setShareCardData] = useState(null);
+  const [showShareToast, setShowShareToast] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const toastTimer = useRef(null);
 
   const noPlatforms = user && user.platformsConnected?.length === 0;
   const noGames = user && user.platformsConnected?.length > 0 && user.gamesCount === 0;
+
+  function handleSyncComplete({ provider, summary }) {
+    setShareCardData({
+      rank: summary.rankAfter,
+      delta: summary.rankBefore - summary.rankAfter,
+      platform: provider,
+    });
+    setShowShareToast(true);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setShowShareToast(false), 6000);
+  }
 
   return (
     <div className="l9-profile-page" style={{ padding: "36px 32px", fontFamily: "'Outfit', sans-serif" }}>
       <style>{`
         @media (max-width: 639px) {
           .l9-profile-page { padding: 20px 16px !important; }
+        }
+        @keyframes l9-toast-in {
+          from { opacity: 0; transform: translateY(16px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0)   scale(1); }
         }
       `}</style>
 
@@ -162,8 +182,92 @@ export default function ProfilePage() {
       {activeTab === "overview" && <ProfileOverview />}
       {activeTab === "games" && <ProfileGames />}
       {activeTab === "tribe" && <ProfileTribe />}
-      {activeTab === "connect" && <Suspense><PlatformSources /></Suspense>}
+      {activeTab === "connect" && (
+        <Suspense>
+          <PlatformSources onSyncComplete={handleSyncComplete} />
+        </Suspense>
+      )}
       {activeTab === "earn" && <EarnGuide isOwn={true} />}
+
+      {/* Rank-up toast */}
+      {showShareToast && shareCardData && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 28,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 900,
+            background: "#0D0F1A",
+            border: "1px solid rgba(200,255,0,0.35)",
+            borderRadius: 14,
+            padding: "14px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.55)",
+            animation: "l9-toast-in 0.28s ease",
+            maxWidth: "calc(100vw - 32px)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <span style={{ fontSize: 14, fontWeight: 800, color: "#F1F3F9", letterSpacing: "-0.01em" }}>
+              You climbed to #{shareCardData.rank}! ↑{shareCardData.delta}
+            </span>
+            <span style={{ fontSize: 12, color: "rgba(241,243,249,0.45)" }}>
+              Share your rank with your crew
+            </span>
+          </div>
+          <button
+            onClick={() => { setShowShareToast(false); setShowShareModal(true); }}
+            style={{
+              padding: "9px 18px",
+              borderRadius: 9,
+              border: "none",
+              background: "#C8FF00",
+              color: "#07080F",
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: 13,
+              fontWeight: 800,
+              cursor: "pointer",
+              letterSpacing: "-0.01em",
+              flexShrink: 0,
+            }}
+          >
+            Share →
+          </button>
+          <button
+            onClick={() => setShowShareToast(false)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "rgba(241,243,249,0.35)",
+              fontSize: 18,
+              cursor: "pointer",
+              padding: "0 2px",
+              lineHeight: 1,
+              flexShrink: 0,
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Share card modal */}
+      {showShareModal && shareCardData && user && (
+        <ShareCardModal
+          type="rank-up"
+          cardParams={{
+            rank: shareCardData.rank,
+            delta: shareCardData.delta > 0 ? shareCardData.delta : undefined,
+            platform: shareCardData.platform,
+          }}
+          username={user.username || user.displayName || "Gamer"}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </div>
   );
 }

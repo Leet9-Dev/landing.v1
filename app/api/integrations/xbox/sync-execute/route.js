@@ -7,6 +7,7 @@ import { matchDetectedGameToCanonical } from "@/lib/platforms/canonicalMatching"
 import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
 import { batchMatchToIgdb } from "@/lib/integrations/igdb/igdbMatcher";
 import { emitGameAddedEvent } from "@/lib/gamification/engine";
+import { captureRankSnapshot } from "@/lib/scoring/rankSnapshot";
 
 const syncCooldowns = new Map();
 const COOLDOWN_MS = 5 * 60 * 1000;
@@ -41,6 +42,8 @@ export async function POST() {
     where: { id: platformAccount.id },
     data: { syncStatus: "syncing" },
   });
+
+  const snapshotBefore = await captureRankSnapshot(prisma, userId).catch(() => null);
 
   try {
     // Falls back to fixture data when XBOX_API_KEY is not set.
@@ -99,7 +102,12 @@ export async function POST() {
 
     syncCooldowns.set(session.user.id, Date.now());
 
-    return apiOk({ mode: "execute", provider: "xbox", summary: { rawGamesDetected: rawGames.length, matchedCanonicalGames: matchedCount, unmatchedGames: unmatchedCount, userGamesCreated, userGamesUpdated } });
+    const snapshotAfter = await captureRankSnapshot(prisma, userId).catch(() => null);
+    if (snapshotBefore && snapshotAfter) {
+      await prisma.platformSyncRun.update({ where: { id: syncRun.id }, data: { l9PointsBefore: snapshotBefore.l9Points, l9PointsAfter: snapshotAfter.l9Points, rankBefore: snapshotBefore.rank, rankAfter: snapshotAfter.rank } }).catch(() => {});
+    }
+
+    return apiOk({ mode: "execute", provider: "xbox", summary: { rawGamesDetected: rawGames.length, matchedCanonicalGames: matchedCount, unmatchedGames: unmatchedCount, userGamesCreated, userGamesUpdated, rankBefore: snapshotBefore?.rank ?? null, rankAfter: snapshotAfter?.rank ?? null, l9PointsBefore: snapshotBefore?.l9Points ?? null, l9PointsAfter: snapshotAfter?.l9Points ?? null } });
   } catch (error) {
     await prisma.platformSyncRun.update({ where: { id: syncRun.id }, data: { status: "failed", finishedAt: new Date(), errorMessage: error.message } }).catch(() => {});
     await prisma.platformAccount.update({ where: { id: platformAccount.id }, data: { syncStatus: "failed" } }).catch(() => {});
