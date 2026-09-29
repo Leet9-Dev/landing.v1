@@ -134,6 +134,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [user, setUser] = useState(null);
   const [shareCardData, setShareCardData] = useState(null);
+  const [shareCardType, setShareCardType] = useState("rank-up");
   const [showShareToast, setShowShareToast] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const toastTimer = useRef(null);
@@ -141,15 +142,38 @@ export default function ProfilePage() {
   const noPlatforms = user && user.platformsConnected?.length === 0;
   const noGames = user && user.platformsConnected?.length > 0 && user.gamesCount === 0;
 
-  function handleSyncComplete({ provider, summary }) {
-    setShareCardData({
-      rank: summary.rankAfter,
-      delta: summary.rankBefore - summary.rankAfter,
-      platform: provider,
-    });
+  function triggerShareToast(type, data) {
+    setShareCardType(type);
+    setShareCardData(data);
     setShowShareToast(true);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setShowShareToast(false), 6000);
+  }
+
+  async function handleSyncComplete({ provider, summary }) {
+    // Rank-up toast takes priority if rank improved.
+    if (summary.rankAfter != null && summary.rankBefore != null && summary.rankAfter < summary.rankBefore) {
+      triggerShareToast("rank-up", {
+        rank: summary.rankAfter,
+        delta: summary.rankBefore - summary.rankAfter,
+        platform: provider,
+      });
+      return;
+    }
+    // Otherwise check for newly unlocked badges.
+    try {
+      const res = await fetch("/api/me/badges/recent");
+      const json = await res.json();
+      if (json.ok && json.data.badges.length > 0) {
+        const badge = json.data.badges[0];
+        triggerShareToast("badge", {
+          badgeName: badge.brandedName,
+          tier: badge.tier,
+          game: "",
+          icon: "🏆",
+        });
+      }
+    } catch {}
   }
 
   return (
@@ -213,10 +237,12 @@ export default function ProfilePage() {
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <span style={{ fontSize: 14, fontWeight: 800, color: "#F1F3F9", letterSpacing: "-0.01em" }}>
-              You climbed to #{shareCardData.rank}! ↑{shareCardData.delta}
+              {shareCardType === "badge"
+                ? `Badge unlocked: ${shareCardData.badgeName} ${shareCardData.tier}`
+                : `You climbed to #${shareCardData.rank}! ↑${shareCardData.delta}`}
             </span>
             <span style={{ fontSize: 12, color: "rgba(241,243,249,0.45)" }}>
-              Share your rank with your crew
+              {shareCardType === "badge" ? "Share your new badge" : "Share your rank with your crew"}
             </span>
           </div>
           <button
@@ -258,12 +284,12 @@ export default function ProfilePage() {
       {/* Share card modal */}
       {showShareModal && shareCardData && user && (
         <ShareCardModal
-          type="rank-up"
-          cardParams={{
-            rank: shareCardData.rank,
-            delta: shareCardData.delta > 0 ? shareCardData.delta : undefined,
-            platform: shareCardData.platform,
-          }}
+          type={shareCardType}
+          cardParams={
+            shareCardType === "badge"
+              ? { badgeName: shareCardData.badgeName, tier: shareCardData.tier, game: shareCardData.game || "", icon: shareCardData.icon || "🏆" }
+              : { rank: shareCardData.rank, delta: shareCardData.delta > 0 ? shareCardData.delta : undefined, platform: shareCardData.platform }
+          }
           username={user.username || user.displayName || "Gamer"}
           onClose={() => setShowShareModal(false)}
         />
