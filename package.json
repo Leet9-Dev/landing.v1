@@ -19,6 +19,7 @@
     "@upstash/redis": "^1.38.2",
     "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.6.1",
+    "@vercel/og": "^1.0.3",
     "bcryptjs": "^3.0.3",
     "next": "16.2.9",
     "next-auth": "^4.24.14",

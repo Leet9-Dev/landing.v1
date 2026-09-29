@@ -8,6 +8,7 @@ import { MOCK_EXTERNAL_SOURCES } from "@/lib/mock/gameExternalSources";
 import { batchMatchToIgdb } from "@/lib/integrations/igdb/igdbMatcher";
 import { emitGameAddedEvent, emitAchievementUnlockedEvent } from "@/lib/gamification/engine";
 import { awardHeritageXp, hasHeritageXp } from "@/lib/gamification/heritageEngine";
+import { captureRankSnapshot } from "@/lib/scoring/rankSnapshot";
 
 // Steam library execute sync (Phase 17).
 //
@@ -79,6 +80,9 @@ export async function POST() {
     where: { id: platformAccount.id },
     data: { syncStatus: "syncing" },
   });
+
+  // Snapshot rank before sync for share card delta.
+  const snapshotBefore = await captureRankSnapshot(prisma, userId).catch(() => null);
 
   try {
     // 1. Fetch raw Steam library.
@@ -230,6 +234,20 @@ export async function POST() {
 
     setCooldown(session.user.id);
 
+    // Snapshot rank after sync for share card delta.
+    const snapshotAfter = await captureRankSnapshot(prisma, userId).catch(() => null);
+    if (snapshotBefore && snapshotAfter) {
+      await prisma.platformSyncRun.update({
+        where: { id: syncRun.id },
+        data: {
+          l9PointsBefore: snapshotBefore.l9Points,
+          l9PointsAfter: snapshotAfter.l9Points,
+          rankBefore: snapshotBefore.rank,
+          rankAfter: snapshotAfter.rank,
+        },
+      }).catch(() => {});
+    }
+
     return apiOk({
       mode: "execute",
       provider: "steam",
@@ -240,6 +258,10 @@ export async function POST() {
         userGamesCreated,
         userGamesUpdated,
         achievementsUnlocked: achievementsAdded,
+        rankBefore: snapshotBefore?.rank ?? null,
+        rankAfter: snapshotAfter?.rank ?? null,
+        l9PointsBefore: snapshotBefore?.l9Points ?? null,
+        l9PointsAfter: snapshotAfter?.l9Points ?? null,
       },
     });
   } catch (error) {

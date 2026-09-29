@@ -37,7 +37,7 @@ const DISCORD_ERROR_MESSAGES = {
   db_failed:            "A server error occurred. Please try again.",
 };
 
-export function PlatformSources() {
+export function PlatformSources({ onSyncComplete }) {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [errored, setErrored] = useState(false);
@@ -122,6 +122,10 @@ export function PlatformSources() {
         const achievementPart = provider === "steam"  && s.achievementsUnlocked > 0 ? `, ${s.achievementsUnlocked} achievements` : "";
         setNotice({ tone: "success", text: `Sync complete — ${s.rawGamesDetected} games detected, ${s.matchedCanonicalGames} matched${trophyPart}${achievementPart}.` });
         await load();
+        // Notify parent if rank improved.
+        if (onSyncComplete && s.rankAfter != null && s.rankBefore != null && s.rankAfter < s.rankBefore) {
+          onSyncComplete({ provider, summary: s });
+        }
       } else {
         const code = json.error?.code;
         if (code === "SYNC_COOLDOWN")      setNotice({ tone: "error", text: json.error.message });
