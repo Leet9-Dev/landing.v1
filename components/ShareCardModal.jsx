@@ -24,7 +24,7 @@ export function ShareCardModal({ type = "rank-up", cardParams = {}, username, on
       ? "/api/og/challenge"
       : "/api/og/rank-up";
   const qs = new URLSearchParams({ username, ...cardParams }).toString();
-  const imageUrl = `${BASE_URL}${ogRoute}?${qs}`;
+  const imageUrl = `${ogRoute}?${qs}`;
   const shareUrl = `${BASE_URL}/app/profile?utm_source=sharecard&utm_medium=social`;
 
   const shareTitle =
