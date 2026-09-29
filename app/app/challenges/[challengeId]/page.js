@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { ShareCardModal } from "@/components/ShareCardModal";
 
 function Avatar({ src, name, size = 56 }) {
   return src
@@ -60,6 +61,7 @@ export default function ChallengePage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [responding, setResponding] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
     fetch(`/api/challenges/${challengeId}`)
@@ -215,12 +217,33 @@ export default function ChallengePage() {
             <StatBar label="Trophies" myValue={myStats.trophies} theirValue={theirStats.trophies} myName={me.name} theirName={them.name} />
           )}
           {winner ? (
-            <div style={{ marginTop: 16, textAlign: "center", fontSize: 14, fontWeight: 800, color: "#C8FF00" }}>
-              {winner === me.id ? "🏆 You win this round!" : `🏆 ${them.name} wins this round`}
+            <div style={{ marginTop: 16, textAlign: "center" }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#C8FF00", marginBottom: winner === me.id ? 12 : 0 }}>
+                {winner === me.id ? "🏆 You win this round!" : `🏆 ${them.name} wins this round`}
+              </div>
+              {winner === me.id && (
+                <button
+                  onClick={() => setShowShareModal(true)}
+                  style={{
+                    padding: "10px 22px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: "#C8FF00",
+                    color: "#07080F",
+                    fontFamily: "'Outfit', sans-serif",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  Share your win →
+                </button>
+              )}
             </div>
           ) : (
             <div style={{ marginTop: 16, textAlign: "center", fontSize: 13, color: "rgba(241,243,249,0.4)" }}>
-              It's a tie!
+              It&apos;s a tie!
             </div>
           )}
         </div>
@@ -260,6 +283,24 @@ export default function ChallengePage() {
         <div style={{ textAlign: "center", fontSize: 13, color: "rgba(241,243,249,0.35)", padding: 20 }}>
           Waiting for {them.name} to respond…
         </div>
+      )}
+
+      {showShareModal && (
+        <ShareCardModal
+          type="challenge"
+          cardParams={{
+            opponentName: them.name,
+            userScore: String(
+              (myRole === "challenger" ? challenger.stats?.hours : challenged.stats?.hours) || 0
+            ),
+            opponentScore: String(
+              (myRole === "challenger" ? challenged.stats?.hours : challenger.stats?.hours) || 0
+            ),
+            game: gameName || "",
+          }}
+          username={me.name || "Gamer"}
+          onClose={() => setShowShareModal(false)}
+        />
       )}
     </div>
   );

@@ -1,6 +1,4 @@
 import { ImageResponse } from "@vercel/og";
-import { readFile } from "fs/promises";
-import { join } from "path";
 
 export const runtime = "edge";
 

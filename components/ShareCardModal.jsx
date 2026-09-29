@@ -17,19 +17,28 @@ export function ShareCardModal({ type = "rank-up", cardParams = {}, username, on
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
-  const ogRoute = type === "rank-up" ? "/api/og/rank-up" : "/api/og/rank-up";
+  const ogRoute =
+    type === "badge"
+      ? "/api/og/badge"
+      : type === "challenge"
+      ? "/api/og/challenge"
+      : "/api/og/rank-up";
   const qs = new URLSearchParams({ username, ...cardParams }).toString();
   const imageUrl = `${BASE_URL}${ogRoute}?${qs}`;
   const shareUrl = `${BASE_URL}/app/profile?utm_source=sharecard&utm_medium=social`;
 
   const shareTitle =
-    type === "rank-up"
-      ? `I just hit #${cardParams.rank} globally on Leet9!`
-      : "Check my Leet9 stats!";
+    type === "badge"
+      ? `I just unlocked the ${cardParams.badgeName} badge on Leet9!`
+      : type === "challenge"
+      ? `I beat ${cardParams.opponentName} on Leet9!`
+      : `I just hit #${cardParams.rank} globally on Leet9!`;
   const shareText =
-    type === "rank-up"
-      ? `I just climbed to #${cardParams.rank} globally on Leet9${cardParams.delta ? `, up ${cardParams.delta} places` : ""}. Come compete. 🎮`
-      : "Track your gaming stats on Leet9.";
+    type === "badge"
+      ? `I just unlocked the ${cardParams.badgeName} ${cardParams.tier} badge${cardParams.game ? ` in ${cardParams.game}` : ""} on Leet9. Come compete. 🎮`
+      : type === "challenge"
+      ? `I beat ${cardParams.opponentName} ${cardParams.userScore}–${cardParams.opponentScore}${cardParams.game ? ` in ${cardParams.game}` : ""} on Leet9. Challenge accepted? 🎮`
+      : `I just climbed to #${cardParams.rank} globally on Leet9${cardParams.delta ? `, up ${cardParams.delta} places` : ""}. Come compete. 🎮`;
 
   async function handleShare() {
     if (typeof navigator !== "undefined" && navigator.share) {
@@ -150,7 +159,13 @@ export function ShareCardModal({ type = "rank-up", cardParams = {}, username, on
               letterSpacing: "-0.01em",
             }}
           >
-            {copied ? "Copied to clipboard ✓" : "Share your rank →"}
+            {copied
+              ? "Copied to clipboard ✓"
+              : type === "badge"
+              ? "Share your badge →"
+              : type === "challenge"
+              ? "Share your win →"
+              : "Share your rank →"}
           </button>
 
           {/* Secondary: Download */}
