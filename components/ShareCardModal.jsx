@@ -37,10 +37,10 @@ export function ShareCardModal({ type = "rank-up", cardParams = {}, username, on
       : `I just hit #${cardParams.rank} globally on Leet9!`;
   const shareText =
     type === "badge"
-      ? `I just unlocked the ${cardParams.badgeName} ${cardParams.tier} badge${cardParams.game ? ` in ${cardParams.game}` : ""} on Leet9. Come compete. 🎮`
+      ? `I just unlocked the ${cardParams.badgeName} ${cardParams.tier} badge${cardParams.game ? ` in ${cardParams.game}` : ""} on Leet9. Join and challenge me. 🎮`
       : type === "challenge"
-      ? `I beat ${cardParams.opponentName} ${cardParams.userScore}–${cardParams.opponentScore}${cardParams.game ? ` in ${cardParams.game}` : ""} on Leet9. Challenge accepted? 🎮`
-      : `I just climbed to #${cardParams.rank} globally on Leet9${cardParams.delta ? `, up ${cardParams.delta} places` : ""}. Come compete. 🎮`;
+      ? `I beat ${cardParams.opponentName} ${cardParams.userScore}–${cardParams.opponentScore}${cardParams.game ? ` in ${cardParams.game}` : ""} on Leet9. Join and challenge me. 🎮`
+      : `I just climbed to #${cardParams.rank} globally on Leet9${cardParams.delta ? `, up ${cardParams.delta} places` : ""}. Join and challenge me. 🎮`;
 
   async function handleShare() {
     if (typeof navigator !== "undefined" && navigator.share) {
